@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [2.1.1] - 2026-03-12
+
+### Fixed
+- **PostToolUse hook format** in `.claude/settings.json` — migrated from flat `command` field to nested `hooks` array structure per current Claude Code schema
+
+---
+
 ## [2.1.0] - 2026-03-10
 
 ### Added

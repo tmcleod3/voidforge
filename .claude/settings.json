@@ -27,7 +27,12 @@
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
-        "command": "# Quality gate: uncomment the checks relevant to your stack\n# npx tsc --noEmit 2>&1 | head -20 || true\n# npx eslint --quiet \"$CLAUDE_FILE_PATH\" 2>&1 | head -10 || true\ntrue"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "# Quality gate: uncomment the checks relevant to your stack\n# npx tsc --noEmit 2>&1 | head -20 || true\n# npx eslint --quiet \"$CLAUDE_FILE_PATH\" 2>&1 | head -10 || true\ntrue"
+          }
+        ]
       }
     ]
   }
