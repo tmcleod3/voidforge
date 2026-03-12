@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [2.4.0] - 2026-03-12
+
+### Added
+- **Cloud provider management** — new credential validation and storage for AWS, Vercel, Railway, and Cloudflare. Live API validation (STS, GraphQL, token verify) with vault-encrypted storage.
+- **Deploy target selection** in wizard — choose deployment platform based on which providers have valid credentials. Docker always available.
+- **Deploy target in `.env`** — scaffolded projects include `DEPLOY_TARGET` when a platform is selected
+
+### Changed
+- **Wizard UI overhaul** — redesigned credential step with provider cards, inline help, validation feedback. Expanded wizard flow with cloud and deploy target integration.
+- **Vault concurrency** — all vault operations now serialized through a write queue to prevent race conditions on concurrent requests
+- **Async key derivation** — PBKDF2 moved from sync to async to avoid blocking the event loop during encryption/decryption
+
+### Fixed
+- **Command injection** in browser launcher — replaced `exec` with `execFile` to prevent shell interpretation of URLs
+- **Directory traversal** in static file server — replaced naive `..` stripping with `resolve()` + prefix check
+- **SSE crash on client disconnect** — PRD generation stream now safely no-ops when the client has disconnected
+- **CORS wildcard** — scoped `Access-Control-Allow-Origin` to the wizard's actual origin instead of `*`
+- **Error detail leaking** — API error responses no longer include internal error bodies or stack traces
+- **Password length cap** — vault unlock rejects passwords over 256 characters (DoS prevention)
+
+### Removed
+- **`claude` dependency** — removed unused package from dependencies
+
+---
+
 ## [2.3.0] - 2026-03-12
 
 ### Added

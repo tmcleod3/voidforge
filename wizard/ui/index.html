@@ -11,7 +11,7 @@
     <header class="wizard-header">
       <div class="logo">VoidForge</div>
       <div class="progress" id="progress">
-        <div class="progress-bar" id="progress-bar"></div>
+        <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="14" aria-valuemin="0" aria-valuemax="100" aria-label="Wizard progress"></div>
       </div>
       <div class="step-label" id="step-label">Step 1 of 5</div>
     </header>
@@ -36,7 +36,7 @@
             <div class="field-hint" id="vault-hint">This password encrypts your credentials locally. It never leaves your machine.</div>
           </div>
 
-          <div class="status-row" id="vault-status"></div>
+          <div class="status-row" id="vault-status" role="status" aria-live="polite"></div>
 
           <button class="btn btn-primary" id="unlock-vault" type="button">Unlock Vault</button>
         </div>
@@ -54,14 +54,61 @@
             <div class="field-hint">Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a></div>
           </div>
 
-          <div class="status-row" id="key-status"></div>
+          <div class="status-row" id="key-status" role="status" aria-live="polite"></div>
 
           <button class="btn btn-primary" id="validate-key" type="button">Validate & Store</button>
         </div>
       </section>
 
-      <!-- Step 2: Project Setup -->
+      <!-- Step 2: Setup Path + Cloud Credentials -->
       <section class="step hidden" id="step-2" data-step="2">
+
+        <!-- Path choice -->
+        <div id="setup-choice">
+          <h1>How do you want to set up?</h1>
+          <p class="subtitle">You can always add cloud providers later by re-running the wizard.</p>
+
+          <div class="setup-card" id="choose-simple" tabindex="0" role="button">
+            <div class="setup-card-header">
+              <span class="setup-card-name">Simple Setup</span>
+              <span class="provider-badge connected">Quick Start</span>
+            </div>
+            <p class="setup-card-desc">Get straight to building. Your project runs locally or with Docker. You can deploy anywhere later — just add credentials when you're ready.</p>
+            <ul class="setup-card-includes">
+              <li>Project scaffolding with all VoidForge methodology</li>
+              <li>PRD generation with Claude</li>
+              <li>Docker deploy target available out of the box</li>
+            </ul>
+          </div>
+
+          <div class="setup-card" id="choose-advanced" tabindex="0" role="button">
+            <div class="setup-card-header">
+              <span class="setup-card-name">Advanced Setup</span>
+              <span class="provider-badge not-connected">Cloud deploy</span>
+            </div>
+            <p class="setup-card-desc">Connect cloud providers now so the wizard can provision infrastructure for you. Best if you already have accounts with AWS, Vercel, Railway, or Cloudflare.</p>
+            <ul class="setup-card-includes">
+              <li>Everything in Simple, plus:</li>
+              <li>Connect AWS, Vercel, Railway, or Cloudflare credentials</li>
+              <li>Deploy target selection filtered by your available providers</li>
+              <li>Infrastructure provisioning in future phases</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Cloud providers (shown after choosing Advanced) -->
+        <div id="cloud-setup" class="hidden">
+          <h1>Cloud Credentials</h1>
+          <p class="subtitle">Connect the providers you want to use. Click a provider to expand it.</p>
+
+          <div id="cloud-providers-list"></div>
+
+          <div class="status-row info" style="margin-top: 16px;">All credentials are AES-256 encrypted in your local vault. Click the <strong>?</strong> button on any provider for setup instructions.</div>
+        </div>
+      </section>
+
+      <!-- Step 3: Project Setup -->
+      <section class="step hidden" id="step-3" data-step="3">
         <h1>Project Setup</h1>
         <p class="subtitle">Tell us about your project.</p>
 
@@ -89,8 +136,8 @@
         </div>
       </section>
 
-      <!-- Step 3: PRD -->
-      <section class="step hidden" id="step-3" data-step="3">
+      <!-- Step 4: PRD -->
+      <section class="step hidden" id="step-4" data-step="4">
         <h1>Product Requirements</h1>
         <p class="subtitle">Every great project starts with a PRD.</p>
 
@@ -143,6 +190,7 @@
             </div>
 
             <button class="btn btn-primary" id="generate-prd" type="button">Generate PRD with Claude</button>
+            <div class="status-row" id="generate-status" role="status" aria-live="polite"></div>
 
             <div class="generation-output hidden" id="generation-output">
               <div class="generation-header">
@@ -162,7 +210,7 @@
               <label>PRD Generator Prompt</label>
               <p class="field-hint" style="margin-bottom: 8px;">Copy this prompt into ChatGPT, Gemini, or any AI — then paste the output below.</p>
               <button class="btn btn-secondary" id="copy-prd-prompt" type="button">Copy Generator Prompt to Clipboard</button>
-              <div class="status-row" id="prompt-copy-status"></div>
+              <div class="status-row" id="prompt-copy-status" role="status" aria-live="polite"></div>
             </div>
 
             <div class="field">
@@ -170,7 +218,7 @@
               <textarea id="prd-paste" rows="16" placeholder="Paste your PRD here. Include the YAML frontmatter block:&#10;&#10;```yaml&#10;name: &quot;My Project&quot;&#10;type: &quot;full-stack&quot;&#10;framework: &quot;next.js&quot;&#10;...&#10;```"></textarea>
             </div>
             <button class="btn btn-secondary" id="validate-prd" type="button">Validate Frontmatter</button>
-            <div class="status-row" id="prd-status"></div>
+            <div class="status-row" id="prd-status" role="status" aria-live="polite"></div>
           </div>
         </div>
 
@@ -182,8 +230,17 @@
         </div>
       </section>
 
-      <!-- Step 4: Review -->
-      <section class="step hidden" id="step-4" data-step="4">
+      <!-- Step 5: Deploy Target -->
+      <section class="step hidden" id="step-5" data-step="5">
+        <h1>Deploy Target</h1>
+        <p class="subtitle">Where will this project run? Click a target to select it.</p>
+
+        <div id="deploy-targets-list"></div>
+        <div id="deploy-note"></div>
+      </section>
+
+      <!-- Step 6: Review -->
+      <section class="step hidden" id="step-6" data-step="6">
         <h1>Review</h1>
         <p class="subtitle">Confirm everything before we create your project.</p>
 
@@ -195,6 +252,7 @@
               <tr><td class="review-label">Description</td><td id="review-desc"></td></tr>
               <tr><td class="review-label">Domain</td><td id="review-domain"></td></tr>
               <tr><td class="review-label">PRD</td><td id="review-prd"></td></tr>
+              <tr><td class="review-label">Deploy</td><td id="review-deploy"></td></tr>
             </tbody>
           </table>
         </div>
@@ -215,11 +273,11 @@
         </div>
       </section>
 
-      <!-- Step 5: Creating / Done -->
-      <section class="step hidden" id="step-5" data-step="5">
+      <!-- Step 7: Creating / Done -->
+      <section class="step hidden" id="step-7" data-step="7">
         <div id="creating-state">
           <h1>Creating Your Project...</h1>
-          <div class="spinner"></div>
+          <div class="spinner" role="status" aria-label="Creating project"></div>
           <p class="subtitle" id="create-status-text">Setting up project files...</p>
         </div>
 
@@ -228,7 +286,7 @@
           <p class="subtitle">Your VoidForge project is ready.</p>
 
           <div class="card success-card">
-            <div class="success-icon">&#10003;</div>
+            <div class="success-icon" aria-hidden="true">&#10003;</div>
             <div id="done-details"></div>
           </div>
 
@@ -241,8 +299,8 @@
             </ol>
 
             <div class="btn-row">
-              <button class="btn btn-primary" id="open-terminal" type="button">Open in Terminal</button>
-              <button class="btn btn-secondary" id="open-finder" type="button">Open in Finder</button>
+              <button class="btn btn-primary" id="open-terminal" type="button">Copy Terminal Command</button>
+              <button class="btn btn-secondary" id="open-finder" type="button">Copy Project Path</button>
             </div>
           </div>
         </div>

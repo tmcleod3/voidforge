@@ -148,6 +148,24 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
     ],
   });
 
+  let clientDisconnected = false;
+
+  /** Safe write — no-op if client already disconnected */
+  function sseWrite(chunk: string): void {
+    if (clientDisconnected || res.writableEnded) return;
+    try { res.write(chunk); } catch { clientDisconnected = true; }
+  }
+
+  function sseEnd(): void {
+    if (clientDisconnected || res.writableEnded) return;
+    try { res.end(); } catch { /* already closed */ }
+  }
+
+  req.on('close', () => {
+    clientDisconnected = true;
+    apiReq.destroy();
+  });
+
   const apiReq = httpsRequest(
     {
       hostname: 'api.anthropic.com',
@@ -166,9 +184,9 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
         let errBody = '';
         apiRes.on('data', (chunk: Buffer) => { errBody += chunk.toString(); });
         apiRes.on('end', () => {
-          res.write(`data: ${JSON.stringify({ error: `API error: ${apiRes.statusCode} - ${errBody}` })}\n\n`);
-          res.write('data: [DONE]\n\n');
-          res.end();
+          sseWrite(`data: ${JSON.stringify({ error: `API error: ${apiRes.statusCode}` })}\n\n`);
+          sseWrite('data: [DONE]\n\n');
+          sseEnd();
         });
         return;
       }
@@ -190,7 +208,7 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
               delta?: { type: string; text?: string };
             };
             if (event.type === 'content_block_delta' && event.delta?.text) {
-              res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+              sseWrite(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
             }
           } catch {
             // Skip unparseable chunks
@@ -199,20 +217,16 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
       });
 
       apiRes.on('end', () => {
-        res.write('data: [DONE]\n\n');
-        res.end();
+        sseWrite('data: [DONE]\n\n');
+        sseEnd();
       });
     }
   );
 
   apiReq.on('error', (err) => {
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-    res.write('data: [DONE]\n\n');
-    res.end();
-  });
-
-  req.on('close', () => {
-    apiReq.destroy();
+    sseWrite(`data: ${JSON.stringify({ error: 'Generation failed' })}\n\n`);
+    sseWrite('data: [DONE]\n\n');
+    sseEnd();
   });
 
   apiReq.write(postData);

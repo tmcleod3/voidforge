@@ -1,6 +1,6 @@
 {
   "name": "voidforge",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "From nothing, everything. A methodology framework for building with Claude Code.",
   "type": "module",
   "bin": {
@@ -9,9 +9,6 @@
   "scripts": {
     "wizard": "npx tsx scripts/voidforge.ts init",
     "typecheck": "npx tsc --noEmit"
-  },
-  "dependencies": {
-    "claude": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

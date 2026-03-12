@@ -1,23 +1,26 @@
 /**
  * VoidForge Wizard — Vanilla JS Step Machine
+ * Steps: 1=Vault, 2=Cloud, 3=Project, 4=PRD, 5=Deploy, 6=Review, 7=Create
  */
 
 (function () {
   'use strict';
 
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 7;
   let currentStep = 1;
 
   // State
   const state = {
     anthropicKeyStored: false,
+    cloudProviders: {},   // { aws: true, vercel: false, ... }
     projectName: '',
     projectDir: '',
     projectDesc: '',
     projectDomain: '',
-    prdMode: 'generate', // 'generate' | 'paste' | 'skip'
+    prdMode: 'generate',  // 'generate' | 'paste' | 'skip'
     prdContent: '',
     generatedPrd: '',
+    deployTarget: '',
     createdDir: '',
   };
 
@@ -38,15 +41,25 @@
     if (target) target.classList.remove('hidden');
 
     currentStep = step;
-    progressBar.style.width = `${(step / TOTAL_STEPS) * 100}%`;
-    stepLabel.textContent = `Step ${step} of ${TOTAL_STEPS}`;
+
+    // Dynamic step count — simple mode skips steps 2(cloud) and 5(deploy)
+    const visibleSteps = advancedMode
+      ? [1, 2, 3, 4, 5, 6, 7]
+      : [1, 2, 3, 4, 6, 7];
+    const currentIdx = visibleSteps.indexOf(step);
+    const totalVisible = visibleSteps.length;
+    const displayNum = currentIdx >= 0 ? currentIdx + 1 : step;
+
+    const pct = Math.round((displayNum / totalVisible) * 100);
+    progressBar.style.width = `${pct}%`;
+    progressBar.setAttribute('aria-valuenow', String(pct));
+    stepLabel.textContent = `Step ${displayNum} of ${totalVisible}`;
 
     btnBack.disabled = step <= 1;
 
-    // Update next button text
-    if (step === 4) {
+    if (step === 6) {
       btnNext.textContent = 'Create Project';
-    } else if (step === 5) {
+    } else if (step === 7) {
       btnNext.style.display = 'none';
       btnBack.style.display = 'none';
     } else {
@@ -55,20 +68,19 @@
       btnBack.style.display = '';
     }
 
-    // Focus first input on the step
+    // Focus first input
     const firstInput = target?.querySelector('input, textarea, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 100);
   }
 
-  /** Read current step's inputs into state before checking validity */
   function syncState() {
-    if (currentStep === 2) {
+    if (currentStep === 3) {
       state.projectName = $('#project-name').value.trim();
       state.projectDir = $('#project-dir').value.trim();
       state.projectDesc = $('#project-desc').value.trim();
       state.projectDomain = $('#project-domain').value.trim();
     }
-    if (currentStep === 3) {
+    if (currentStep === 4) {
       if (state.prdMode === 'paste') {
         state.prdContent = $('#prd-paste').value.trim();
       } else if (state.prdMode === 'generate' && state.generatedPrd) {
@@ -77,55 +89,74 @@
         state.prdContent = '';
       }
     }
+    // Deploy target is set directly by card clicks — no sync needed
   }
 
   function canAdvance() {
     switch (currentStep) {
-      case 1:
-        return state.anthropicKeyStored;
-      case 2:
-        return state.projectName.trim() !== '' && state.projectDir.trim() !== '';
-      case 3:
-        return true; // PRD is optional (template mode)
-      case 4:
-        return true;
-      default:
-        return false;
+      case 1: return state.anthropicKeyStored;
+      case 2: return true;  // Cloud credentials are optional
+      case 3: return state.projectName.trim() !== '' && state.projectDir.trim() !== '';
+      case 4: return true;  // PRD optional
+      case 5: return true;  // Deploy target optional
+      case 6: return true;
+      default: return false;
     }
   }
 
-  function nextStep() {
+  async function nextStep() {
     syncState();
-    if (!canAdvance()) return;
+    if (!canAdvance()) {
+      showValidationErrors();
+      return;
+    }
+    clearValidationErrors();
 
-    if (currentStep === 4) {
+    // Skip deploy target step in simple mode (only Docker available)
+    if (currentStep === 4 && !advancedMode) {
+      // Jump from PRD (4) straight to Review (6), skipping Deploy (5)
+      syncState();
+      populateReview();
+      showStep(6);
+      return;
+    }
+
+    if (currentStep === 6) {
       createProject();
-      showStep(5);
+      showStep(7);
       return;
     }
 
     if (currentStep < TOTAL_STEPS) {
       const nextStepNum = currentStep + 1;
-      if (nextStepNum === 4) populateReview();
+      if (nextStepNum === 5) await loadDeployTargets();
+      if (nextStepNum === 6) populateReview();
       showStep(nextStepNum);
     }
   }
 
   function prevStep() {
-    if (currentStep > 1) showStep(currentStep - 1);
+    if (currentStep <= 1) return;
+    // In simple mode, skip back over the deploy step
+    if (currentStep === 6 && !advancedMode) {
+      showStep(4);
+      return;
+    }
+    showStep(currentStep - 1);
   }
 
   btnNext.addEventListener('click', nextStep);
   btnBack.addEventListener('click', prevStep);
 
-  // Keyboard navigation — Enter triggers the contextually correct action
+  // Keyboard: Enter triggers contextual action
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     if (e.target.tagName === 'TEXTAREA') return;
+    // Don't intercept Enter on buttons, links, or selects — let native behavior handle them
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.tagName === 'SELECT') return;
     e.preventDefault();
 
     if (currentStep === 1) {
-      // If vault is locked and password field is focused/filled, unlock first
       if (!apikeyCard.classList.contains('hidden') && keyInput.value.trim()) {
         validateKeyBtn.click();
       } else if (vaultPasswordInput.value) {
@@ -134,8 +165,7 @@
       return;
     }
 
-    if (currentStep === 3) {
-      // If on the generate tab with an idea typed, generate instead of advancing
+    if (currentStep === 4) {
       const generateTab = $('#tab-generate');
       const ideaField = $('#prd-idea');
       if (generateTab.classList.contains('active') && ideaField.value.trim() && !state.generatedPrd) {
@@ -144,11 +174,12 @@
       }
     }
 
-    // Default: advance to next step
     nextStep();
   });
 
-  // --- Step 1: Vault + API Key ---
+  // =============================================
+  // Step 1: Vault + API Key
+  // =============================================
 
   const vaultPasswordInput = $('#vault-password');
   const vaultStatus = $('#vault-status');
@@ -162,7 +193,6 @@
   const validateKeyBtn = $('#validate-key');
   const toggleKeyBtn = $('#toggle-key-visibility');
 
-  // Toggle password visibility
   toggleVaultBtn.addEventListener('click', () => {
     const isPassword = vaultPasswordInput.type === 'password';
     vaultPasswordInput.type = isPassword ? 'text' : 'password';
@@ -179,17 +209,13 @@
   fetch('/api/credentials/status')
     .then((r) => r.json())
     .then((data) => {
-      if (data.vaultPath) {
-        $('#vault-path').textContent = data.vaultPath;
-      }
+      if (data.vaultPath) $('#vault-path').textContent = data.vaultPath;
       if (data.vaultExists) {
-        // Existing vault — change label to "Enter" instead of "Choose"
         $('#vault-password-label').textContent = 'Vault Password';
         vaultPasswordInput.placeholder = 'Enter your vault password';
         $('#vault-hint').textContent = 'Enter the password you used to create this vault.';
       }
       if (data.unlocked && data.anthropic) {
-        // Already unlocked from this session
         state.anthropicKeyStored = true;
         vaultCard.classList.add('hidden');
         apikeyCard.classList.remove('hidden');
@@ -199,17 +225,10 @@
     })
     .catch(() => {});
 
-  // Unlock vault
   unlockVaultBtn.addEventListener('click', async () => {
     const password = vaultPasswordInput.value;
-    if (!password) {
-      showStatus(vaultStatus, 'error', 'Please enter a password');
-      return;
-    }
-    if (password.length < 4) {
-      showStatus(vaultStatus, 'error', 'Password must be at least 4 characters');
-      return;
-    }
+    if (!password) { showStatus(vaultStatus, 'error', 'Please enter a password'); return; }
+    if (password.length < 4) { showStatus(vaultStatus, 'error', 'Password must be at least 4 characters'); return; }
 
     showStatus(vaultStatus, 'loading', 'Unlocking...');
     unlockVaultBtn.disabled = true;
@@ -220,17 +239,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-
       const data = await res.json();
 
       if (res.ok && data.unlocked) {
         if (data.anthropic) {
-          // Key already stored — skip straight to next step
           state.anthropicKeyStored = true;
           showStatus(vaultStatus, 'success', 'Vault unlocked — API key found');
           setTimeout(() => nextStep(), 600);
         } else {
-          // Vault unlocked but no key yet — show the API key card
           showStatus(vaultStatus, 'success', 'Vault unlocked');
           apikeyCard.classList.remove('hidden');
           keyInput.focus();
@@ -245,13 +261,9 @@
     }
   });
 
-  // Validate and store API key
   validateKeyBtn.addEventListener('click', async () => {
     const apiKey = keyInput.value.trim();
-    if (!apiKey) {
-      showStatus(keyStatus, 'error', 'Please enter your API key');
-      return;
-    }
+    if (!apiKey) { showStatus(keyStatus, 'error', 'Please enter your API key'); return; }
 
     showStatus(keyStatus, 'loading', 'Validating...');
     validateKeyBtn.disabled = true;
@@ -262,7 +274,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey }),
       });
-
       const data = await res.json();
 
       if (res.ok && data.stored) {
@@ -278,19 +289,238 @@
     }
   });
 
-  // --- Step 2: Project Setup ---
+  // =============================================
+  // Step 2: Simple/Advanced Choice + Cloud Credentials
+  // =============================================
+
+  let advancedMode = false;
+  let providersLoaded = false;
+
+  /** Make a div act as a keyboard-accessible button */
+  function activateOnKeyboard(el, handler) {
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handler(e);
+      }
+    });
+  }
+
+  // Simple setup — skip cloud, go straight to project
+  activateOnKeyboard($('#choose-simple'), () => {
+    advancedMode = false;
+    nextStep();
+  });
+
+  // Advanced setup — show cloud provider cards
+  activateOnKeyboard($('#choose-advanced'), () => {
+    advancedMode = true;
+    $('#setup-choice').classList.add('hidden');
+    $('#cloud-setup').classList.remove('hidden');
+    loadCloudProviders();
+  });
+
+  async function loadCloudProviders() {
+    if (providersLoaded) return;
+    providersLoaded = true;
+
+    try {
+      const [provRes, statusRes] = await Promise.all([
+        fetch('/api/cloud/providers').then((r) => r.json()),
+        fetch('/api/cloud/status').then((r) => r.json()),
+      ]);
+
+      const container = $('#cloud-providers-list');
+      container.innerHTML = '';
+
+      for (const provider of provRes.providers) {
+        const configured = statusRes.status[provider.id] || false;
+        state.cloudProviders[provider.id] = configured;
+
+        const card = document.createElement('div');
+        card.className = 'provider-card' + (configured ? ' configured' : '');
+        card.dataset.provider = provider.id;
+
+        const badge = configured
+          ? '<span class="provider-badge connected">Connected</span>'
+          : '<span class="provider-badge not-connected">Not connected</span>';
+
+        let fieldsHtml = '';
+        for (const field of provider.fields) {
+          fieldsHtml += `
+            <div class="field">
+              <label for="cloud-${field.key}">${field.label}</label>
+              <input type="${field.secret ? 'password' : 'text'}" id="cloud-${field.key}"
+                     data-field-key="${field.key}" placeholder="${field.placeholder}" autocomplete="off">
+            </div>`;
+        }
+
+        card.innerHTML = `
+          <div class="provider-header" data-toggle="${provider.id}">
+            <div class="provider-header-left">
+              <span class="provider-chevron">&#9654;</span>
+              <div>
+                <div class="provider-name">${provider.name} <button class="provider-help-btn" data-help="${provider.id}" type="button" title="How to get credentials">?</button></div>
+                <div class="provider-desc">${provider.description}</div>
+              </div>
+            </div>
+            ${badge}
+          </div>
+          <div class="provider-body hidden" id="body-${provider.id}">
+            <div class="provider-help hidden" id="help-${provider.id}">
+              <button class="provider-help-close" data-close-help="${provider.id}" type="button" title="Close">&times;</button>
+              ${provider.help}
+              <a class="help-link" href="${provider.credentialUrl}" target="_blank" rel="noopener">Open ${provider.name} Credentials Page &rarr;</a>
+            </div>
+            <div class="provider-fields" id="fields-${provider.id}">
+            ${fieldsHtml}
+            <div class="btn-row">
+              <button class="btn btn-primary btn-small" data-validate="${provider.id}" type="button">
+                ${configured ? 'Update' : 'Connect'}
+              </button>
+              ${configured ? `<button class="btn btn-secondary btn-small" data-remove="${provider.id}" type="button">Remove</button>` : ''}
+            </div>
+            <div class="status-row" id="cloud-status-${provider.id}"></div>
+            </div>
+          </div>`;
+
+        container.appendChild(card);
+      }
+
+      // Toggle accordion on header click
+      container.addEventListener('click', (e) => {
+        if (e.target.closest('[data-help]')) return;
+        if (e.target.closest('[data-close-help]')) return;
+        const toggle = e.target.closest('[data-toggle]');
+        if (toggle) {
+          const id = toggle.dataset.toggle;
+          const card = toggle.closest('.provider-card');
+          const body = $(`#body-${id}`);
+          const isOpen = !body.classList.contains('hidden');
+          body.classList.toggle('hidden');
+          card.classList.toggle('open', !isOpen);
+        }
+      });
+
+      // Help button toggles
+      container.addEventListener('click', (e) => {
+        const helpBtn = e.target.closest('[data-help]');
+        if (helpBtn) {
+          e.stopPropagation();
+          $(`#help-${helpBtn.dataset.help}`).classList.toggle('hidden');
+          return;
+        }
+        const closeBtn = e.target.closest('[data-close-help]');
+        if (closeBtn) {
+          e.stopPropagation();
+          $(`#help-${closeBtn.dataset.closeHelp}`).classList.add('hidden');
+          return;
+        }
+      });
+
+      // Validate buttons
+      container.addEventListener('click', async (e) => {
+        const validateBtn = e.target.closest('[data-validate]');
+        if (!validateBtn) return;
+
+        const providerId = validateBtn.dataset.validate;
+        const statusEl = $(`#cloud-status-${providerId}`);
+        const card = validateBtn.closest('.provider-card');
+
+        const credentials = {};
+        card.querySelectorAll('[data-field-key]').forEach((input) => {
+          if (input.value.trim()) credentials[input.dataset.fieldKey] = input.value.trim();
+        });
+
+        const provider = provRes.providers.find((p) => p.id === providerId);
+        const missing = provider.fields.filter((f) => !credentials[f.key]);
+        if (missing.length > 0) {
+          showStatus(statusEl, 'error', `Missing: ${missing.map((f) => f.label).join(', ')}`);
+          return;
+        }
+
+        showStatus(statusEl, 'loading', 'Validating...');
+        validateBtn.disabled = true;
+
+        try {
+          const res = await fetch('/api/cloud/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: providerId, credentials }),
+          });
+          const data = await res.json();
+
+          if (res.ok && data.stored) {
+            const identity = data.identity ? ` (${data.identity})` : '';
+            showStatus(statusEl, 'success', `Connected${identity}`);
+            state.cloudProviders[providerId] = true;
+            card.classList.add('configured');
+            card.querySelector('.provider-badge').className = 'provider-badge connected';
+            card.querySelector('.provider-badge').textContent = 'Connected';
+          } else {
+            showStatus(statusEl, 'error', data.error || 'Validation failed');
+          }
+        } catch (err) {
+          showStatus(statusEl, 'error', 'Connection error: ' + err.message);
+        } finally {
+          validateBtn.disabled = false;
+        }
+      });
+
+      // Remove buttons
+      container.addEventListener('click', async (e) => {
+        const removeBtn = e.target.closest('[data-remove]');
+        if (!removeBtn) return;
+
+        const providerId = removeBtn.dataset.remove;
+        const statusEl = $(`#cloud-status-${providerId}`);
+        const card = removeBtn.closest('.provider-card');
+
+        try {
+          await fetch('/api/cloud/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: providerId }),
+          });
+
+          state.cloudProviders[providerId] = false;
+          card.classList.remove('configured');
+          card.querySelector('.provider-badge').className = 'provider-badge not-connected';
+          card.querySelector('.provider-badge').textContent = 'Not connected';
+          showStatus(statusEl, 'info', 'Credentials removed');
+          removeBtn.remove();
+        } catch (err) {
+          showStatus(statusEl, 'error', 'Failed to remove: ' + err.message);
+        }
+      });
+
+    } catch (err) {
+      $('#cloud-providers-list').innerHTML = `<div class="status-row error">Failed to load providers: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // Reset choice view when navigating back to step 2
+  const origShowStep = showStep;
+  showStep = function (step) {
+    if (step === 2 && !advancedMode) {
+      $('#setup-choice').classList.remove('hidden');
+      $('#cloud-setup').classList.add('hidden');
+    }
+    origShowStep(step);
+  };
+
+  // =============================================
+  // Step 3: Project Setup
+  // =============================================
 
   const projectNameInput = $('#project-name');
   const projectDirInput = $('#project-dir');
 
-  // Auto-suggest directory from project name
   projectNameInput.addEventListener('input', () => {
     const name = projectNameInput.value.trim();
     if (name && !projectDirInput.dataset.manual) {
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9\-_\s]/g, '')
-        .replace(/\s+/g, '-');
+      const slug = name.toLowerCase().replace(/[^a-z0-9\-_\s]/g, '').replace(/\s+/g, '-');
       fetch('/api/project/defaults')
         .then((r) => r.json())
         .then((data) => {
@@ -308,9 +538,10 @@
     state.projectDir = projectDirInput.value.trim();
   });
 
-  // --- Step 3: PRD ---
+  // =============================================
+  // Step 4: PRD
+  // =============================================
 
-  // Tab switching
   $$('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       $$('.tab').forEach((t) => t.classList.remove('active'));
@@ -322,16 +553,12 @@
     });
   });
 
-  // Validate PRD
   const validatePrdBtn = $('#validate-prd');
   const prdStatus = $('#prd-status');
 
   validatePrdBtn.addEventListener('click', async () => {
     const content = $('#prd-paste').value.trim();
-    if (!content) {
-      showStatus(prdStatus, 'error', 'Paste your PRD content first');
-      return;
-    }
+    if (!content) { showStatus(prdStatus, 'error', 'Paste your PRD content first'); return; }
 
     try {
       const res = await fetch('/api/prd/validate', {
@@ -351,7 +578,6 @@
     }
   });
 
-  // Copy PRD generator prompt for use with other AIs
   let cachedPrompt = null;
   $('#copy-prd-prompt').addEventListener('click', async () => {
     const promptCopyStatus = $('#prompt-copy-status');
@@ -370,7 +596,6 @@
     }
   });
 
-  // Generate PRD
   const generatePrdBtn = $('#generate-prd');
   const generationOutput = $('#generation-output');
   const generatedContent = $('#generated-prd-content');
@@ -378,9 +603,10 @@
   generatePrdBtn.addEventListener('click', async () => {
     const idea = $('#prd-idea').value.trim();
     if (!idea) {
-      alert('Please describe your idea first');
+      showStatus($('#generate-status'), 'error', 'Describe your idea first');
       return;
     }
+    $('#generate-status').className = 'status-row';
 
     generatePrdBtn.disabled = true;
     generatePrdBtn.textContent = 'Generating...';
@@ -423,15 +649,12 @@
             if (parsed.text) {
               state.generatedPrd += parsed.text;
               generatedContent.textContent = state.generatedPrd;
-              // Auto-scroll to bottom
               generatedContent.scrollTop = generatedContent.scrollHeight;
             }
             if (parsed.error) {
               generatedContent.textContent += '\n\nError: ' + parsed.error;
             }
-          } catch {
-            // Skip
-          }
+          } catch { /* skip */ }
         }
       }
     } catch (err) {
@@ -442,7 +665,6 @@
     }
   });
 
-  // Copy generated PRD
   $('#copy-generated').addEventListener('click', () => {
     if (!state.generatedPrd) return;
     copyToClipboard(state.generatedPrd).then(() => {
@@ -451,13 +673,87 @@
     });
   });
 
-  // --- Step 4: Review ---
+  // =============================================
+  // Step 5: Deploy Target
+  // =============================================
+
+  async function loadDeployTargets() {
+    try {
+      const res = await fetch('/api/cloud/deploy-targets');
+      const data = await res.json();
+
+      const container = $('#deploy-targets-list');
+      const noteEl = $('#deploy-note');
+      container.innerHTML = '';
+
+      if (!state.deployTarget) {
+        state.deployTarget = 'docker';
+      }
+
+      const availableTargets = data.targets.filter((t) => t.available);
+      const onlyDocker = availableTargets.length === 1 && availableTargets[0].id === 'docker';
+
+      if (onlyDocker) {
+        state.deployTarget = 'docker';
+        noteEl.innerHTML = '<div class="status-row info" style="margin-top: 16px;">No cloud providers configured, so <strong>Docker (local)</strong> is preselected. You can add cloud credentials later by re-running the wizard.</div>';
+      } else {
+        noteEl.innerHTML = '';
+      }
+
+      for (const target of data.targets) {
+        const card = document.createElement('div');
+        card.className = 'deploy-card' + (target.available ? '' : ' unavailable');
+        if (state.deployTarget === target.id) card.classList.add('selected');
+        card.dataset.target = target.id;
+        card.setAttribute('role', 'radio');
+        card.setAttribute('aria-checked', state.deployTarget === target.id ? 'true' : 'false');
+        if (target.available) {
+          card.tabIndex = 0;
+        } else {
+          card.setAttribute('aria-disabled', 'true');
+        }
+
+        const badge = target.available
+          ? '<span class="provider-badge connected">Ready</span>'
+          : `<span class="provider-badge not-connected">Needs ${target.provider || 'setup'}</span>`;
+
+        card.innerHTML = `
+          <div class="deploy-card-header">
+            <span class="deploy-card-name">${target.name}</span>
+            ${badge}
+          </div>
+          <div class="deploy-card-desc">${target.description}</div>`;
+
+        const selectTarget = () => {
+          if (!target.available) return;
+          $$('.deploy-card').forEach((c) => {
+            c.classList.remove('selected');
+            c.setAttribute('aria-checked', 'false');
+          });
+          card.classList.add('selected');
+          card.setAttribute('aria-checked', 'true');
+          state.deployTarget = target.id;
+        };
+        activateOnKeyboard(card, selectTarget);
+
+        container.appendChild(card);
+      }
+    } catch (err) {
+      $('#deploy-targets-list').innerHTML = `<div class="status-row error">Failed to load targets: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // =============================================
+  // Step 6: Review
+  // =============================================
 
   function populateReview() {
     $('#review-name').textContent = state.projectName;
     $('#review-dir').textContent = state.projectDir;
     $('#review-desc').textContent = state.projectDesc || '(not set)';
     $('#review-domain').textContent = state.projectDomain || '(not set)';
+    const deployNames = { vps: 'VPS (AWS EC2)', vercel: 'Vercel', railway: 'Railway', cloudflare: 'Cloudflare Workers/Pages', static: 'Static (S3 + CloudFront)', docker: 'Docker (local)' };
+    $('#review-deploy').textContent = deployNames[state.deployTarget] || state.deployTarget || 'Docker (local)';
 
     if (state.prdMode === 'paste' && state.prdContent) {
       $('#review-prd').textContent = 'Custom PRD (pasted)';
@@ -468,7 +764,9 @@
     }
   }
 
-  // --- Step 5: Create ---
+  // =============================================
+  // Step 7: Create
+  // =============================================
 
   async function createProject() {
     const creatingState = $('#creating-state');
@@ -480,8 +778,6 @@
 
     try {
       statusText.textContent = 'Creating project files...';
-
-      // Determine PRD content
       let prd = state.prdContent || undefined;
 
       const res = await fetch('/api/project/create', {
@@ -492,6 +788,7 @@
           directory: state.projectDir,
           description: state.projectDesc || undefined,
           domain: state.projectDomain || undefined,
+          deploy: state.deployTarget || undefined,
           prd,
         }),
       });
@@ -504,21 +801,31 @@
         doneState.classList.remove('hidden');
 
         $('#done-details').innerHTML = `
-          <p><strong>${state.projectName}</strong></p>
-          <p style="color: var(--text-dim); font-family: var(--mono); font-size: 13px;">${data.directory}</p>
+          <p><strong>${escapeHtml(state.projectName)}</strong></p>
+          <p style="color: var(--text-dim); font-family: var(--mono); font-size: 13px;">${escapeHtml(data.directory)}</p>
           <p style="color: var(--text-dim); margin-top: 8px;">${data.files.length} files created</p>
         `;
       } else {
-        statusText.textContent = 'Error: ' + (data.error || 'Unknown error');
-        statusText.style.color = 'var(--error)';
+        showCreateError('Error: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
-      statusText.textContent = 'Error: ' + err.message;
-      statusText.style.color = 'var(--error)';
+      showCreateError('Error: ' + err.message);
     }
   }
 
-  // Open in Terminal
+  function showCreateError(message) {
+    const creatingState = $('#creating-state');
+    const statusText = $('#create-status-text');
+    creatingState.querySelector('.spinner')?.classList.add('hidden');
+    statusText.textContent = message;
+    statusText.style.color = 'var(--error)';
+    // Show back + retry buttons so the user isn't trapped
+    btnBack.style.display = '';
+    btnBack.disabled = false;
+    btnNext.style.display = '';
+    btnNext.textContent = 'Retry';
+  }
+
   $('#open-terminal')?.addEventListener('click', () => {
     if (state.createdDir) {
       const cmd = `cd "${state.createdDir}" && claude`;
@@ -530,7 +837,6 @@
     }
   });
 
-  // Open in Finder
   $('#open-finder')?.addEventListener('click', () => {
     if (state.createdDir) {
       copyToClipboard(state.createdDir).then(() => {
@@ -539,19 +845,48 @@
     }
   });
 
-  // --- Utilities ---
+  // =============================================
+  // Utilities
+  // =============================================
+
+  function showValidationErrors() {
+    if (currentStep === 1 && !state.anthropicKeyStored) {
+      if (apikeyCard.classList.contains('hidden')) {
+        showStatus(vaultStatus, 'error', 'Unlock your vault to continue');
+      } else {
+        showStatus(keyStatus, 'error', 'Validate your API key to continue');
+      }
+    }
+    if (currentStep === 3) {
+      const nameInput = $('#project-name');
+      const dirInput = $('#project-dir');
+      if (!state.projectName) nameInput.style.borderColor = 'var(--error)';
+      if (!state.projectDir) dirInput.style.borderColor = 'var(--error)';
+    }
+  }
+
+  function clearValidationErrors() {
+    const nameInput = $('#project-name');
+    const dirInput = $('#project-dir');
+    if (nameInput) nameInput.style.borderColor = '';
+    if (dirInput) dirInput.style.borderColor = '';
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
 
   function showStatus(el, type, message) {
     el.className = 'status-row ' + type;
     el.textContent = message;
   }
 
-  /** Clipboard with fallback for non-HTTPS contexts */
   function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
     }
-    // Fallback: hidden textarea + execCommand
     return new Promise((resolve, reject) => {
       const ta = document.createElement('textarea');
       ta.value = text;

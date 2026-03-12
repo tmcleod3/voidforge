@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 2.3.0
+**Current:** 2.4.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 2.4.0 | 2026-03-12 | Wizard cloud providers, deploy targets, security hardening, UI overhaul |
 | 2.3.0 | 2026-03-12 | Interactive setup wizard — browser-based onboarding with encrypted credential vault, PRD generation, project scaffolding |
 | 2.2.0 | 2026-03-12 | Rename project to VoidForge — "from nothing, everything" |
 | 2.1.1 | 2026-03-12 | Fix PostToolUse hook format — migrate from flat `command` to nested `hooks` array per Claude Code schema |

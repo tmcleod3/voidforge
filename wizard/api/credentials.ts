@@ -110,6 +110,11 @@ addRoute('POST', '/api/credentials/unlock', async (req: IncomingMessage, res: Se
     return;
   }
 
+  if (body.password.length > 256) {
+    sendJson(res, 400, { error: 'Password must be 256 characters or fewer' });
+    return;
+  }
+
   const valid = await vaultUnlock(body.password);
 
   if (!valid) {

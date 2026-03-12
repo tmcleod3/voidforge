@@ -1,13 +1,17 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { join, extname } from 'node:path';
+import { join, extname, resolve } from 'node:path';
 import { route } from './router.js';
 
 import './api/credentials.js';
+import './api/cloud-providers.js';
 import './api/prd.js';
 import './api/project.js';
 
 const UI_DIR = join(import.meta.dirname, 'ui');
+
+/** Set by startServer so handleRequest can scope CORS to the actual origin. */
+let serverPort = 0;
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -38,10 +42,11 @@ async function serveStatic(res: ServerResponse, filePath: string): Promise<void>
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // CORS for localhost
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — scoped to the wizard's own origin
+  res.setHeader('Access-Control-Allow-Origin', `http://127.0.0.1:${serverPort}`);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -70,12 +75,18 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     pathname = '/index.html';
   }
 
-  // Prevent directory traversal
-  const safePath = join(UI_DIR, pathname.replace(/\.\./g, ''));
+  // Prevent directory traversal — resolve then verify prefix
+  const safePath = resolve(UI_DIR, '.' + pathname);
+  if (!safePath.startsWith(UI_DIR)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+    return;
+  }
   await serveStatic(res, safePath);
 }
 
 export function startServer(port: number): Promise<void> {
+  serverPort = port;
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       handleRequest(req, res).catch((err: unknown) => {
