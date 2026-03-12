@@ -1,8 +1,8 @@
-# claude-scaffold
+# VoidForge
 
-A reusable methodology framework for building full-stack applications with Claude Code.
+From nothing, everything. A reusable methodology framework for building full-stack applications with Claude Code.
 
-**Drop in a PRD. Get a production application. Built by a named team of 150+ AI agents across 6 fictional universes.**
+**Drop in a PRD. Get a production application. Forged by a named team of 150+ AI agents across 6 fictional universes.**
 
 ---
 
@@ -10,7 +10,7 @@ A reusable methodology framework for building full-stack applications with Claud
 
 A git repository containing methodology documents, naming conventions, and orchestration protocols that make Claude Code dramatically more effective at building applications from scratch. Not a code template — a *process* template. Works with any tech stack, any framework, any language.
 
-The scaffold provides:
+VoidForge provides:
 
 - **A root context file** (`CLAUDE.md`) — dense operational instructions loaded at session start
 - **6 self-contained slash commands** — `/build`, `/qa`, `/security`, `/ux`, `/devops`, `/architect` with inline execution steps
@@ -64,7 +64,7 @@ See `docs/NAMING_REGISTRY.md` for the complete roster of 150+ characters.
 ## Repository Structure
 
 ```
-claude-scaffold/
+voidforge/
 ├── CLAUDE.md                              ← Root context — operational instructions
 ├── README.md                              ← You are here
 ├── VERSION.md                             ← Semantic versioning
@@ -127,7 +127,7 @@ claude-scaffold/
 ### Option 1: Clone and go
 
 ```bash
-git clone https://github.com/YOUR_USER/claude-scaffold.git my-project
+git clone https://github.com/YOUR_USER/voidforge.git my-project
 cd my-project
 rm -rf .git && git init
 ```
@@ -141,8 +141,8 @@ Replace `docs/PRD.md` with your actual PRD. Open Claude Code and run:
 ### Option 2: Use the init script
 
 ```bash
-git clone https://github.com/YOUR_USER/claude-scaffold.git
-./claude-scaffold/scripts/new-project.sh "My App" ~/my-app
+git clone https://github.com/YOUR_USER/voidforge.git
+./voidforge/scripts/new-project.sh "My App" ~/my-app
 cd ~/my-app
 ```
 
@@ -261,9 +261,9 @@ Every agent knows when to hand off:
 
 ---
 
-## Evolving the Scaffold
+## Evolving VoidForge
 
-The scaffold gets smarter over time:
+VoidForge gets smarter over time:
 
 1. **After each project:** Add entries to `docs/LESSONS.md`
 2. **When a pattern proves reliable:** Promote it from LESSONS.md into the relevant method doc
@@ -276,7 +276,7 @@ The scaffold gets smarter over time:
 
 **Methodology, not templates.** Stack-agnostic process that works for Next.js, Django, Rails, or anything else.
 
-**Accumulate intelligence.** Every project makes the scaffold better through `LESSONS.md` and promoted patterns.
+**Accumulate intelligence.** Every project makes VoidForge better through `LESSONS.md` and promoted patterns.
 
 **Named agents are not gimmicks.** They create scope boundaries, make logs scannable, and make development more fun.
 

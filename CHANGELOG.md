@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [2.2.0] - 2026-03-12
+
+### Changed
+- **Project renamed to VoidForge** — "from nothing, everything." Replaced all references to `claude-scaffold` across README, scripts, package files, patterns, and version docs
+
+---
+
 ## [2.1.1] - 2026-03-12
 
 ### Fixed

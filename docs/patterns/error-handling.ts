@@ -1,7 +1,7 @@
 /**
  * Pattern: Error Handling Strategy (Canonical Reference)
  *
- * This is the single source of truth for error handling across the scaffold.
+ * This is the single source of truth for error handling across VoidForge.
  * All other patterns (api-route.ts, service.ts, middleware.ts) reference this.
  *
  * Key principles:

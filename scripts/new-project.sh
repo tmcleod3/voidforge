@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# new-project.sh — Initialize a new project from this scaffold
+# new-project.sh — Initialize a new project from VoidForge
 # ============================================
 # Usage: ./scripts/new-project.sh "Project Name" "project-dir"
 # ============================================
@@ -21,7 +21,7 @@ SCAFFOLD_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "Creating new project: $PROJECT_NAME"
 echo "   Directory: $PROJECT_DIR"
-echo "   Scaffold: $SCAFFOLD_DIR"
+echo "   VoidForge: $SCAFFOLD_DIR"
 echo ""
 
 # Create project directory
@@ -67,7 +67,7 @@ else
   sed -i "s/\[PROJECT_NAME\]/$PROJECT_NAME/g" "$PROJECT_DIR/CLAUDE.md"
 fi
 
-echo "Project scaffold created at: $PROJECT_DIR"
+echo "VoidForge project created at: $PROJECT_DIR"
 echo ""
 echo "Included:"
 echo "  CLAUDE.md           Root context (operational instructions)"
