@@ -28,4 +28,4 @@ No wizard, no deploy scripts, no npm dependencies. Just the methodology.
 
 ## Guide
 
-Read the **[Holocron](HOLOCRON.md)** -- the complete VoidForge guide, from first project to advanced usage.
+Read the **[Holocron](HOLOCRON.md)** -- the complete VoidForge guide, from first project to advanced usage. Read the **[Prophecy](PROPHECY.md)** -- what's coming next.
