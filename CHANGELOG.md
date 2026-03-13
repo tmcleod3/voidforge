@@ -6,14 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
-## [2.9.0] - 2026-03-12
+## [3.0.0] - 2026-03-12
 
 ### Added
 - **The VoidForge Holocron** (`HOLOCRON.md`) — comprehensive 9-chapter user guide covering setup, first project walkthrough, build protocol, agent system, slash commands, code patterns, build journal, troubleshooting, and evolution. Named after the Star Wars knowledge devices.
-- **Three-tier release strategy** — VoidForge now ships on three branches: `main` (full wizard), `scaffold` (methodology only), `core` (ultra-light). Branch sync rules in CLAUDE.md ensure shared methodology stays consistent across all tiers.
+- **Three-tier distribution** — VoidForge now ships on three branches: `main` (full wizard), `scaffold` (methodology only), `core` (ultra-light drop-in). Each has its own README, release, and install path.
+- **Branch sync rules** in CLAUDE.md — shared methodology files (agents, methods, patterns, commands) must propagate across all three branches.
 
 ### Changed
-- **README restructured** — stripped down to pure system reference (architecture, components, tables). All walkthrough and guide content moved to the Holocron. README now points to Holocron for new users.
+- **README restructured** — stripped down to pure system reference (architecture, components, tables). All walkthrough and guide content moved to the Holocron.
+- **Semver rules updated** — MAJOR now includes distribution model changes.
+- **VoidForge is now designed for external adoption** — three install paths, comprehensive guide, clean separation between system reference and user guide.
 
 ---
 
