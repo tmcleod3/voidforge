@@ -4,7 +4,7 @@ From nothing, everything.
 
 A methodology framework for building full-stack applications with Claude Code. Drop in a PRD. Get a production application. Forged by a named team of 150+ AI agents across 6 fictional universes.
 
-**New here?** Read the **[Holocron](HOLOCRON.md)** — the complete guide.
+**New here?** Read the **[Holocron](HOLOCRON.md)** -- the complete guide. **Curious about what's next?** Read the **[Prophecy](PROPHECY.md)** -- the roadmap.
 
 ---
 
