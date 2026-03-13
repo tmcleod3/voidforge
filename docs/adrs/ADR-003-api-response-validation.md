@@ -1,6 +1,6 @@
 # ADR-003: Validate External API Responses at Boundaries
 
-## Status: Proposed
+## Status: Accepted (implemented via safeJsonParse + optional chaining)
 
 ## Context
 

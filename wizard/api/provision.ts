@@ -173,23 +173,47 @@ addRoute('POST', '/api/provision/cleanup', async (req: IncomingMessage, res: Ser
     runId = keys[keys.length - 1];
   }
 
-  if (!runId || !provisionRuns.has(runId)) {
+  // Try in-memory runs first, then fall back to disk manifests (crash recovery)
+  let target: string;
+  let resources: CreatedResource[];
+  let credentials: Record<string, string>;
+
+  if (runId && provisionRuns.has(runId)) {
+    const run = provisionRuns.get(runId)!;
+    target = run.target;
+    resources = run.resources;
+    credentials = run.credentials;
+  } else if (runId) {
+    // Crash recovery: load from disk manifest + vault credentials
+    const manifest = await readManifest(runId);
+    if (!manifest || manifest.status === 'cleaned') {
+      sendJson(res, 200, { cleaned: true, message: 'No resources to clean up' });
+      return;
+    }
+    target = manifest.target;
+    resources = manifestToCreatedResources(manifest);
+    credentials = await loadCredentials(password);
+  } else {
     sendJson(res, 200, { cleaned: true, message: 'No resources to clean up' });
     return;
   }
 
-  const run = provisionRuns.get(runId)!;
-  const provisioner = provisioners[run.target];
+  if (resources.length === 0) {
+    await deleteManifest(runId);
+    sendJson(res, 200, { cleaned: true, message: 'No resources to clean up' });
+    return;
+  }
+
+  const provisioner = provisioners[target];
   if (!provisioner) {
-    sendJson(res, 400, { error: `Unknown target: ${run.target}` });
+    sendJson(res, 400, { error: `Unknown target: ${target}` });
     return;
   }
 
   try {
-    await provisioner.cleanup(run.resources, run.credentials);
-    const count = run.resources.length;
+    await provisioner.cleanup(resources, credentials);
+    const count = resources.length;
     provisionRuns.delete(runId);
-    // Mark manifest as cleaned and remove it
     await updateManifestStatus(runId, 'cleaned');
     await deleteManifest(runId);
     sendJson(res, 200, { cleaned: true, message: `Cleaned up ${count} resources` });
