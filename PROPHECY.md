@@ -8,7 +8,7 @@
 
 ---
 
-## v3.1 -- The Last Mile *(partially shipped)*
+## v3.1 -- The Last Mile *(shipped)*
 
 ~~The gap between "Strange provisioned your server" and "your app is live at your domain" is one DNS record. That's one record too many.~~
 
@@ -21,11 +21,14 @@ Not originally in the prophecy, but the Council saw the need. Vercel, Railway, a
 **~~EC2 Instance Sizing~~** — *Shipped in v3.1.0 (unforetold)*
 PRD-driven instance type recommendation. The `instance_type` frontmatter field is auto-recommended from project scope (database, cache, workers, payments, framework). Strange shows the recommendation with cost estimates. RDS and ElastiCache sizes match automatically. ADR-005.
 
-**Domain Registration** — *Open*
-Cloudflare Registrar API for buying domains through Strange. "You don't even own the domain yet, and VoidForge handles the whole thing from purchase to production." Senku builds civilization from scratch. This is that energy.
+**~~Domain Registration~~** — *Shipped in v3.3.0*
+Cloudflare Registrar API for buying domains through Strange. Pre-DNS step with confirmation gate, cost warning, and post-failure verification. "You don't even own the domain yet, and VoidForge handles the whole thing from purchase to production." Senku built civilization from scratch. This was that energy. ADR-010.
 
-**Async Resource Polling** — *Open*
-RDS and ElastiCache take 5-10 minutes to spin up. Right now, Strange shrugs and says "check the AWS console." That's beneath us. Strange should poll the APIs, watch for the endpoints to come online, and auto-update `.env` when they're ready. Frieren is patient. She can wait. The user shouldn't have to.
+**~~Async Resource Polling~~** — *Shipped in v3.3.0*
+RDS and ElastiCache endpoints now arrive automatically. Strange polls with AbortController integration, terminal failure detection, and jitter. Frieren waited patiently. The user no longer has to. ADR-009.
+
+**~~Security Hardening~~** — *Shipped in v3.3.0 (unforetold)*
+Four-team review (Galadriel, Batman, Kusanagi, Kenobi) produced 43 findings — all resolved. CSRF protection, DB_PASSWORD stripped from SSE, AWS error sanitization, `.env` chmod 600, concurrency lock, input validation at all layers, HTTP retry logic, partial success UI.
 
 ---
 
@@ -36,7 +39,17 @@ Not originally in the prophecy. Tom Bombadil emerged from the old forest with a 
 
 ---
 
-## v3.3 -- The Pipeline *(next)*
+## v3.3 -- The Last Mile Complete *(shipped)*
+
+**~~Async Resource Polling~~** — *Shipped in v3.3.0*
+**~~Domain Registration~~** — *Shipped in v3.3.0*
+**~~Security Hardening (43 findings)~~** — *Shipped in v3.3.0 (unforetold)*
+
+The remaining v3.1 prophecy items plus a full four-team security review. See v3.1 above for details.
+
+---
+
+## v3.4 -- The Pipeline *(next)*
 
 Deploying manually is fine for launch day. After that, you want a pipeline that deploys every time you push to main. Batman wants automated smoke tests. Kenobi wants secrets out of flat files. Everyone wins.
 
@@ -57,7 +70,7 @@ No more "did you remember to set the env vars in production?" Leia remembers. Le
 
 ---
 
-## v3.4 -- The Watchtower
+## v3.5 -- The Watchtower
 
 *Oracle sees the whole system. But right now, she's reading logs on a terminal. Give her a proper command center.*
 
@@ -76,7 +89,7 @@ Weekly test restores to a scratch database. If the restore fails, Zenitsu panics
 
 ---
 
-## v3.5 -- The Academy
+## v3.6 -- The Academy
 
 *"The only way to learn is to do." -- Picard, probably*
 
