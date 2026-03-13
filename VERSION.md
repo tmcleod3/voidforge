@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 3.0.0
+**Current:** 3.3.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,9 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 3.3.0 | 2026-03-13 | The Last Mile Complete — async resource polling, domain registration, security hardening (43 review findings resolved) |
+| 3.2.0 | 2026-03-13 | Bombadil's Forge Sync — /void self-update command, Forge Keeper method doc, 8th lead agent |
+| 3.1.0 | 2026-03-13 | The Last Mile — EC2 instance sizing, Cloudflare DNS wiring, platform domain registration |
 | 3.0.0 | 2026-03-12 | The VoidForge Holocron, three-tier distribution (main/scaffold/core), README as system reference |
 | 2.8.0 | 2026-03-12 | Merlin/Strange wizard split, architecture review docs, security audit with SG hardening |
 | 2.7.0 | 2026-03-12 | Real provisioning for all 6 targets, hardened infra scripts, SSE keepalive, crash recovery loop complete |

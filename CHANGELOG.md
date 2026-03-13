@@ -6,6 +6,78 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [3.3.0] - 2026-03-13
+
+### Added
+- **Async resource polling** — Strange now waits for RDS (up to 15min) and ElastiCache (up to 5min) to become available, extracts real endpoints (`DB_HOST`, `REDIS_HOST`), and writes them to `.env`. No more "check the AWS Console." (ADR-009)
+- **Domain registration via Cloudflare Registrar** — buy a domain through Strange as a pre-DNS step. Registration creates the zone, then DNS records are created in it. Includes availability check, price display, and non-refundable purchase confirmation gate. (ADR-010)
+- **Cloudflare Account ID** field in Cloud Providers — required for domain registration, validated as 32-char hex on save
+- **Post-failure registration verification** — if the registration API times out, Strange re-checks availability to detect masked successes before reporting failure
+
+### Changed
+- **Partial success UI** — if infrastructure provisions but domain/DNS fails, Strange shows "partial success" with guidance instead of binary pass/fail
+- **Output display** — infra details on the Done page are now grouped logically (server → DB → cache → platform → domain → DNS) with human-readable date formatting for domain expiry
+- **AbortController integration** — polling loops cancel cleanly when the client disconnects instead of running for up to 15 minutes server-side
+- **HTTP client** — single retry on transient errors (ECONNRESET, ETIMEDOUT) with 2s delay; per-call timeout override (60s for registration)
+- **Polling jitter** — random interval variation prevents API throttling under concurrent use
+- **ADR-009** corrected to reflect actual AbortController implementation
+- **Cloudflare DNS** accepts `pending` zones from fresh domain registrations (previously required `active`)
+
+### Fixed
+- **Terminal failure detection** — RDS/ElastiCache polling breaks immediately on `failed`/`deleted`/`create-failed` states instead of waiting for timeout
+- **Cleanup handling** — resources in "creating" state get a manual-cleanup warning instead of a silent deletion failure
+- **Asymmetric token check** — all combinations of missing Cloudflare credentials now emit clear skip messages
+- **404 availability fallback** — notes that availability is unconfirmed when domain is simply absent from the account
+- **Registration row** hidden for Docker (local) deploys and invalid hostnames
+- **`state.deployCmd`** declared in initial state object
+
+### Security
+- **CSRF protection** — `X-VoidForge-Request` custom header required on all POST requests; triggers CORS preflight to block cross-origin form submissions
+- **DB_PASSWORD stripped from SSE** — password stays in `.env` only, never sent to the browser
+- **AWS error sanitization** — ARNs, account IDs, and internal identifiers no longer leak to the client
+- **`.env` file permissions** — `chmod 600` applied after generation, matching SSH key protection
+- **Provisioning concurrency lock** — returns 429 if a run is already in progress
+- **`encodeURIComponent(accountId)`** on all Cloudflare API URL interpolations — prevents path injection
+- **Domain + Account ID validation** at client, server, and registrar layers
+- **Random password suffix** replaces static `A1!` — uppercase + digit + special char now randomized
+- **Hostname allowlist** documented in HTTP client module
+
+---
+
+## [3.2.0] - 2026-03-13
+
+### Added
+- **`/void` slash command** — Bombadil's Forge Sync. Self-update mechanism that fetches the latest VoidForge methodology from the scaffold branch, compares every shared file, shows a human-readable update plan, and applies changes while preserving project-specific customizations (PRD, logs, code, CLAUDE.md project section). Works on all three tiers.
+- **Forge Keeper method doc** (`docs/methods/FORGE_KEEPER.md`) — Bombadil's protocol with 5-step update sequence, sub-agent roster (Goldberry, Treebeard, Radagast), shared file manifest, edge cases, and rollback guidance
+- **Bombadil** (Tolkien) as 8th lead agent — Tom Bombadil, the Forge Keeper. Ancient, joyful, sings while he works. Tends the forge itself while others forge applications.
+- **Goldberry** added to Tolkien character pool — River-daughter, upstream change detection
+- ADR-008 (scaffold branch as update source for /void)
+
+### Changed
+- **Command count** updated from 7 to 8 across CLAUDE.md, README, and Holocron
+- **`.claude/settings.json` excluded from Bombadil's sync scope** — user permissions and hooks are never overwritten (Picard's architecture review finding)
+- **Semver comparison** in `/void` uses integer parsing, not string comparison — prevents incorrect results for versions like 3.10.x vs 3.9.x (Picard's architecture review finding)
+
+---
+
+## [3.1.0] - 2026-03-13
+
+### Added
+- **PRD-driven EC2 instance type selection** — PRD frontmatter `instance_type` field recommends t3.micro/small/medium/large based on project scope (database, cache, workers, payments, framework). Strange wizard shows the recommendation with cost estimates and allows override. RDS and ElastiCache sizes match automatically. (ADR-005)
+- **Cloudflare DNS wiring** — new `hostname` field in Merlin wizard and PRD frontmatter. After Strange provisions infrastructure, it auto-creates Cloudflare DNS records (A for VPS, CNAME for platforms) pointing your domain at the provisioned resource. Works with all deploy targets. Non-fatal — infrastructure still succeeds if DNS fails. (ADR-006)
+- **Platform custom domain registration** — Strange now registers your hostname directly with Vercel, Railway, and Cloudflare Pages via their APIs, so the platform expects traffic on your domain
+- **Caddyfile auto-HTTPS** — when hostname is set, generated Caddyfile uses the domain instead of `:80`, enabling automatic Let's Encrypt SSL via Caddy
+- **Instance sizing module** (`wizard/lib/instance-sizing.ts`) — scoring heuristic with `recommendInstanceType()`, RDS/ElastiCache size mapping, swap scaling
+- **DNS module** (`wizard/lib/dns/`) — Cloudflare zone lookup, record CRUD, post-provision orchestration, cleanup support
+- ADRs 005 (instance type selection), 006 (DNS as post-provision step), 007 (hostname vs domain naming)
+
+### Changed
+- **Provision script swap size** scales with instance type (2GB for micro/small, 1GB for medium, none for large)
+- **Cloudflare help text** updated to recommend Zone:DNS:Edit token permission for DNS wiring
+- **Architecture doc** updated with DNS in system diagram and new ADR references
+
+---
+
 ## [3.0.0] - 2026-03-12
 
 ### Added
