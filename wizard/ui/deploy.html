@@ -21,8 +21,8 @@
 
       <!-- Step 1: Unlock + Select Project -->
       <section class="step" id="step-1" data-step="1">
-        <h1>Open a Portal</h1>
-        <p class="subtitle">Strange provisions infrastructure and deploys your built app.</p>
+        <h1>Select Project</h1>
+        <p class="subtitle">Point Strange at a built VoidForge project to provision and deploy.</p>
 
         <div class="card" id="vault-card">
           <h2>Unlock Vault</h2>
@@ -56,8 +56,8 @@
 
       <!-- Step 2: Confirm Provisioning -->
       <section class="step hidden" id="step-2" data-step="2" aria-labelledby="step-2-heading">
-        <h1 id="step-2-heading">Provision Infrastructure</h1>
-        <p class="subtitle" id="provision-subtitle">Setting up your deploy target...</p>
+        <h1 id="step-2-heading">Review & Configure</h1>
+        <p class="subtitle" id="provision-subtitle">Confirm your project details before provisioning.</p>
 
         <div class="card" id="project-summary">
           <table class="review-table">
@@ -65,7 +65,19 @@
               <tr><td class="review-label">Project</td><td id="summary-name"></td></tr>
               <tr><td class="review-label">Framework</td><td id="summary-framework"></td></tr>
               <tr><td class="review-label">Database</td><td id="summary-database"></td></tr>
-              <tr><td class="review-label">Deploy Target</td><td id="summary-deploy"></td></tr>
+              <tr>
+                <td class="review-label">Deploy Target</td>
+                <td>
+                  <select id="summary-deploy-select">
+                    <option value="docker">Docker (local)</option>
+                    <option value="vps">AWS VPS (EC2)</option>
+                    <option value="vercel">Vercel</option>
+                    <option value="railway">Railway</option>
+                    <option value="cloudflare">Cloudflare Pages</option>
+                    <option value="static">Static (S3)</option>
+                  </select>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -74,6 +86,7 @@
           <p id="provision-confirm-desc"></p>
           <div class="btn-row">
             <button class="btn btn-primary" id="start-provision" type="button">Start Provisioning</button>
+            <button class="btn btn-secondary" id="back-to-project" type="button">Change Project</button>
           </div>
         </div>
       </section>
@@ -102,8 +115,8 @@
 
       <!-- Step 4: Done -->
       <section class="step hidden" id="step-4" data-step="4" aria-labelledby="step-4-heading">
-        <h1 id="step-4-heading" tabindex="-1">Portal Open!</h1>
-        <p class="subtitle">Your infrastructure is provisioned and ready.</p>
+        <h1 id="step-4-heading" tabindex="-1">Deploy Complete</h1>
+        <p class="subtitle">Your infrastructure is provisioned and ready to ship.</p>
 
         <div class="card success-card">
           <div class="success-icon" aria-hidden="true">&#10003;</div>
@@ -128,10 +141,6 @@
 
     </main>
 
-    <footer class="wizard-footer">
-      <button class="btn btn-secondary" id="btn-back" type="button" disabled>Back</button>
-      <button class="btn btn-primary" id="btn-next" type="button">Next</button>
-    </footer>
   </div>
 
   <script src="deploy.js"></script>

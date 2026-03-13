@@ -25,10 +25,6 @@
 
   const progressBar = $('#progress-bar');
   const stepLabel = $('#step-label');
-  const btnBack = $('#btn-back');
-  const btnNext = $('#btn-next');
-
-  // --- Navigation ---
 
   function showStep(step) {
     $$('.step').forEach((el) => el.classList.add('hidden'));
@@ -40,10 +36,6 @@
     progressBar.style.width = `${pct}%`;
     progressBar.setAttribute('aria-valuenow', String(pct));
     stepLabel.textContent = `Step ${step} of ${TOTAL_STEPS}`;
-
-    // Strange uses inline buttons per step — hide footer nav entirely
-    btnNext.style.display = 'none';
-    btnBack.style.display = 'none';
 
     const firstInput = target?.querySelector('input, textarea, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 100);
@@ -62,13 +54,17 @@
     $('#toggle-vault-visibility').textContent = isPassword ? 'Hide' : 'Show';
   });
 
-  // Check vault state on load
+  // Check vault state on load — skip unlock if already open
   fetch('/api/credentials/status')
     .then((r) => r.json())
     .then((data) => {
       if (data.unlocked) {
         showStatus(vaultStatus, 'success', 'Vault already unlocked');
+        unlockVaultBtn.style.display = 'none';
+        vaultPasswordInput.style.display = 'none';
+        $('#toggle-vault-visibility').style.display = 'none';
         projectCard.classList.remove('hidden');
+        $('#project-dir').focus();
       }
     })
     .catch(() => {});
@@ -131,27 +127,9 @@
         state.cache = data.cache || 'none';
 
         showStatus(projectStatus, 'success', `Found: ${data.name} (${data.deploy || 'docker'})`);
-
-        // Populate step 2 summary
-        const deployNames = { vps: 'AWS VPS (EC2)', vercel: 'Vercel', railway: 'Railway', cloudflare: 'Cloudflare', static: 'Static (S3)', docker: 'Docker' };
-        $('#summary-name').textContent = data.name;
-        $('#summary-framework').textContent = data.framework || 'auto-detect';
-        $('#summary-database').textContent = data.database || 'none';
-        $('#summary-deploy').textContent = deployNames[data.deploy] || data.deploy || 'Docker';
-
-        // Set confirmation description
-        const descriptions = {
-          docker: 'This will generate a Dockerfile, docker-compose.yml, and .dockerignore. No cloud resources will be created.',
-          vps: 'This will create AWS resources: EC2 instance (t3.micro), security group, SSH key pair. These resources will incur AWS charges.',
-          vercel: 'This will create a project on your Vercel account. Free tier covers most hobby projects.',
-          railway: 'This will create a project on your Railway account with optional database/Redis services.',
-          cloudflare: 'This will create a Cloudflare Pages project, optionally with a D1 database. Pages has a generous free tier.',
-          static: 'This will create an S3 bucket configured for static website hosting. Minimal AWS charges.',
-        };
-        $('#provision-confirm-desc').textContent = descriptions[state.deployTarget] || 'This will provision your deploy target.';
-
-        // Auto-advance to step 2
-        setTimeout(() => showStep(2), 400);
+        // Show continue button instead of auto-advancing
+        scanProjectBtn.textContent = 'Continue';
+        scanProjectBtn.onclick = () => goToStep2();
       } else {
         showStatus(projectStatus, 'error', data.error || 'Not a valid VoidForge project');
       }
@@ -162,7 +140,45 @@
     }
   });
 
-  // --- Step 2: Confirm ---
+  // --- Step 2: Review & Configure ---
+
+  const DEPLOY_DESCRIPTIONS = {
+    docker: 'This will generate a Dockerfile, docker-compose.yml, and .dockerignore. No cloud resources will be created.',
+    vps: 'This will create AWS resources: EC2 instance (t3.micro), security group, SSH key pair. These resources will incur AWS charges.',
+    vercel: 'This will create a project on your Vercel account. Free tier covers most hobby projects.',
+    railway: 'This will create a project on your Railway account with optional database/Redis services.',
+    cloudflare: 'This will create a Cloudflare Pages project, optionally with a D1 database. Pages has a generous free tier.',
+    static: 'This will create an S3 bucket configured for static website hosting. Minimal AWS charges.',
+  };
+
+  function goToStep2() {
+    // Populate step 2 summary
+    $('#summary-name').textContent = state.projectName;
+    $('#summary-framework').textContent = state.framework || 'auto-detect';
+    $('#summary-database').textContent = state.database || 'none';
+
+    // Set deploy target dropdown
+    const deploySelect = $('#summary-deploy-select');
+    deploySelect.value = state.deployTarget;
+    updateDeployDescription();
+
+    showStep(2);
+  }
+
+  function updateDeployDescription() {
+    const target = $('#summary-deploy-select').value;
+    state.deployTarget = target;
+    $('#provision-confirm-desc').textContent = DEPLOY_DESCRIPTIONS[target] || 'This will provision your deploy target.';
+  }
+
+  $('#summary-deploy-select').addEventListener('change', updateDeployDescription);
+
+  // Back to step 1
+  $('#back-to-project').addEventListener('click', () => {
+    scanProjectBtn.textContent = 'Scan Project';
+    scanProjectBtn.onclick = null;
+    showStep(1);
+  });
 
   $('#start-provision').addEventListener('click', () => {
     showStep(3);

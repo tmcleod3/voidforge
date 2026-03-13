@@ -284,7 +284,7 @@
 
         <div id="done-state" class="hidden">
           <h1 id="step-7-heading" tabindex="-1">Project Created!</h1>
-          <p class="subtitle">Merlin's work is done. Your project is scaffolded and ready to build.</p>
+          <p class="subtitle">Merlin's work is done. Your project is scaffolded and ready for development.</p>
 
           <div class="card success-card">
             <div class="success-icon" aria-hidden="true">&#10003;</div>
@@ -297,7 +297,15 @@
               <li>Open a terminal in your project directory</li>
               <li>Review <code>docs/PRD.md</code> — fill in any remaining sections</li>
               <li>Open Claude Code and run <code>/build</code> to build your app</li>
-              <li>When your app is built, run <code>npm run deploy</code> to launch <strong>Strange</strong> — the deploy wizard</li>
+            </ol>
+
+            <div class="card" style="margin-top: 16px; border-color: var(--accent); background: rgba(91, 91, 247, 0.03);">
+              <h3>Ready to deploy?</h3>
+              <p style="font-size: 14px; color: var(--text-dim);">After building your app, run the deploy wizard to provision infrastructure and ship.</p>
+              <p style="font-family: var(--mono); font-size: 14px; margin-top: 8px;"><code>npm run deploy</code></p>
+            </div>
+
+            <ol class="next-steps" style="display: none;">
             </ol>
 
             <div class="btn-row">
