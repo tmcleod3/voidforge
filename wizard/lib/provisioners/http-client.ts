@@ -26,6 +26,17 @@ export function httpsDelete(hostname: string, path: string, headers: Record<stri
   return httpsCall('DELETE', hostname, path, headers);
 }
 
+/** Slugify a name for use as a cloud resource identifier. Strips non-alphanumeric, trims hyphens. */
+export function slugify(name: string): string {
+  const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  return slug || 'voidforge-project';
+}
+
+/** Safely parse JSON — returns null on invalid input instead of throwing. */
+export function safeJsonParse(body: string): unknown {
+  try { return JSON.parse(body); } catch { return null; }
+}
+
 function httpsCall(method: string, hostname: string, path: string, headers: Record<string, string>, body?: string): Promise<HttpResponse> {
   return new Promise((resolve, reject) => {
     const opts: Record<string, unknown> = { hostname, path, method, headers, timeout: 30000 };

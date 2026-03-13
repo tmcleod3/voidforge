@@ -5,12 +5,8 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Provisioner, ProvisionContext, ProvisionEmitter, ProvisionResult, CreatedResource } from './types.js';
-import { httpsPost, httpsGet, httpsDelete } from './http-client.js';
+import { httpsPost, httpsGet, httpsDelete, safeJsonParse, slugify } from './http-client.js';
 import { recordResourcePending, recordResourceCreated } from '../provision-manifest.js';
-
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-}
 
 export const cloudflareProvisioner: Provisioner = {
   async validate(ctx: ProvisionContext): Promise<string[]> {
@@ -43,7 +39,7 @@ export const cloudflareProvisioner: Provisioner = {
         throw new Error(`Cloudflare API returned ${res.status}`);
       }
 
-      const data = JSON.parse(res.body) as {
+      const data = safeJsonParse(res.body) as {
         success?: boolean;
         result?: { id: string; name: string }[];
       };
@@ -78,7 +74,7 @@ export const cloudflareProvisioner: Provisioner = {
       );
 
       if (res.status === 200 || res.status === 201) {
-        const data = JSON.parse(res.body) as {
+        const data = safeJsonParse(res.body) as {
           success?: boolean;
           result?: { name?: string; subdomain?: string };
         };
@@ -92,10 +88,13 @@ export const cloudflareProvisioner: Provisioner = {
         outputs['CF_PROJECT_URL'] = `https://${subdomain}`;
         emit({ step: 'cf-project', status: 'done', message: `Pages project "${projectName}" created — ${subdomain}` });
       } else if (res.status === 409) {
+        // Project exists — track it so cleanup knows about it
+        resources.push({ type: 'cf-pages-project', id: slug, region: 'global' });
+        await recordResourceCreated(ctx.runId, 'cf-pages-project', slug, 'global');
         emit({ step: 'cf-project', status: 'done', message: `Project "${slug}" already exists on Cloudflare — will use existing` });
         outputs['CF_PROJECT_NAME'] = slug;
       } else {
-        const data = JSON.parse(res.body) as { errors?: { message: string }[] };
+        const data = safeJsonParse(res.body) as { errors?: { message: string }[] };
         const errMsg = data.errors?.[0]?.message || `Cloudflare API returned ${res.status}`;
         throw new Error(errMsg);
       }
@@ -105,7 +104,7 @@ export const cloudflareProvisioner: Provisioner = {
     }
 
     // Step 3: Create D1 database if requested
-    if (ctx.database === 'sqlite' || ctx.database === 'postgres') {
+    if (ctx.database === 'sqlite') {
       emit({ step: 'cf-d1', status: 'started', message: 'Creating D1 database' });
       try {
         await recordResourcePending(ctx.runId, 'cf-d1-database', `${slug}-db`, 'global');
@@ -119,7 +118,7 @@ export const cloudflareProvisioner: Provisioner = {
         );
 
         if (res.status === 200 || res.status === 201) {
-          const data = JSON.parse(res.body) as {
+          const data = safeJsonParse(res.body) as {
             result?: { uuid?: string; name?: string };
           };
           const dbId = data.result?.uuid ?? '';
@@ -131,7 +130,7 @@ export const cloudflareProvisioner: Provisioner = {
           }
           emit({ step: 'cf-d1', status: 'done', message: `D1 database "${slug}-db" created` });
         } else {
-          const data = JSON.parse(res.body) as { errors?: { message: string }[] };
+          const data = safeJsonParse(res.body) as { errors?: { message: string }[] };
           throw new Error(data.errors?.[0]?.message || `D1 creation returned ${res.status}`);
         }
       } catch (err) {
@@ -209,7 +208,7 @@ database_id = "${outputs['CF_D1_DATABASE_ID']}"
       const res = await httpsGet('api.cloudflare.com', '/client/v4/accounts?page=1&per_page=1', {
         'Authorization': `Bearer ${token}`,
       });
-      const data = JSON.parse(res.body) as { result?: { id: string }[] };
+      const data = safeJsonParse(res.body) as { result?: { id: string }[] };
       accountId = data.result?.[0]?.id ?? '';
     } catch { return; }
 

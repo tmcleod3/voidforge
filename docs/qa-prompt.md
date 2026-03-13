@@ -66,3 +66,9 @@ _None yet._
 | 22 | Mobile: infra details | View step 9 infra on mobile | Items stack vertically, long values wrap | Manual | UX Audit |
 | 23 | Provision empty state | Reach step 8 before provisioning starts | Shows "Waiting for provisioning to start..." | Manual | UX Audit |
 | 24 | Continue Without Infrastructure | Trigger provision error, click "Continue Without Infrastructure" | Reaches done step, skipped state noted | Manual | UX Audit |
+| 25 | Vercel provisioning | Connect Vercel token, select Vercel target | Project created on Vercel, vercel.json generated | Pass | QA2 |
+| 26 | Railway provisioning | Connect Railway token, select Railway target | Project created on Railway, railway.toml generated | Pass | QA2 |
+| 27 | Cloudflare provisioning | Connect CF token, select Cloudflare target | Pages project created, wrangler.toml generated | Pass | QA2 |
+| 28 | Static S3 provisioning | Use AWS creds, select Static target | S3 bucket created with static hosting, deploy script generated | Pass | QA2 |
+| 29 | Special char project name | Use name like "!!!" or "---" | Slug falls back to "voidforge-project", no crash | Manual | QA2 |
+| 30 | API returns HTML error | Simulate non-JSON response | Graceful error message, no JSON.parse crash | Manual | QA2 |

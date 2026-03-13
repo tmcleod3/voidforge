@@ -7,10 +7,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Provisioner, ProvisionContext, ProvisionEmitter, ProvisionResult, CreatedResource } from './types.js';
 import { recordResourcePending, recordResourceCreated } from '../provision-manifest.js';
-
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-}
+import { slugify } from './http-client.js';
 
 export const staticS3Provisioner: Provisioner = {
   async validate(ctx: ProvisionContext): Promise<string[]> {
@@ -93,6 +90,9 @@ export const staticS3Provisioner: Provisioner = {
         emit({ step: 's3-bucket', status: 'done', message: `Bucket "${bucketName}" already exists — using it` });
         resources.push({ type: 's3-bucket', id: bucketName, region });
         await recordResourceCreated(ctx.runId, 's3-bucket', bucketName, region);
+      } else if (msg.includes('BucketAlreadyExists')) {
+        emit({ step: 's3-bucket', status: 'error', message: `Bucket name "${bucketName}" is taken by another AWS account`, detail: 'Use a more unique project name to generate a different bucket name' });
+        return { success: false, resources, outputs, files, error: `S3 bucket name "${bucketName}" is globally taken` };
       } else {
         emit({ step: 's3-bucket', status: 'error', message: 'Failed to create S3 bucket', detail: msg });
         return { success: false, resources, outputs, files, error: msg };
@@ -224,16 +224,23 @@ echo "Site: ${outputs['S3_WEBSITE_URL'] || `http://$BUCKET.s3-website.amazonaws.
           const { S3Client, DeleteBucketCommand, ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3');
           const s3 = new S3Client(awsConfig);
 
-          // Must empty bucket before deleting
-          const listRes = await s3.send(new ListObjectsV2Command({ Bucket: resource.id }));
-          if (listRes.Contents && listRes.Contents.length > 0) {
-            await s3.send(new DeleteObjectsCommand({
+          // Must empty bucket before deleting — paginate to handle >1000 objects
+          let continuationToken: string | undefined;
+          do {
+            const listRes = await s3.send(new ListObjectsV2Command({
               Bucket: resource.id,
-              Delete: {
-                Objects: listRes.Contents.map((obj) => ({ Key: obj.Key! })),
-              },
+              ContinuationToken: continuationToken,
             }));
-          }
+            if (listRes.Contents && listRes.Contents.length > 0) {
+              await s3.send(new DeleteObjectsCommand({
+                Bucket: resource.id,
+                Delete: {
+                  Objects: listRes.Contents.map((obj) => ({ Key: obj.Key! })),
+                },
+              }));
+            }
+            continuationToken = listRes.IsTruncated ? listRes.NextContinuationToken : undefined;
+          } while (continuationToken);
 
           await s3.send(new DeleteBucketCommand({ Bucket: resource.id }));
         } catch (err) {

@@ -5,7 +5,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Provisioner, ProvisionContext, ProvisionEmitter, ProvisionResult, CreatedResource } from './types.js';
-import { httpsPost } from './http-client.js';
+import { httpsPost, safeJsonParse } from './http-client.js';
 import { recordResourcePending, recordResourceCreated } from '../provision-manifest.js';
 
 function gql(token: string, query: string, variables?: Record<string, unknown>): Promise<{ status: number; body: string }> {
@@ -50,7 +50,7 @@ export const railwayProvisioner: Provisioner = {
         throw new Error(`Railway API returned ${res.status}`);
       }
 
-      const data = JSON.parse(res.body) as {
+      const data = safeJsonParse(res.body) as {
         data?: { projectCreate?: { id?: string; name?: string } };
         errors?: { message: string }[];
       };
@@ -88,16 +88,18 @@ export const railwayProvisioner: Provisioner = {
           }
         `, { projectId, plugin: dbType });
 
-        const data = JSON.parse(res.body) as {
+        if (res.status !== 200) throw new Error(`Railway API returned ${res.status}`);
+
+        const data = safeJsonParse(res.body) as {
           data?: { pluginCreate?: { id?: string } };
           errors?: { message: string }[];
-        };
+        } | null;
 
-        if (data.errors && data.errors.length > 0) {
+        if (data?.errors && data.errors.length > 0) {
           throw new Error(data.errors[0].message);
         }
 
-        const pluginId = data.data?.pluginCreate?.id ?? '';
+        const pluginId = data?.data?.pluginCreate?.id ?? '';
         if (pluginId) {
           resources.push({ type: 'railway-plugin', id: pluginId, region: 'global' });
           await recordResourceCreated(ctx.runId, 'railway-plugin', pluginId, 'global');
@@ -126,16 +128,18 @@ export const railwayProvisioner: Provisioner = {
           }
         `, { projectId, plugin: 'redis' });
 
-        const data = JSON.parse(res.body) as {
+        if (res.status !== 200) throw new Error(`Railway API returned ${res.status}`);
+
+        const data = safeJsonParse(res.body) as {
           data?: { pluginCreate?: { id?: string } };
           errors?: { message: string }[];
-        };
+        } | null;
 
-        if (data.errors && data.errors.length > 0) {
+        if (data?.errors && data.errors.length > 0) {
           throw new Error(data.errors[0].message);
         }
 
-        const pluginId = data.data?.pluginCreate?.id ?? '';
+        const pluginId = data?.data?.pluginCreate?.id ?? '';
         if (pluginId) {
           resources.push({ type: 'railway-plugin', id: pluginId, region: 'global' });
           await recordResourceCreated(ctx.runId, 'railway-plugin', pluginId, 'global');

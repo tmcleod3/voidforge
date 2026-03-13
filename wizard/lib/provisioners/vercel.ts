@@ -5,12 +5,8 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Provisioner, ProvisionContext, ProvisionEmitter, ProvisionResult, CreatedResource } from './types.js';
-import { httpsPost, httpsGet, httpsDelete } from './http-client.js';
+import { httpsPost, httpsGet, httpsDelete, safeJsonParse, slugify } from './http-client.js';
 import { recordResourcePending, recordResourceCreated } from '../provision-manifest.js';
-
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-}
 
 export const vercelProvisioner: Provisioner = {
   async validate(ctx: ProvisionContext): Promise<string[]> {
@@ -58,21 +54,21 @@ export const vercelProvisioner: Provisioner = {
       const res = await httpsPost('api.vercel.com', '/v10/projects', headers, body);
 
       if (res.status === 200 || res.status === 201) {
-        const data = JSON.parse(res.body) as { id?: string; name?: string };
-        projectId = data.id ?? '';
+        const data = safeJsonParse(res.body) as { id?: string; name?: string } | null;
+        projectId = data?.id ?? '';
+        if (!projectId) throw new Error('Vercel returned no project ID');
         resources.push({ type: 'vercel-project', id: projectId, region: 'global' });
         await recordResourceCreated(ctx.runId, 'vercel-project', projectId, 'global');
         outputs['VERCEL_PROJECT_ID'] = projectId;
-        outputs['VERCEL_PROJECT_NAME'] = data.name ?? slug;
-        emit({ step: 'vercel-project', status: 'done', message: `Project "${data.name}" created on Vercel` });
+        outputs['VERCEL_PROJECT_NAME'] = data?.name ?? slug;
+        emit({ step: 'vercel-project', status: 'done', message: `Project "${data?.name}" created on Vercel` });
       } else if (res.status === 409) {
         // Project already exists — use it
-        const data = JSON.parse(res.body) as { error?: { code?: string } };
         emit({ step: 'vercel-project', status: 'done', message: `Project "${slug}" already exists on Vercel — will use existing`, detail: 'No new project created' });
         outputs['VERCEL_PROJECT_NAME'] = slug;
       } else {
-        const errBody = JSON.parse(res.body) as { error?: { message?: string } };
-        throw new Error(errBody.error?.message || `Vercel API returned ${res.status}`);
+        const errBody = safeJsonParse(res.body) as { error?: { message?: string } } | null;
+        throw new Error(errBody?.error?.message || `Vercel API returned ${res.status}`);
       }
     } catch (err) {
       emit({ step: 'vercel-project', status: 'error', message: 'Failed to create Vercel project', detail: (err as Error).message });
