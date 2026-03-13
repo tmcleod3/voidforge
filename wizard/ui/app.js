@@ -239,7 +239,7 @@
     try {
       const res = await fetch('/api/credentials/unlock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
@@ -274,7 +274,7 @@
     try {
       const res = await fetch('/api/credentials/anthropic', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ apiKey }),
       });
       const data = await res.json();
@@ -457,7 +457,7 @@
         try {
           const res = await fetch('/api/cloud/validate', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
             body: JSON.stringify({ provider: providerId, credentials }),
           });
           const data = await res.json();
@@ -491,7 +491,7 @@
         try {
           await fetch('/api/cloud/remove', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
             body: JSON.stringify({ provider: providerId }),
           });
 
@@ -574,7 +574,7 @@
     try {
       const res = await fetch('/api/prd/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
@@ -628,7 +628,7 @@
     try {
       const res = await fetch('/api/prd/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({
           idea,
           name: state.projectName,
@@ -792,7 +792,7 @@
 
       const res = await fetch('/api/project/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({
           name: state.projectName,
           directory: state.projectDir,

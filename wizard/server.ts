@@ -47,7 +47,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   // CORS — scoped to the wizard's own origin
   res.setHeader('Access-Control-Allow-Origin', `http://127.0.0.1:${serverPort}`);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-VoidForge-Request');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -57,6 +57,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // CSRF protection — require custom header on all POST requests (F-06)
+  if (req.method === 'POST' && !req.headers['x-voidforge-request']) {
+    sendJson(res, 403, { error: 'Missing X-VoidForge-Request header' });
     return;
   }
 

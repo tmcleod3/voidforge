@@ -1,6 +1,9 @@
 /**
  * Shared HTTPS client for provisioner API calls.
  * Uses raw node:https — no dependencies.
+ *
+ * Security: All callers hardcode hostnames (api.cloudflare.com, etc.).
+ * Never pass user-controlled input as the hostname parameter.
  */
 
 import { request as httpsRequest } from 'node:https';
@@ -10,20 +13,20 @@ interface HttpResponse {
   body: string;
 }
 
-export function httpsGet(hostname: string, path: string, headers: Record<string, string>): Promise<HttpResponse> {
-  return httpsCall('GET', hostname, path, headers);
+export function httpsGet(hostname: string, path: string, headers: Record<string, string>, timeout?: number): Promise<HttpResponse> {
+  return httpsCallWithRetry('GET', hostname, path, headers, undefined, timeout);
 }
 
-export function httpsPost(hostname: string, path: string, headers: Record<string, string>, body?: string): Promise<HttpResponse> {
-  return httpsCall('POST', hostname, path, headers, body);
+export function httpsPost(hostname: string, path: string, headers: Record<string, string>, body?: string, timeout?: number): Promise<HttpResponse> {
+  return httpsCallWithRetry('POST', hostname, path, headers, body, timeout);
 }
 
-export function httpsPut(hostname: string, path: string, headers: Record<string, string>, body?: string): Promise<HttpResponse> {
-  return httpsCall('PUT', hostname, path, headers, body);
+export function httpsPut(hostname: string, path: string, headers: Record<string, string>, body?: string, timeout?: number): Promise<HttpResponse> {
+  return httpsCallWithRetry('PUT', hostname, path, headers, body, timeout);
 }
 
-export function httpsDelete(hostname: string, path: string, headers: Record<string, string>): Promise<HttpResponse> {
-  return httpsCall('DELETE', hostname, path, headers);
+export function httpsDelete(hostname: string, path: string, headers: Record<string, string>, timeout?: number): Promise<HttpResponse> {
+  return httpsCallWithRetry('DELETE', hostname, path, headers, undefined, timeout);
 }
 
 /** Slugify a name for use as a cloud resource identifier. Strips non-alphanumeric, trims hyphens. */
@@ -37,9 +40,44 @@ export function safeJsonParse(body: string): unknown {
   try { return JSON.parse(body); } catch { return null; }
 }
 
-function httpsCall(method: string, hostname: string, path: string, headers: Record<string, string>, body?: string): Promise<HttpResponse> {
+const DEFAULT_TIMEOUT = 30000;
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 2000;
+const TRANSIENT_CODES = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE'];
+
+/**
+ * Wrapper around httpsCall that retries once on transient network errors.
+ * Transient errors: ECONNRESET, ETIMEDOUT, ENOTFOUND, EPIPE, socket hang up.
+ */
+async function httpsCallWithRetry(
+  method: string,
+  hostname: string,
+  path: string,
+  headers: Record<string, string>,
+  body?: string,
+  timeout?: number,
+): Promise<HttpResponse> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await httpsCall(method, hostname, path, headers, body, timeout);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      const isTransient = TRANSIENT_CODES.includes(code || '') ||
+        (err as Error).message.includes('socket hang up');
+      if (attempt < MAX_RETRIES && isTransient) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Unreachable — the loop always returns or throws — but TypeScript needs this
+  throw new Error('Retry loop exited unexpectedly');
+}
+
+function httpsCall(method: string, hostname: string, path: string, headers: Record<string, string>, body?: string, timeout?: number): Promise<HttpResponse> {
   return new Promise((resolve, reject) => {
-    const opts: Record<string, unknown> = { hostname, path, method, headers, timeout: 30000 };
+    const opts: Record<string, unknown> = { hostname, path, method, headers, timeout: timeout ?? DEFAULT_TIMEOUT };
     if (body) {
       headers['Content-Length'] = String(Buffer.byteLength(body));
     }

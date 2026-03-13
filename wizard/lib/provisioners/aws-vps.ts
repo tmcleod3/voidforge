@@ -4,6 +4,7 @@
  */
 
 import { writeFile, mkdir, chmod } from 'node:fs/promises';
+import { chmodSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import type { Provisioner, ProvisionContext, ProvisionEmitter, ProvisionResult, CreatedResource } from './types.js';
@@ -21,6 +22,14 @@ const MAX_POLL_MS = 300000; // 5 minutes
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function cancellableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(new Error('Aborted')); return; }
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new Error('Aborted')); }, { once: true });
+  });
 }
 
 function slugify(name: string): string {
@@ -82,9 +91,11 @@ export const awsVpsProvisioner: Provisioner = {
     emit({ step: 'validate-creds', status: 'started', message: 'Validating AWS credentials' });
     try {
       const identity = await sts.send(new GetCallerIdentityCommand({}));
-      emit({ step: 'validate-creds', status: 'done', message: `Authenticated as ${identity.Arn}` });
+      const entityName = (identity.Arn ?? 'unknown').split(/[/:]/).pop() ?? 'unknown';
+      emit({ step: 'validate-creds', status: 'done', message: `Authenticated as ${entityName}` });
     } catch (err) {
-      emit({ step: 'validate-creds', status: 'error', message: 'Invalid AWS credentials', detail: (err as Error).message });
+      console.error('AWS credential validation error:', (err as Error).message);
+      emit({ step: 'validate-creds', status: 'error', message: 'Invalid AWS credentials', detail: 'Check AWS Console for details' });
       return { success: false, resources, outputs, files, error: 'AWS credential validation failed' };
     }
 
@@ -113,8 +124,9 @@ export const awsVpsProvisioner: Provisioner = {
       outputs['SSH_KEY_PATH'] = '.ssh/deploy-key.pem';
       emit({ step: 'key-pair', status: 'done', message: `Key pair "${keyName}" created` });
     } catch (err) {
-      emit({ step: 'key-pair', status: 'error', message: 'Failed to create key pair', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      console.error('Key pair creation error:', (err as Error).message);
+      emit({ step: 'key-pair', status: 'error', message: 'Failed to create key pair', detail: 'Check AWS Console for details' });
+      return { success: false, resources, outputs, files, error: 'Failed to create key pair' };
     }
 
     // Step 3: Create security group
@@ -131,6 +143,7 @@ export const awsVpsProvisioner: Provisioner = {
       await recordResourceCreated(ctx.runId, 'security-group', sgId, region);
 
       // Authorize inbound: SSH (22), HTTP (80), HTTPS (443)
+      // TODO: Restrict SSH to user's IP post-provisioning. 0.0.0.0/0 is for initial setup only.
       const ingressRules: IpPermission[] = [
         { IpProtocol: 'tcp', FromPort: 22, ToPort: 22, IpRanges: [{ CidrIp: '0.0.0.0/0', Description: 'SSH' }] },
         { IpProtocol: 'tcp', FromPort: 80, ToPort: 80, IpRanges: [{ CidrIp: '0.0.0.0/0', Description: 'HTTP' }] },
@@ -157,8 +170,9 @@ export const awsVpsProvisioner: Provisioner = {
       const portList = ingressRules.map((r) => r.FromPort).join(', ');
       emit({ step: 'security-group', status: 'done', message: `Security group "${slug}-sg" created (ports ${portList})` });
     } catch (err) {
-      emit({ step: 'security-group', status: 'error', message: 'Failed to create security group', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      console.error('Security group creation error:', (err as Error).message);
+      emit({ step: 'security-group', status: 'error', message: 'Failed to create security group', detail: 'Check AWS Console for details' });
+      return { success: false, resources, outputs, files, error: 'Failed to create security group' };
     }
 
     // Step 4: Find latest Amazon Linux 2023 AMI
@@ -184,8 +198,9 @@ export const awsVpsProvisioner: Provisioner = {
       amiId = images[0].ImageId!;
       emit({ step: 'ami-lookup', status: 'done', message: `AMI: ${amiId}` });
     } catch (err) {
-      emit({ step: 'ami-lookup', status: 'error', message: 'AMI lookup failed', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      console.error('AMI lookup error:', (err as Error).message);
+      emit({ step: 'ami-lookup', status: 'error', message: 'AMI lookup failed', detail: 'Check AWS Console for details' });
+      return { success: false, resources, outputs, files, error: 'AMI lookup failed' };
     }
 
     // Step 5: Launch EC2 instance
@@ -221,8 +236,9 @@ dnf install -y git curl`;
       await recordResourceCreated(ctx.runId, 'ec2-instance', instanceId, region);
       emit({ step: 'launch-ec2', status: 'done', message: `Instance ${instanceId} launched` });
     } catch (err) {
-      emit({ step: 'launch-ec2', status: 'error', message: 'Failed to launch EC2', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      console.error('EC2 launch error:', (err as Error).message);
+      emit({ step: 'launch-ec2', status: 'error', message: 'Failed to launch EC2', detail: 'Check AWS Console for details' });
+      return { success: false, resources, outputs, files, error: 'Failed to launch EC2 instance' };
     }
 
     // Step 6: Wait for instance to be running
@@ -231,7 +247,7 @@ dnf install -y git curl`;
     try {
       const start = Date.now();
       while (Date.now() - start < MAX_POLL_MS) {
-        await sleep(POLL_INTERVAL_MS);
+        await cancellableSleep(POLL_INTERVAL_MS + Math.random() * 1000, ctx.abortSignal);
         const desc = await ec2.send(new ec2Commands.DescribeInstancesCommand({
           InstanceIds: [instanceId],
         }));
@@ -251,21 +267,28 @@ dnf install -y git curl`;
       outputs['SSH_USER'] = 'ec2-user';
       emit({ step: 'wait-running', status: 'done', message: `Instance running at ${publicIp}` });
     } catch (err) {
-      emit({ step: 'wait-running', status: 'error', message: 'Instance failed to start', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      if ((err as Error).message === 'Aborted') {
+        emit({ step: 'wait-running', status: 'skipped', message: 'EC2 polling cancelled' });
+      } else {
+        console.error('EC2 wait error:', (err as Error).message);
+        emit({ step: 'wait-running', status: 'error', message: 'Instance failed to start', detail: 'Check AWS Console for details' });
+        return { success: false, resources, outputs, files, error: 'EC2 instance failed to start' };
+      }
     }
 
     // Step 7: Optional RDS
     if (ctx.database === 'postgres' || ctx.database === 'mysql') {
       emit({ step: 'rds', status: 'started', message: `Creating RDS instance (${ctx.database})` });
       try {
-        const { RDSClient, CreateDBInstanceCommand } = await import('@aws-sdk/client-rds');
+        const { RDSClient, CreateDBInstanceCommand, DescribeDBInstancesCommand } = await import('@aws-sdk/client-rds');
         const rds = new RDSClient(awsConfig);
 
         const engine = ctx.database === 'postgres' ? 'postgres' : 'mysql';
         const port = ctx.database === 'postgres' ? 5432 : 3306;
         const dbInstanceId = `${slug}-db`;
-        const dbPassword = randomBytes(16).toString('hex') + 'A1!';
+        const specials = '!@#$%^&*';
+        const suffix = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 10) + specials[Math.floor(Math.random() * specials.length)];
+        const dbPassword = randomBytes(16).toString('hex') + suffix;
 
         await recordResourcePending(ctx.runId, 'rds-instance', dbInstanceId, region);
         await rds.send(new CreateDBInstanceCommand({
@@ -288,10 +311,65 @@ dnf install -y git curl`;
         outputs['DB_ENGINE'] = engine;
         outputs['DB_PORT'] = String(port);
         outputs['DB_INSTANCE_ID'] = dbInstanceId;
+        outputs['DB_USERNAME'] = 'admin';
         outputs['DB_PASSWORD'] = dbPassword;
-        emit({ step: 'rds', status: 'done', message: `RDS instance "${dbInstanceId}" creating (takes ~5min to become available)`, detail: 'RDS provisioning continues in the background. Check AWS Console for endpoint.' });
+        emit({ step: 'rds', status: 'done', message: `RDS instance "${dbInstanceId}" created — waiting for endpoint` });
+
+        // Step 7b: Poll RDS until available (non-fatal on timeout)
+        const RDS_POLL_MS = 10000;
+        const RDS_TIMEOUT_MS = 900000; // 15 minutes
+        const RDS_PROGRESS_MS = 30000;
+        emit({ step: 'rds-wait', status: 'started', message: 'Waiting for RDS to become available (5-10 minutes)...' });
+        try {
+          const rdsStart = Date.now();
+          let lastProgress = rdsStart;
+          let dbHost = '';
+          while (Date.now() - rdsStart < RDS_TIMEOUT_MS) {
+            await cancellableSleep(RDS_POLL_MS + Math.random() * 2000, ctx.abortSignal);
+            const desc = await rds.send(new DescribeDBInstancesCommand({
+              DBInstanceIdentifier: dbInstanceId,
+            }));
+            const instance = desc.DBInstances?.[0];
+            const status = instance?.DBInstanceStatus;
+
+            if (status === 'available') {
+              dbHost = instance?.Endpoint?.Address ?? '';
+              break;
+            }
+
+            // Check for terminal failure states
+            const rdsTerminalStates = ['failed', 'deleting', 'deleted', 'incompatible-parameters', 'incompatible-restore', 'storage-full'];
+            if (status && rdsTerminalStates.includes(status)) {
+              emit({ step: 'rds-wait', status: 'error', message: `RDS entered terminal state: ${status}`, detail: 'Check AWS Console for details' });
+              break;
+            }
+
+            // Emit progress every 30 seconds
+            if (Date.now() - lastProgress >= RDS_PROGRESS_MS) {
+              const elapsed = Math.round((Date.now() - rdsStart) / 1000);
+              emit({ step: 'rds-wait', status: 'started', message: `RDS status: ${status || 'creating'}... (${elapsed}s elapsed)` });
+              lastProgress = Date.now();
+            }
+          }
+
+          if (dbHost) {
+            outputs['DB_HOST'] = dbHost;
+            emit({ step: 'rds-wait', status: 'done', message: `RDS available at ${dbHost}` });
+          } else {
+            emit({ step: 'rds-wait', status: 'error', message: 'RDS polling timed out after 15 minutes', detail: `Instance "${dbInstanceId}" is still provisioning. Check the AWS Console for the endpoint and add DB_HOST to your .env manually.` });
+          }
+        } catch (pollErr) {
+          if ((pollErr as Error).message === 'Aborted') {
+            emit({ step: 'rds-wait', status: 'skipped', message: 'RDS polling cancelled' });
+          } else {
+            console.error('RDS polling error:', (pollErr as Error).message);
+            emit({ step: 'rds-wait', status: 'error', message: 'RDS polling failed', detail: 'Check AWS Console for details' });
+          }
+          // Non-fatal — continue without DB_HOST
+        }
       } catch (err) {
-        emit({ step: 'rds', status: 'error', message: 'Failed to create RDS instance', detail: (err as Error).message });
+        console.error('RDS creation error:', (err as Error).message);
+        emit({ step: 'rds', status: 'error', message: 'Failed to create RDS instance', detail: 'Check AWS Console for details' });
         // Non-fatal — continue without DB
       }
     } else {
@@ -302,7 +380,7 @@ dnf install -y git curl`;
     if (ctx.cache === 'redis') {
       emit({ step: 'elasticache', status: 'started', message: 'Creating ElastiCache Redis cluster' });
       try {
-        const { ElastiCacheClient, CreateCacheClusterCommand } = await import('@aws-sdk/client-elasticache');
+        const { ElastiCacheClient, CreateCacheClusterCommand, DescribeCacheClustersCommand } = await import('@aws-sdk/client-elasticache');
         const elasticache = new ElastiCacheClient(awsConfig);
         const clusterId = `${slug}-redis`;
 
@@ -321,9 +399,63 @@ dnf install -y git curl`;
         resources.push({ type: 'elasticache-cluster', id: clusterId, region });
         await recordResourceCreated(ctx.runId, 'elasticache-cluster', clusterId, region);
         outputs['REDIS_CLUSTER_ID'] = clusterId;
-        emit({ step: 'elasticache', status: 'done', message: `ElastiCache cluster "${clusterId}" creating` });
+        emit({ step: 'elasticache', status: 'done', message: `ElastiCache cluster "${clusterId}" created — waiting for endpoint` });
+
+        // Step 8b: Poll ElastiCache until available (non-fatal on timeout)
+        const CACHE_POLL_MS = 5000;
+        const CACHE_TIMEOUT_MS = 300000; // 5 minutes
+        const CACHE_PROGRESS_MS = 15000;
+        emit({ step: 'cache-wait', status: 'started', message: 'Waiting for Redis to become available (1-2 minutes)...' });
+        try {
+          const cacheStart = Date.now();
+          let lastCacheProgress = cacheStart;
+          let redisHost = '';
+          while (Date.now() - cacheStart < CACHE_TIMEOUT_MS) {
+            await cancellableSleep(CACHE_POLL_MS + Math.random() * 1000, ctx.abortSignal);
+            const desc = await elasticache.send(new DescribeCacheClustersCommand({
+              CacheClusterId: clusterId,
+              ShowCacheNodeInfo: true,
+            }));
+            const cluster = desc.CacheClusters?.[0];
+            const status = cluster?.CacheClusterStatus;
+
+            if (status === 'available') {
+              redisHost = cluster?.CacheNodes?.[0]?.Endpoint?.Address ?? '';
+              break;
+            }
+
+            // Check for terminal failure states
+            const cacheTerminalStates = ['deleted', 'deleting', 'create-failed', 'snapshotting'];
+            if (status && cacheTerminalStates.includes(status)) {
+              emit({ step: 'cache-wait', status: 'error', message: `Redis entered terminal state: ${status}`, detail: 'Check AWS Console for details' });
+              break;
+            }
+
+            if (Date.now() - lastCacheProgress >= CACHE_PROGRESS_MS) {
+              const elapsed = Math.round((Date.now() - cacheStart) / 1000);
+              emit({ step: 'cache-wait', status: 'started', message: `Redis status: ${status || 'creating'}... (${elapsed}s elapsed)` });
+              lastCacheProgress = Date.now();
+            }
+          }
+
+          if (redisHost) {
+            outputs['REDIS_HOST'] = redisHost;
+            outputs['REDIS_PORT'] = '6379';
+            emit({ step: 'cache-wait', status: 'done', message: `Redis available at ${redisHost}:6379` });
+          } else {
+            emit({ step: 'cache-wait', status: 'error', message: 'Redis polling timed out after 5 minutes', detail: `Cluster "${clusterId}" is still provisioning. Check the AWS Console for the endpoint.` });
+          }
+        } catch (pollErr) {
+          if ((pollErr as Error).message === 'Aborted') {
+            emit({ step: 'cache-wait', status: 'skipped', message: 'Redis polling cancelled' });
+          } else {
+            console.error('Redis polling error:', (pollErr as Error).message);
+            emit({ step: 'cache-wait', status: 'error', message: 'Redis polling failed', detail: 'Check AWS Console for details' });
+          }
+        }
       } catch (err) {
-        emit({ step: 'elasticache', status: 'error', message: 'Failed to create ElastiCache cluster', detail: (err as Error).message });
+        console.error('ElastiCache creation error:', (err as Error).message);
+        emit({ step: 'elasticache', status: 'error', message: 'Failed to create ElastiCache cluster', detail: 'Check AWS Console for details' });
         // Non-fatal
       }
     } else {
@@ -367,8 +499,9 @@ dnf install -y git curl`;
 
       emit({ step: 'generate-scripts', status: 'done', message: `Generated ${files.length} infrastructure files` });
     } catch (err) {
-      emit({ step: 'generate-scripts', status: 'error', message: 'Failed to generate scripts', detail: (err as Error).message });
-      return { success: false, resources, outputs, files, error: (err as Error).message };
+      console.error('Script generation error:', (err as Error).message);
+      emit({ step: 'generate-scripts', status: 'error', message: 'Failed to generate scripts', detail: 'Check AWS Console for details' });
+      return { success: false, resources, outputs, files, error: 'Failed to generate infrastructure scripts' };
     }
 
     // Step 10: Write .env with infrastructure details
@@ -382,15 +515,16 @@ dnf install -y git curl`;
       ];
       if (outputs['DB_ENGINE']) {
         envLines.push(`DB_ENGINE=${outputs['DB_ENGINE']}`);
+        envLines.push(`DB_HOST=${outputs['DB_HOST'] || '# pending — check AWS Console'}`);
         envLines.push(`DB_PORT=${outputs['DB_PORT']}`);
         envLines.push(`DB_INSTANCE_ID=${outputs['DB_INSTANCE_ID']}`);
-        envLines.push(`DB_USERNAME=admin`);
+        envLines.push(`DB_USERNAME=${outputs['DB_USERNAME']}`);
         envLines.push(`DB_PASSWORD=${outputs['DB_PASSWORD']}`);
-        envLines.push('# DB_HOST will be available once RDS finishes provisioning — check AWS Console');
       }
       if (outputs['REDIS_CLUSTER_ID']) {
         envLines.push(`REDIS_CLUSTER_ID=${outputs['REDIS_CLUSTER_ID']}`);
-        envLines.push('# REDIS_HOST will be available once ElastiCache finishes — check AWS Console');
+        envLines.push(`REDIS_HOST=${outputs['REDIS_HOST'] || '# pending — check AWS Console'}`);
+        envLines.push(`REDIS_PORT=${outputs['REDIS_PORT'] || '6379'}`);
       }
 
       const envPath = join(ctx.projectDir, '.env');
@@ -400,10 +534,12 @@ dnf install -y git curl`;
       try { existing = await readFile(envPath, 'utf-8'); } catch { /* file doesn't exist yet */ }
       const separator = existing ? '\n\n' : '';
       await writeFile(envPath, existing + separator + envLines.join('\n') + '\n', 'utf-8');
+      chmodSync(envPath, 0o600);
 
       emit({ step: 'write-env', status: 'done', message: 'Infrastructure config written to .env' });
     } catch (err) {
-      emit({ step: 'write-env', status: 'error', message: 'Failed to write .env', detail: (err as Error).message });
+      console.error('Env file write error:', (err as Error).message);
+      emit({ step: 'write-env', status: 'error', message: 'Failed to write .env', detail: 'Check AWS Console for details' });
       // Non-fatal
     }
 
@@ -462,16 +598,34 @@ dnf install -y git curl`;
           case 'rds-instance': {
             const { RDSClient, DeleteDBInstanceCommand } = await import('@aws-sdk/client-rds');
             const rds = new RDSClient(awsConfig);
-            await rds.send(new DeleteDBInstanceCommand({
-              DBInstanceIdentifier: resource.id,
-              SkipFinalSnapshot: true,
-            }));
+            try {
+              await rds.send(new DeleteDBInstanceCommand({
+                DBInstanceIdentifier: resource.id,
+                SkipFinalSnapshot: true,
+              }));
+            } catch (rdsErr) {
+              const code = (rdsErr as { name?: string }).name ?? '';
+              if (code === 'InvalidDBInstanceState') {
+                console.error(`RDS instance "${resource.id}" is still creating — check AWS Console in 10 minutes to delete manually.`);
+              } else {
+                throw rdsErr;
+              }
+            }
             break;
           }
           case 'elasticache-cluster': {
             const { ElastiCacheClient, DeleteCacheClusterCommand } = await import('@aws-sdk/client-elasticache');
             const ec = new ElastiCacheClient(awsConfig);
-            await ec.send(new DeleteCacheClusterCommand({ CacheClusterId: resource.id }));
+            try {
+              await ec.send(new DeleteCacheClusterCommand({ CacheClusterId: resource.id }));
+            } catch (cacheErr) {
+              const code = (cacheErr as { name?: string }).name ?? '';
+              if (code === 'InvalidCacheClusterState') {
+                console.error(`ElastiCache cluster "${resource.id}" is still creating — check AWS Console in 10 minutes to delete manually.`);
+              } else {
+                throw cacheErr;
+              }
+            }
             break;
           }
         }

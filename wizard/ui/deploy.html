@@ -84,6 +84,16 @@
                   <input type="text" id="summary-hostname" placeholder="myapp.com (optional — Cloudflare DNS)">
                 </td>
               </tr>
+              <tr class="hidden" id="register-domain-row">
+                <td class="review-label">Register Domain</td>
+                <td>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="summary-register-domain" aria-describedby="register-domain-desc">
+                    <span>Buy this domain via Cloudflare Registrar (~$10-15/year, non-refundable)</span>
+                  </label>
+                  <span id="register-domain-desc" class="sr-only">Purchasing a domain is a non-refundable annual charge billed through Cloudflare Registrar.</span>
+                </td>
+              </tr>
               <tr class="hidden" id="instance-type-row">
                 <td class="review-label">Instance Type</td>
                 <td>

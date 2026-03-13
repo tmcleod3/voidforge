@@ -8,26 +8,35 @@
 
 ---
 
-## v3.1 -- The Last Mile
+## v3.1 -- The Last Mile *(partially shipped)*
 
-The gap between "Strange provisioned your server" and "your app is live at your domain" is one DNS record. That's one record too many.
+~~The gap between "Strange provisioned your server" and "your app is live at your domain" is one DNS record. That's one record too many.~~
 
-**DNS Management**
-Kusanagi already has the keys. AWS credentials? In the vault. Cloudflare token? In the vault. Route53 and Cloudflare DNS APIs are waiting. Strange provisions the server, then points your domain at it. Caddy sees the domain, provisions SSL automatically. The user never opens a registrar dashboard.
+**~~DNS Management~~** — *Shipped in v3.1.0*
+Cloudflare DNS wiring now runs as a post-provision step after Strange provisions any target. A records for VPS (pointing at EC2 IP), CNAMEs for platforms (Vercel, Railway, Cloudflare Pages, S3). Caddy uses the hostname for automatic Let's Encrypt SSL. Haku routes. Rex locks down. The user never opens a DNS dashboard.
 
-Rex handles the tactical lockdown. Haku (the shapeshifter) handles DNS routing. Together they wire everything up before you finish your coffee.
+**~~Platform Domain Registration~~** — *Shipped in v3.1.0 (unforetold)*
+Not originally in the prophecy, but the Council saw the need. Vercel, Railway, and Cloudflare Pages now register the custom domain on the platform side via their APIs. DNS alone wasn't enough — the platforms need to know too.
 
-**Domain Registration**
-Why stop at DNS records? Route53 and Cloudflare Registrar both have APIs. Strange could ask "Buy this domain?" and register it on the spot. You don't even own the domain yet, and VoidForge handles the whole thing from purchase to production.
+**~~EC2 Instance Sizing~~** — *Shipped in v3.1.0 (unforetold)*
+PRD-driven instance type recommendation. The `instance_type` frontmatter field is auto-recommended from project scope (database, cache, workers, payments, framework). Strange shows the recommendation with cost estimates. RDS and ElastiCache sizes match automatically. ADR-005.
 
-Senku builds civilization from scratch. This is that energy.
+**Domain Registration** — *Open*
+Cloudflare Registrar API for buying domains through Strange. "You don't even own the domain yet, and VoidForge handles the whole thing from purchase to production." Senku builds civilization from scratch. This is that energy.
 
-**Async Resource Polling**
+**Async Resource Polling** — *Open*
 RDS and ElastiCache take 5-10 minutes to spin up. Right now, Strange shrugs and says "check the AWS console." That's beneath us. Strange should poll the APIs, watch for the endpoints to come online, and auto-update `.env` when they're ready. Frieren is patient. She can wait. The user shouldn't have to.
 
 ---
 
-## v3.2 -- The Pipeline
+## v3.2 -- Bombadil's Forge Sync *(shipped)*
+
+**~~`/void` Self-Update Command~~** — *Shipped in v3.2.0 (unforetold)*
+Not originally in the prophecy. Tom Bombadil emerged from the old forest with a new idea: keep the forge sharp. `/void` fetches the latest VoidForge methodology from the scaffold branch, compares every shared file, shows a human-readable update plan, and sings the changes into place — preserving project-specific customizations. Works on all three tiers. ADR-008.
+
+---
+
+## v3.3 -- The Pipeline *(next)*
 
 Deploying manually is fine for launch day. After that, you want a pipeline that deploys every time you push to main. Batman wants automated smoke tests. Kenobi wants secrets out of flat files. Everyone wins.
 
@@ -48,7 +57,7 @@ No more "did you remember to set the env vars in production?" Leia remembers. Le
 
 ---
 
-## v3.3 -- The Watchtower
+## v3.4 -- The Watchtower
 
 *Oracle sees the whole system. But right now, she's reading logs on a terminal. Give her a proper command center.*
 
@@ -67,7 +76,7 @@ Weekly test restores to a scratch database. If the restore fails, Zenitsu panics
 
 ---
 
-## v3.4 -- The Academy
+## v3.5 -- The Academy
 
 *"The only way to learn is to do." -- Picard, probably*
 

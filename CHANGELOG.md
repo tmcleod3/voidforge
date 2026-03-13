@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [3.3.0] - 2026-03-13
+
+### Added
+- **Async resource polling** — Strange now waits for RDS (up to 15min) and ElastiCache (up to 5min) to become available, extracts real endpoints (`DB_HOST`, `REDIS_HOST`), and writes them to `.env`. No more "check the AWS Console." (ADR-009)
+- **Domain registration via Cloudflare Registrar** — buy a domain through Strange as a pre-DNS step. Registration creates the zone, then DNS records are created in it. Includes availability check, price display, and non-refundable purchase confirmation gate. (ADR-010)
+- **Cloudflare Account ID** field in Cloud Providers — required for domain registration, validated as 32-char hex on save
+- **Post-failure registration verification** — if the registration API times out, Strange re-checks availability to detect masked successes before reporting failure
+
+### Changed
+- **Partial success UI** — if infrastructure provisions but domain/DNS fails, Strange shows "partial success" with guidance instead of binary pass/fail
+- **Output display** — infra details on the Done page are now grouped logically (server → DB → cache → platform → domain → DNS) with human-readable date formatting for domain expiry
+- **AbortController integration** — polling loops cancel cleanly when the client disconnects instead of running for up to 15 minutes server-side
+- **HTTP client** — single retry on transient errors (ECONNRESET, ETIMEDOUT) with 2s delay; per-call timeout override (60s for registration)
+- **Polling jitter** — random interval variation prevents API throttling under concurrent use
+- **ADR-009** corrected to reflect actual AbortController implementation
+- **Cloudflare DNS** accepts `pending` zones from fresh domain registrations (previously required `active`)
+
+### Fixed
+- **Terminal failure detection** — RDS/ElastiCache polling breaks immediately on `failed`/`deleted`/`create-failed` states instead of waiting for timeout
+- **Cleanup handling** — resources in "creating" state get a manual-cleanup warning instead of a silent deletion failure
+- **Asymmetric token check** — all combinations of missing Cloudflare credentials now emit clear skip messages
+- **404 availability fallback** — notes that availability is unconfirmed when domain is simply absent from the account
+- **Registration row** hidden for Docker (local) deploys and invalid hostnames
+- **`state.deployCmd`** declared in initial state object
+
+### Security
+- **CSRF protection** — `X-VoidForge-Request` custom header required on all POST requests; triggers CORS preflight to block cross-origin form submissions
+- **DB_PASSWORD stripped from SSE** — password stays in `.env` only, never sent to the browser
+- **AWS error sanitization** — ARNs, account IDs, and internal identifiers no longer leak to the client
+- **`.env` file permissions** — `chmod 600` applied after generation, matching SSH key protection
+- **Provisioning concurrency lock** — returns 429 if a run is already in progress
+- **`encodeURIComponent(accountId)`** on all Cloudflare API URL interpolations — prevents path injection
+- **Domain + Account ID validation** at client, server, and registrar layers
+- **Random password suffix** replaces static `A1!` — uppercase + digit + special char now randomized
+- **Hostname allowlist** documented in HTTP client module
+
+---
+
 ## [3.2.0] - 2026-03-13
 
 ### Added

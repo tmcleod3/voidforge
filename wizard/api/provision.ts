@@ -20,6 +20,7 @@ import {
   listIncompleteRuns, manifestToCreatedResources,
 } from '../lib/provision-manifest.js';
 import { provisionDns, cleanupDnsRecords } from '../lib/dns/cloudflare-dns.js';
+import { registerDomain } from '../lib/dns/cloudflare-registrar.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -43,6 +44,9 @@ interface ProvisionRun {
 }
 const provisionRuns = new Map<string, ProvisionRun>();
 
+/** Concurrency lock — only one provisioning run at a time (F-02). */
+let activeProvisionRun: string | null = null;
+
 async function loadCredentials(password: string): Promise<Record<string, string>> {
   const keys = await vaultKeys(password);
   const creds: Record<string, string> = {};
@@ -61,6 +65,11 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     return;
   }
 
+  if (activeProvisionRun) {
+    sendJson(res, 429, { error: 'A provisioning run is already in progress. Wait for it to complete.' });
+    return;
+  }
+
   const body = await parseJsonBody(req) as {
     projectDir?: string;
     projectName?: string;
@@ -70,7 +79,14 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     cache?: string;
     instanceType?: string;
     hostname?: string;
+    registerDomain?: boolean;
   };
+
+  // Domain format validation (Fix 4: server-side validation)
+  if (body.hostname && !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(body.hostname)) {
+    sendJson(res, 400, { error: 'Invalid hostname format' });
+    return;
+  }
 
   if (!body.projectDir || !body.projectName || !body.deployTarget) {
     sendJson(res, 400, { error: 'projectDir, projectName, and deployTarget are required' });
@@ -125,8 +141,12 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     try { res.end(); } catch { /* already closed */ }
   }
 
+  const abortController = new AbortController();
+  ctx.abortSignal = abortController.signal;
+
   req.on('close', () => {
     clientDisconnected = true;
+    abortController.abort();
     clearInterval(keepaliveTimer);
   });
 
@@ -146,8 +166,31 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
   // Persist manifest to disk before starting (crash recovery)
   await createManifest(runId, body.deployTarget, region, body.projectName);
 
+  activeProvisionRun = runId;
   try {
     const result = await provisioner.provision(ctx, emit);
+
+    // Domain registration — pre-DNS step (non-fatal, irreversible)
+    // Registration creates the Cloudflare zone, which DNS needs to exist (ADR-010)
+    if (result.success && body.registerDomain && ctx.hostname && credentials['cloudflare-api-token'] && credentials['cloudflare-account-id']) {
+      const regResult = await registerDomain(
+        credentials['cloudflare-api-token'],
+        credentials['cloudflare-account-id'],
+        ctx.hostname,
+        emit,
+      );
+
+      if (regResult.success) {
+        result.outputs['REGISTRAR_DOMAIN'] = regResult.domain || ctx.hostname;
+        if (regResult.expiresAt) result.outputs['REGISTRAR_EXPIRY'] = regResult.expiresAt;
+        // Note: domain registration is NOT tracked for cleanup — it's irreversible
+      }
+      // Registration failure is non-fatal — DNS may still work if zone already exists
+    } else if (result.success && body.registerDomain && ctx.hostname && !credentials['cloudflare-account-id']) {
+      emit({ step: 'registrar-skip', status: 'skipped', message: 'Domain registration requested but no Cloudflare Account ID in vault. Add it in Cloud Providers.' });
+    } else if (result.success && body.registerDomain && ctx.hostname && !credentials['cloudflare-api-token']) {
+      emit({ step: 'registrar-skip', status: 'skipped', message: 'Domain registration requested but no Cloudflare API token in vault. Add Cloudflare credentials to enable registration.' });
+    }
 
     // DNS post-provision step (non-fatal)
     if (result.success && ctx.hostname && credentials['cloudflare-api-token']) {
@@ -188,12 +231,19 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     // Update manifest on disk with final status
     await updateManifestStatus(runId, result.success ? 'complete' : 'failed');
 
-    sseWrite(`data: ${JSON.stringify({ step: 'complete', status: result.success ? 'done' : 'error', message: result.success ? 'Provisioning complete' : result.error || 'Provisioning failed', result, runId })}\n\n`);
+    // Strip DB_PASSWORD from SSE payload — secret must not leak to the client (Kenobi F-03)
+    const safeOutputs = { ...result.outputs };
+    delete safeOutputs['DB_PASSWORD'];
+    const safeResult = { ...result, outputs: safeOutputs };
+
+    sseWrite(`data: ${JSON.stringify({ step: 'complete', status: result.success ? 'done' : 'error', message: result.success ? 'Provisioning complete' : result.error || 'Provisioning failed', result: safeResult, runId })}\n\n`);
   } catch (err) {
     const errMsg = (err as Error).message;
     console.error('Provisioning fatal error:', errMsg);
     await updateManifestStatus(runId, 'failed');
     sseWrite(`data: ${JSON.stringify({ step: 'fatal', status: 'error', message: 'Provisioning failed unexpectedly' })}\n\n`);
+  } finally {
+    activeProvisionRun = null;
   }
 
   clearInterval(keepaliveTimer);
@@ -276,7 +326,10 @@ addRoute('POST', '/api/provision/cleanup', async (req: IncomingMessage, res: Ser
     provisionRuns.delete(runId);
     await updateManifestStatus(runId, 'cleaned');
     await deleteManifest(runId);
-    sendJson(res, 200, { cleaned: true, message: `Cleaned up ${count} resources` });
+    const notes: string[] = [];
+    // Domain registration is irreversible — always warn if cleanup was requested
+    notes.push('Note: If a domain was registered during this run, that purchase cannot be reversed. Manage it at dash.cloudflare.com.');
+    sendJson(res, 200, { cleaned: true, message: `Cleaned up ${count} resources`, notes });
   } catch (err) {
     sendJson(res, 500, { error: `Cleanup failed: ${(err as Error).message}` });
   }

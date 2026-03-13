@@ -72,11 +72,12 @@ export const PROVIDERS: ProviderInfo[] = [
     name: 'Cloudflare',
     fields: [
       { key: 'cloudflare-api-token', label: 'API Token', placeholder: 'Token', secret: true },
+      { key: 'cloudflare-account-id', label: 'Account ID', placeholder: 'e.g. 1a2b3c...', secret: false },
     ],
     deployTargets: ['cloudflare'],
     description: 'Workers, Pages, D1, R2 — edge-first deployment',
     credentialUrl: 'https://dash.cloudflare.com/profile/api-tokens',
-    help: '<ol><li>Sign in to the <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare Dashboard</a></li><li>Go to <strong>My Profile &rarr; API Tokens</strong></li><li>Click <strong>Create Token</strong></li><li>Use a <strong>custom token</strong> with permissions: <strong>Zone:DNS:Edit</strong> and <strong>Account:Cloudflare Pages:Edit</strong> (for Pages deployment + DNS wiring)</li><li>Copy the token — it won\'t be shown again</li></ol>',
+    help: '<ol><li>Sign in to the <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare Dashboard</a></li><li>Go to <strong>My Profile &rarr; API Tokens</strong></li><li>Click <strong>Create Token</strong></li><li>Use a <strong>custom token</strong> with permissions: <strong>Zone:DNS:Edit</strong>, <strong>Account:Cloudflare Pages:Edit</strong>, and <strong>Account:Registrar:Edit</strong> (for DNS wiring, Pages deployment, and domain registration)</li><li>Your <strong>Account ID</strong> is on the right sidebar of any zone\'s overview page, or at <strong>dash.cloudflare.com</strong> in the URL</li><li>Copy the token — it won\'t be shown again</li></ol>',
   },
 ];
 
@@ -268,9 +269,17 @@ addRoute('POST', '/api/cloud/validate', async (req: IncomingMessage, res: Server
     case 'railway':
       result = await validateRailway(creds['railway-token'] ?? '');
       break;
-    case 'cloudflare':
+    case 'cloudflare': {
       result = await validateCloudflare(creds['cloudflare-api-token'] ?? '');
+      // After token validation succeeds, validate account ID format if provided
+      if (result.valid) {
+        const accountId = creds['cloudflare-account-id'];
+        if (accountId && !/^[a-f0-9]{32}$/i.test(accountId)) {
+          result = { valid: false, error: 'Account ID should be a 32-character hex string (found on your Cloudflare dashboard)' };
+        }
+      }
       break;
+    }
     default:
       result = { valid: false, error: 'No validator for this provider' };
   }

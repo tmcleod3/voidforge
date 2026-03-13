@@ -18,8 +18,10 @@
     cache: 'none',
     instanceType: 't3.micro',
     hostname: '',
+    registerDomain: false,
     provisionResult: null,
     provisionRunId: '',
+    deployCmd: '',
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -81,7 +83,7 @@
     try {
       const res = await fetch('/api/credentials/unlock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
@@ -115,7 +117,7 @@
     try {
       const res = await fetch('/api/deploy/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ directory: dir }),
       });
       const data = await res.json();
@@ -185,12 +187,41 @@
     } else {
       instanceRow.classList.add('hidden');
     }
+
+    // Show/hide domain registration checkbox (needs hostname + Cloudflare credentials)
+    updateRegisterDomainVisibility();
+  }
+
+  function updateRegisterDomainVisibility() {
+    const registerRow = $('#register-domain-row');
+    const hostname = $('#summary-hostname').value.trim();
+    // Basic domain format check: must contain a dot and look like a valid domain
+    const isValidDomain = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/.test(hostname);
+    // Show registration option when a valid domain is entered and target is not Docker
+    if (hostname && isValidDomain && state.deployTarget !== 'docker') {
+      registerRow.classList.remove('hidden');
+      registerRow.classList.add('highlight');
+      setTimeout(() => registerRow.classList.remove('highlight'), 600);
+      const labelSpan = $('#summary-register-domain').nextElementSibling;
+      if (labelSpan) {
+        labelSpan.textContent = `Register ${hostname} via Cloudflare Registrar (~$10-15/year, non-refundable)`;
+      }
+    } else {
+      registerRow.classList.add('hidden');
+      $('#summary-register-domain').checked = false;
+      state.registerDomain = false;
+    }
   }
 
   $('#summary-deploy-select').addEventListener('change', updateDeployDescription);
 
   $('#summary-hostname').addEventListener('input', () => {
     state.hostname = $('#summary-hostname').value.trim();
+    updateRegisterDomainVisibility();
+  });
+
+  $('#summary-register-domain').addEventListener('change', () => {
+    state.registerDomain = $('#summary-register-domain').checked;
   });
 
   $('#summary-instance-type').addEventListener('change', () => {
@@ -205,6 +236,16 @@
   });
 
   $('#start-provision').addEventListener('click', () => {
+    if (state.registerDomain) {
+      const hostname = state.hostname || 'this domain';
+      const confirmed = confirm(
+        `You are about to purchase "${hostname}" via Cloudflare Registrar.\n\n` +
+        `Cost: ~$10-15/year\n` +
+        `This is non-refundable and cannot be undone.\n\n` +
+        `Continue?`
+      );
+      if (!confirmed) return;
+    }
     showStep(3);
     runProvisioning();
   });
@@ -224,8 +265,13 @@
   };
 
   let provisionEventCount = 0;
+  let hasNonFatalErrors = false;
 
   function addProvisionEvent(event) {
+    if (event.status === 'error' && event.step && (event.step.startsWith('registrar') || event.step.startsWith('dns'))) {
+      hasNonFatalErrors = true;
+    }
+
     const emptyEl = $('#provision-empty');
     if (emptyEl) emptyEl.remove();
 
@@ -250,6 +296,7 @@
 
   async function runProvisioning() {
     provisionEventCount = 0;
+    hasNonFatalErrors = false;
 
     const deployNames = { vps: 'AWS VPS', vercel: 'Vercel', railway: 'Railway', cloudflare: 'Cloudflare', static: 'Static S3', docker: 'Docker' };
     $('#provision-log-subtitle').textContent = `Provisioning ${deployNames[state.deployTarget] || state.deployTarget}...`;
@@ -257,7 +304,7 @@
     try {
       const res = await fetch('/api/provision/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({
           projectDir: state.projectDir,
           projectName: state.projectName,
@@ -267,6 +314,7 @@
           cache: state.cache,
           instanceType: state.instanceType,
           hostname: state.hostname || undefined,
+          registerDomain: state.registerDomain ? true : undefined,
         }),
       });
 
@@ -306,7 +354,12 @@
 
       if (state.provisionResult && state.provisionResult.success) {
         provisionDoneActions.classList.remove('hidden');
-        provisionSrStatus.textContent = 'Provisioning complete. Press Continue.';
+        if (hasNonFatalErrors) {
+          $('#provision-log-subtitle').textContent = 'Infrastructure provisioned. Some optional steps had issues \u2014 see log above.';
+          provisionSrStatus.textContent = 'Infrastructure provisioned with warnings. Some optional steps failed. Press Continue.';
+        } else {
+          provisionSrStatus.textContent = 'Provisioning complete. Press Continue.';
+        }
       } else {
         provisionErrorActions.classList.remove('hidden');
       }
@@ -323,7 +376,7 @@
     try {
       const res = await fetch('/api/provision/cleanup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
         body: JSON.stringify({ runId: state.provisionRunId }),
       });
       const data = await res.json();
@@ -367,6 +420,8 @@
       'CF_PROJECT_URL': 'Site URL', 'CF_D1_DATABASE_ID': 'D1 Database ID',
       'CF_D1_DATABASE_NAME': 'D1 Database',
       'S3_BUCKET': 'S3 Bucket', 'S3_WEBSITE_URL': 'Website URL',
+      'DB_HOST': 'Database Host', 'REDIS_HOST': 'Redis Host', 'REDIS_PORT': 'Redis Port',
+      'REGISTRAR_DOMAIN': 'Registered Domain', 'REGISTRAR_EXPIRY': 'Domain Expiry',
       'DNS_HOSTNAME': 'Domain', 'DNS_ZONE_ID': 'DNS Zone ID',
       'VERCEL_DOMAIN': 'Custom Domain', 'RAILWAY_DOMAIN': 'Custom Domain',
       'CF_CUSTOM_DOMAIN': 'Custom Domain',
@@ -377,7 +432,25 @@
     if (result?.success && result.outputs && Object.keys(result.outputs).length > 0) {
       infraCard.classList.remove('hidden');
       let html = '';
-      for (const [key, value] of Object.entries(result.outputs)) {
+
+      const displayOrder = [
+        'SSH_KEY_PATH', 'SSH_HOST', 'SSH_USER',
+        'DB_ENGINE', 'DB_HOST', 'DB_PORT', 'DB_INSTANCE_ID', 'DB_USERNAME', 'DB_PASSWORD',
+        'REDIS_HOST', 'REDIS_PORT', 'REDIS_CLUSTER_ID',
+        'VERCEL_PROJECT_ID', 'VERCEL_PROJECT_NAME', 'VERCEL_DOMAIN',
+        'RAILWAY_PROJECT_ID', 'RAILWAY_PROJECT_NAME', 'RAILWAY_DB_PLUGIN', 'RAILWAY_DOMAIN',
+        'CF_ACCOUNT_ID', 'CF_PROJECT_NAME', 'CF_PROJECT_URL', 'CF_D1_DATABASE_ID', 'CF_D1_DATABASE_NAME', 'CF_CUSTOM_DOMAIN',
+        'S3_BUCKET', 'S3_WEBSITE_URL',
+        'REGISTRAR_DOMAIN', 'REGISTRAR_EXPIRY',
+        'DNS_HOSTNAME', 'DNS_ZONE_ID',
+      ];
+      const outputKeys = Object.keys(result.outputs);
+      const orderedKeys = displayOrder.filter((k) => outputKeys.includes(k));
+      const remainingKeys = outputKeys.filter((k) => !displayOrder.includes(k));
+      const sortedKeys = [...orderedKeys, ...remainingKeys];
+
+      for (const key of sortedKeys) {
+        const value = result.outputs[key];
         const label = labelMap[key] || key.replace(/_/g, ' ');
         const isSensitive = sensitiveKeys.includes(key);
         const isUrl = urlKeys.includes(key);
@@ -386,6 +459,10 @@
           displayValue = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
         } else if (isUrl) {
           displayValue = `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        } else if (key === 'REGISTRAR_EXPIRY' && value) {
+          try {
+            displayValue = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(new Date(value));
+          } catch { displayValue = escapeHtml(value); }
         } else {
           displayValue = escapeHtml(value);
         }
@@ -491,6 +568,8 @@
       } else if (vaultPasswordInput.value) {
         unlockVaultBtn.click();
       }
+    } else if (currentStep === 2) {
+      $('#start-provision').click();
     }
   });
 

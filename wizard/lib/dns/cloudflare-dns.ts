@@ -28,12 +28,17 @@ export function extractZoneName(hostname: string): string {
   return parts.slice(-2).join('.');
 }
 
-/** Find the Cloudflare zone for a hostname. */
+/**
+ * Find the Cloudflare zone for a hostname.
+ * Accepts zones in any status (active, pending, etc.) — Cloudflare allows DNS
+ * record creation on pending zones, which is needed after fresh domain registration
+ * where zones start as pending until nameservers are verified (Kusanagi-5).
+ */
 export async function findZone(token: string, hostname: string): Promise<ZoneInfo | null> {
   const zoneName = extractZoneName(hostname);
   const res = await httpsGet(
     CF_API,
-    `/client/v4/zones?name=${encodeURIComponent(zoneName)}&status=active`,
+    `/client/v4/zones?name=${encodeURIComponent(zoneName)}`,
     cfHeaders(token),
   );
 

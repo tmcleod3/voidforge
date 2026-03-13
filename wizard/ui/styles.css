@@ -224,6 +224,23 @@ select {
 
 .input-row input { flex: 1; }
 
+/* Checkbox Label */
+.checkbox-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 3px;
+  min-width: 18px;
+  min-height: 18px;
+  cursor: pointer;
+}
+
 /* Buttons */
 .btn {
   padding: 10px 20px;
@@ -346,6 +363,14 @@ select {
 }
 
 .review-table tr:last-child td { border-bottom: none; }
+
+#register-domain-row {
+  transition: background-color 0.3s ease;
+}
+
+#register-domain-row.highlight {
+  background-color: rgba(99, 102, 241, 0.08);
+}
 
 .review-label {
   color: var(--text-dim);
