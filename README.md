@@ -26,7 +26,7 @@ cd my-app
 |----------|----------|
 | **Root context** | `CLAUDE.md` — loaded every session |
 | **User guide** | `HOLOCRON.md` — the complete guide |
-| **Slash commands** (7) | `/build`, `/qa`, `/security`, `/ux`, `/devops`, `/architect`, `/git` |
+| **Slash commands** (8) | `/build`, `/qa`, `/security`, `/ux`, `/devops`, `/architect`, `/git`, `/void` |
 | **Agent protocols** (15) | Build protocol, all 7 specialist methods, orchestration, testing, troubleshooting, context management, MCP, PRD generation |
 | **Code patterns** (7) | API route, service, component, middleware, error handling, job queue, multi-tenant |
 | **Agent roster** | 150+ named characters across 6 fictional universes |
@@ -55,6 +55,7 @@ For those, use the [`main` branch](https://github.com/tmcleod3/voidforge/tree/ma
 | Architecture | **Picard** (Star Trek) | Schema, scaling, ADRs |
 | DevOps | **Kusanagi** (Anime) | Deploy, monitor, backup |
 | Release | **Coulson** (Marvel) | Version, changelog, commit |
+| Forge Sync | **Bombadil** (Tolkien) | VoidForge self-update from upstream |
 
 ---
 
