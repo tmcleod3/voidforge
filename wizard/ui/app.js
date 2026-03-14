@@ -641,6 +641,7 @@
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let wasTruncated = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -662,11 +663,19 @@
               generatedContent.textContent = state.generatedPrd;
               generatedContent.scrollTop = generatedContent.scrollHeight;
             }
+            if (parsed.truncated) {
+              wasTruncated = true;
+            }
             if (parsed.error) {
               generatedContent.textContent += '\n\nError: ' + parsed.error;
             }
           } catch { /* skip */ }
         }
+      }
+
+      if (wasTruncated) {
+        showStatus($('#generate-status'), 'error',
+          'PRD was truncated — the output hit the model token limit. Try a shorter idea description or generate again with fewer details.');
       }
     } catch (err) {
       generatedContent.textContent += '\n\nConnection error: ' + err.message;

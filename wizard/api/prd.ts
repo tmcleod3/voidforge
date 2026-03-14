@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { addRoute } from '../router.js';
 import { vaultGet } from '../lib/vault.js';
 import { getSessionPassword } from './credentials.js';
-import { resolveBestModel } from '../lib/anthropic.js';
+import { resolveModelWithLimits } from '../lib/anthropic.js';
 import { parseFrontmatter, validateFrontmatter } from '../lib/frontmatter.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 
@@ -126,8 +126,8 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
     userIdea += '\n\nPreferences:\n' + prefs.join('\n');
   }
 
-  // Resolve the best available model
-  const model = await resolveBestModel(apiKey);
+  // Resolve the best available model with its max output capacity
+  const { id: model, maxTokens } = await resolveModelWithLimits(apiKey);
 
   // Stream response via SSE
   res.writeHead(200, {
@@ -138,7 +138,7 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
 
   const postData = JSON.stringify({
     model,
-    max_tokens: 8192,
+    max_tokens: maxTokens,
     stream: true,
     messages: [
       {
@@ -199,6 +199,8 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
       }
 
       let buffer = '';
+      let stopReason: string | null = null;
+
       apiRes.on('data', (chunk: Buffer) => {
         buffer += chunk.toString();
         const lines = buffer.split('\n');
@@ -212,10 +214,13 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
           try {
             const event = JSON.parse(data) as {
               type: string;
-              delta?: { type: string; text?: string };
+              delta?: { type: string; text?: string; stop_reason?: string };
             };
             if (event.type === 'content_block_delta' && event.delta?.text) {
               sseWrite(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+            }
+            if (event.type === 'message_delta' && event.delta?.stop_reason) {
+              stopReason = event.delta.stop_reason;
             }
           } catch {
             // Skip unparseable chunks
@@ -225,6 +230,9 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
 
       apiRes.on('end', () => {
         clearInterval(keepaliveTimer);
+        if (stopReason === 'max_tokens') {
+          sseWrite(`data: ${JSON.stringify({ truncated: true })}\n\n`);
+        }
         sseWrite('data: [DONE]\n\n');
         sseEnd();
       });

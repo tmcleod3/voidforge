@@ -28,6 +28,20 @@ const MODEL_PREFERENCE = [
   'claude-haiku',
 ] as const;
 
+/** Max output tokens by model family — use each model's full capacity */
+const MAX_OUTPUT_TOKENS: Record<string, number> = {
+  'claude-opus': 32768,
+  'claude-sonnet': 16384,
+  'claude-haiku': 8192,
+};
+
+const DEFAULT_MAX_TOKENS = 16384;
+
+export interface ResolvedModel {
+  id: string;
+  maxTokens: number;
+}
+
 let cachedModel: string | null = null;
 
 /** Fetch available models from the Anthropic API */
@@ -109,6 +123,14 @@ export async function resolveBestModel(apiKey: string): Promise<string> {
   const sorted = [...models].sort((a, b) => b.created_at.localeCompare(a.created_at));
   cachedModel = sorted[0].id;
   return cachedModel;
+}
+
+/** Resolve model ID + max output tokens for the selected model */
+export async function resolveModelWithLimits(apiKey: string): Promise<ResolvedModel> {
+  const id = await resolveBestModel(apiKey);
+  const family = MODEL_PREFERENCE.find((prefix) => id.startsWith(prefix));
+  const maxTokens = family ? (MAX_OUTPUT_TOKENS[family] ?? DEFAULT_MAX_TOKENS) : DEFAULT_MAX_TOKENS;
+  return { id, maxTokens };
 }
 
 /** Clear the cached model (e.g., if the API key changes) */
