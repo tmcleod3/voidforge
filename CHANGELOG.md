@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [3.6.0] - 2026-03-14
+
+### Added
+- **/thumper command** — Chani's Worm Rider: drive Claude Code via Telegram from anywhere. Gom Jabbar passphrase authentication with PBKDF2 hashing, message deletion, 60-minute idle timeout, 3-attempt lockout. Five bash scripts, zero dependencies.
+- **Dune universe** — 9th agent lead (Chani, Worm Rider) with 20 named characters. Sub-agents: Stilgar (security), Thufir Hawat (parsing), Duncan Idaho (relay), Reverend Mother Mohiam (authentication).
+- **Transport auto-detection** — TMUX_SENDKEYS (cross-platform), PTY_INJECT (headless Linux), OSASCRIPT (macOS Terminal.app/iTerm2). Explicit guidance for VS Code, Warp, Alacritty, Kitty users. Windows Git Bash gets "use WSL" message.
+- **Water Rings stop hook** — automatic task completion notifications to Telegram.
+- **LESSONS.md** — first entries from Kongo.io Sprint 4 post-mortem.
+
+### Changed
+- **/review** — mandatory integration tracing (follow URLs/keys to consumers) and error path verification (verify UI displays specific server errors).
+- **/ux** — mandatory error state testing with intentionally invalid/conflicting input.
+- **/qa** — Step 2.5 smoke tests: hit the running server after build, verify cross-module paths at runtime.
+- **/test** — Step 3.5 cross-module integration tests: at least one test per feature crossing module boundaries.
+- **/security** — Maul executes actual HTTP exploitation attempts. Ahsoka traces the full auth middleware chain.
+- **/build** — Phase 4/5/6 gates define "works manually" explicitly: error paths, cross-module integration, generated URLs.
+- **/devops** — post-deploy smoke tests verify application behavior (not just infrastructure health).
+- CLAUDE.md, HOLOCRON.md, README.md — 11 commands, 9 agents, 7 universes, 170+ characters.
+
+### Security
+- Gom Jabbar: PBKDF2 hashing (100k iterations), Telegram message deletion with fail-secure invalidation, idle timeout, lockout.
+- Control character sanitization strips terminal-dangerous bytes from all injected messages.
+- Root guard prevents /thumper from running as root.
+- Empty hash bypass prevention refuses auth when hashing tools unavailable.
+- Config injection prevention via `printf '%q'` and umask 077.
+
+### Fixed
+- THUMPER.md rewritten — 10+ factual errors corrected (wrong timeouts, hash algo, flow description, nonexistent CLI flags).
+- Script copy clarified — hostile lockout softened, ambiguous passphrase prompts made explicit, empty notifications made useful.
+
+---
+
 ## [3.5.3] - 2026-03-14
 
 ### Changed
