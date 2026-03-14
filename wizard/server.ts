@@ -45,7 +45,14 @@ async function serveStatic(res: ServerResponse, filePath: string): Promise<void>
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // CORS — scoped to the wizard's own origin
-  res.setHeader('Access-Control-Allow-Origin', `http://127.0.0.1:${serverPort}`);
+  // Allow both localhost and 127.0.0.1 — browser may use either
+  const origin = req.headers.origin ?? '';
+  const allowedOrigins = [`http://127.0.0.1:${serverPort}`, `http://localhost:${serverPort}`];
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', `http://localhost:${serverPort}`);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-VoidForge-Request');
   res.setHeader('X-Content-Type-Options', 'nosniff');
