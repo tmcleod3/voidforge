@@ -26,8 +26,8 @@ cd my-app
 |----------|----------|
 | **Root context** | `CLAUDE.md` — loaded every session |
 | **User guide** | `HOLOCRON.md` — the complete guide |
-| **Slash commands** (8) | `/build`, `/qa`, `/security`, `/ux`, `/devops`, `/architect`, `/git`, `/void` |
-| **Agent protocols** (15) | Build protocol, all 7 specialist methods, orchestration, testing, troubleshooting, context management, MCP, PRD generation |
+| **Slash commands** (10) | `/build`, `/qa`, `/test`, `/security`, `/ux`, `/review`, `/devops`, `/architect`, `/git`, `/void` |
+| **Agent protocols** (16) | Build protocol, all 8 specialist methods, orchestration, testing, troubleshooting, context management, MCP, PRD generation |
 | **Code patterns** (7) | API route, service, component, middleware, error handling, job queue, multi-tenant |
 | **Agent roster** | 150+ named characters across 6 fictional universes |
 | **Build journal** | `logs/build-state.md` — persistent session recovery |
