@@ -60,14 +60,15 @@ Fury calls ALL of them. That's the point.
 |-------|---------|--------|------|
 | 1 | /architect | 1 | ADRs written, no critical concerns |
 | 2 | /build | 1 | All phase gates pass, tests green |
+| 2.5 | Smoke test (Hawkeye) | 1 | Endpoints return expected status, no route collisions, no render loops |
 | 3-5 | /review | 3 | Zero Must Fix items |
-| 6 | /ux | 1 | Zero critical UX/a11y findings |
+| 6 | /ux (usability + a11y) | 1 | Zero critical usability or a11y findings |
 | 7-8 | /security | 2 | Zero Critical/High findings |
 | 9 | /devops | 1 | Deploy scripts, monitoring, smoke tests |
 | 10 | /qa | 1 | All critical/high bugs fixed |
 | 11 | /test | 1 | Suite green, coverage acceptable |
 | 12 | Crossfire | 1 | All 4 adversarial agents sign off |
-| 13 | Council | 1-3 | All 4 cross-domain agents sign off |
+| 13 | Council | 1-3 | All 5 cross-domain agents sign off (incl. Troi PRD compliance) |
 
 ## The Crossfire
 
@@ -82,14 +83,15 @@ They run in parallel. Findings are fixed. Fixed areas are re-probed.
 
 ## The Council
 
-Four domain specialists verify nobody broke anyone else's work:
+Five domain specialists verify nobody broke anyone else's work:
 
 - **Spock** (Star Trek) — pattern compliance after all fixes
 - **Ahsoka** (Star Wars) — access control gaps from fixes
 - **Nightwing** (DC) — regressions from fixes
 - **Samwise** (Tolkien) — accessibility after fixes
+- **Troi** (Star Trek) — PRD compliance: reads PRD prose section-by-section, verifies every claim against implementation, catches visual/copy/asset gaps that code reviews miss
 
-The Council re-runs until it finds zero issues (max 3 iterations).
+The Council re-runs until it finds zero issues (max 3 iterations). Troi only runs on the final iteration (or when `/assemble --skip-build` is used for campaign victory).
 
 ## Deliverables
 

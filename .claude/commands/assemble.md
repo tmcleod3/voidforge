@@ -19,6 +19,18 @@ Run the full `/build` protocol (all 13 phases). If `$ARGUMENTS` includes `--skip
 
 **Gate:** All build phase gates pass, test suite green. Update assemble-state.
 
+## Phase 2.5 — Smoke Test (Hawkeye)
+**Fury:** "Hawkeye — hit every endpoint. I want proof it runs, not just proof it compiles."
+
+Mandatory runtime verification BEFORE code review begins:
+1. If the project has a runnable server (Express, FastAPI, Next.js, Django, Rails), start it
+2. Hit every new/modified API endpoint with `curl` — verify HTTP status codes match expectations
+3. For web apps: list all registered routes and **check for path collisions** (duplicate method+path across routers)
+4. For React/frontend: trace the primary user flow through the component tree — follow state changes through the store, identify re-render cycles. For every `useEffect` with store values in its deps, verify the effect body doesn't trigger a store update that changes those same deps.
+5. If the server cannot be started (scaffold branch, methodology-only), skip with a note
+
+**Gate:** All endpoints return expected status codes. No route collisions. No infinite render loops detected. Update assemble-state.
+
 ## Phase 3 — Review Round 1 (Spock + Seven + Data)
 **Fury:** "Picard's team — first pass. Find everything."
 
@@ -39,9 +51,18 @@ Run `/review`. If any Must Fix items remain, fix them.
 ## Phase 6 — UX Pass (Galadriel leads)
 **Fury:** "Galadriel — the user doesn't care how clean the code is if the product is confusing."
 
-Run the full `/ux` protocol. Skip if PRD frontmatter `type: api-only`.
+Run the full `/ux` protocol in two sub-phases. Skip if PRD frontmatter `type: api-only`.
 
-**Gate:** Zero critical UX/a11y findings. Update assemble-state.
+**6A — Usability Review:** Trace the primary user flow step by step. For each step: What does the user see? What do they click? What happens? Is it what they expected? Specifically check:
+- Can the user complete the primary flow without confusion?
+- Do inputs retain focus when typing?
+- Do modals/panels close cleanly on first attempt?
+- Is there visual feedback for every mutation (success AND failure)?
+- Does every loading state resolve (no infinite spinners)?
+
+**6B — Accessibility Audit:** ARIA, keyboard nav, focus management, contrast, screen reader, reduced motion — the existing checklist.
+
+**Gate:** Zero critical usability or a11y findings. Update assemble-state.
 
 ## Phase 7 — Security Round 1 (Kenobi leads)
 **Fury:** "Kenobi, find what they missed. Think like the enemy."
@@ -99,13 +120,14 @@ Use the Agent tool to run these in parallel:
 - **Ahsoka** (Star Wars) — Did any review/QA fix introduce access control gaps?
 - **Nightwing** (DC) — Did any fix cause a regression? Run the full test suite.
 - **Samwise** (Tolkien) — Did any fix break accessibility?
+- **Troi** (Star Trek) — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
 
 If the Council finds issues:
-1. Fix them
+1. Fix code discrepancies. Flag asset requirements as BLOCKED.
 2. Re-run the Council (max 3 iterations)
 3. If not converged after 3 rounds, present remaining findings to the user
 
-**Gate:** All four Council members sign off. Zero cross-domain regressions. Update assemble-state.
+**Gate:** All five Council members sign off. Zero cross-domain regressions. Update assemble-state.
 
 ## Completion
 **Fury:** "The Initiative is complete."
@@ -118,6 +140,9 @@ Write final summary to `/logs/assemble-state.md`:
 - Time span (first phase start → last phase end)
 
 Present the summary to the user.
+
+**IMPORTANT: Include this disclaimer in the completion message:**
+"All phases analyze source code and trace data flows. If this project has a runnable UI, manual testing of the deployed application is still recommended before shipping to users — runtime interaction bugs (render loops, endpoint collisions, focus management) can pass static analysis."
 
 ## Operating Rules
 - Update `/logs/assemble-state.md` after EVERY phase completion

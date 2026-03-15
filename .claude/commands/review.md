@@ -41,12 +41,22 @@ For each file, check against its matching pattern in `/docs/patterns/`:
 - Missing TypeScript types or `any` usage
 - Functions doing too many things (SRP violations)
 
-**Agent 3 (Data — Maintainability + Error Paths):**
+**Agent 3 (Data — Maintainability + Error Paths + State Flow):**
 - Wrong abstractions (over-engineered or under-abstracted)
 - Coupling between modules that should be independent
 - Missing error handling at system boundaries
 - Hardcoded values that should be config
 - Missing or misleading comments on non-obvious logic
+
+**ROUTE COLLISION CHECK (mandatory for web apps):** When a new router/route file is added, list ALL registered routes (method + path) across ALL routers. Check for duplicate method+path combinations. Frameworks like FastAPI silently shadow duplicate routes — the first registered wins.
+
+**REACT STATE FLOW ANALYSIS (mandatory for React projects):**
+For every `useEffect` in new/modified components:
+1. List what store values it reads (dependency array)
+2. List what store actions it calls (effect body)
+3. Check: does any action trigger a store update that changes a value in the dependency array? If yes → infinite render loop.
+4. Check: does the effect call `.focus()` or other DOM methods that should only run once? If yes → needs a ref guard.
+5. If a component has 3+ `useEffect` hooks with store dependencies, flag for manual render-cycle review.
 
 **ERROR PATH VERIFICATION (mandatory):** For every API route that returns error responses (4xx, 5xx), identify the client that calls this endpoint and verify:
 - The client reads the response body (not just checks `res.ok`)

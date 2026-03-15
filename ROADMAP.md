@@ -2,8 +2,8 @@
 
 > The plan for the plan-maker.
 
-**Current:** v4.1.0 (2026-03-14)
-**Status:** Observability release shipped. Deploy logs, cost estimation, health monitoring, Sentry integration.
+**Current:** v4.2.0 (2026-03-14)
+**Status:** DX release shipped. Prisma types, OpenAPI docs, ERD, integration templates, database seeding.
 
 ---
 
@@ -91,6 +91,61 @@ Run `prisma migrate deploy` (or `rails db:migrate`, `python manage.py migrate`) 
 
 ### Backup automation
 For VPS + RDS: generate a daily backup cron (`pg_dump` to S3). For Railway/Cloudflare D1: document the platform's built-in backup features. For S3 static: enable versioning on the bucket.
+
+---
+
+## v4.4 — The Imagination Release
+
+*The forge creates images. The forge learns from its users.*
+
+### `/imagine` command — Celebrimbor's Image Generation
+New slash command and agent for AI image generation. Celebrimbor (Tolkien — greatest elven smith) reads the PRD for visual asset requirements (illustrations, portraits, OG images, hero art), derives a style prompt from the brand section, and generates images via OpenAI's image API. Manages an asset manifest for regeneration and auditing. Provider-abstracted (OpenAI default, extensible to Replicate/others).
+
+Sub-agents: Nori (asset scanner), Ori (prompt engineer), Dori (integration checker) — dwarves from The Hobbit.
+
+Command: `/imagine` (not `/forge` — avoids collision with VoidForge/Bombadil naming). Flags: `--scan`, `--asset "name"`, `--regen "name"`, `--style "override"`, `--provider model`.
+
+### Wizard integration — OpenAI API key in Merlin
+Add OpenAI API key as an optional credential in Merlin's Step 2 (Cloud Providers). Same vault, same AES-256-GCM encryption, same UX. Key name: `openai-api-key`. If not provided in wizard, `/imagine` prompts on first use. Non-blocking — projects work fine without it.
+
+### Pipeline integration
+- `/assemble` Phase 2b: Celebrimbor generates assets after build, before review
+- `/build` Phase 8 (Marketing): Celebrimbor runs if PRD has visual asset requirements
+- `/campaign` Step 1: Dax classifies image requirements as "Asset — via /imagine" instead of BLOCKED
+- Galadriel verifies generated images match brand during `/ux` pass
+
+### Files to create
+- `.claude/commands/imagine.md` — slash command
+- `docs/methods/FORGE_ARTIST.md` — Celebrimbor's method doc
+- `wizard/lib/image-gen.ts` — provider abstraction + generation
+- `wizard/lib/asset-scanner.ts` — PRD parsing for image requirements
+- Update: `NAMING_REGISTRY.md`, `CLAUDE.md`, `HOLOCRON.md`, `wizard/ui/app.js`
+
+### `/debrief` command — Bashir's Field Reports
+New slash command for post-session analysis and upstream feedback. Bashir (Star Trek DS9 — chief medical officer, diagnostician) reads the session's build logs, assemble state, campaign state, and git history, then produces a structured post-mortem that identifies methodology gaps and proposes fixes in VoidForge's own language.
+
+The key innovation: the report can be **submitted as a GitHub issue** on the VoidForge upstream repo (`tmcleod3/voidforge`), labeled `field-report`. Users become contributors just by running `/debrief --submit` after a rough session. Upstream maintainers get structured, actionable feedback written in VoidForge's agent/command vocabulary.
+
+Sub-agents: Ezri (session timeline reconstruction — joined Trill, multiple lifetimes of perspective), O'Brien (root cause investigation — "the bloody EPS conduits again"), Nog (solution proposals within VoidForge's framework — first Ferengi in Starfleet, creative and resourceful), Jake (report writing — Sisko's son, aspiring journalist).
+
+Command: `/debrief`. Flags: `--submit` (create GitHub issue), `--campaign` (analyze full campaign), `--session` (just this session), `--dry-run` (generate without submitting).
+
+**The feedback loop:**
+- `/void` (Bombadil) pulls updates DOWN from upstream
+- `/debrief` (Bashir) pushes learnings BACK UP to upstream
+- When `/void` next runs, Bombadil can note: "Your field report was incorporated into v4.5"
+
+**Privacy:** Reports contain timeline, root causes, and proposed fixes — NOT source code, credentials, or personal data. User reviews and approves every word before submission.
+
+**Integration:**
+- `/campaign` Step 6: After victory, Sisko offers debrief
+- `/assemble` completion: If 3+ Must Fix items found, Fury suggests debrief
+- Standalone: run `/debrief` anytime after a session with interesting findings
+
+### Files to create
+- `.claude/commands/debrief.md` — slash command
+- `docs/methods/FIELD_MEDIC.md` — Bashir's method doc
+- Update: `NAMING_REGISTRY.md`, `CLAUDE.md`, `HOLOCRON.md`
 
 ---
 

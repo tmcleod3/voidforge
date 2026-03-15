@@ -70,9 +70,28 @@ Create or update `/docs/qa-prompt.md` with: stack, language, framework, package 
 **Constantine (Cursed Code):** Unreachable branches, dead state, impossible conditions, logic that only works by accident, tautological checks, shadowed variables.
 **Nightwing (Regression):** Smoke validation, high-value manual flows, "break it on purpose" probes, exact commands.
 
+**Copy Accuracy Pass:** Grep for numeric claims in rendered content (e.g., "10 lead agents", "12 commands", "53 pages"). Cross-reference against actual data counts. Any mismatch is a bug — inaccurate numbers undermine credibility. This is automatable and should run on every QA pass.
+
 ## Step 2 — Baseline Repro Harness
 
 Get the project running. Create repeatable manual validation: app starts, primary flow works, auth works, data persists, error states display, mobile works. Document exact commands.
+
+## Step 2.5 — Smoke Tests (MANDATORY GATE)
+
+This is a HARD GATE, not a suggestion. Actually execute runtime tests:
+
+1. **Start the server** — run the dev/start command, verify it boots without errors
+2. **Hit every new/modified endpoint** with `curl` — verify status codes match expectations
+3. **Check for route collisions** — list all registered routes (method + path), grep for duplicates
+4. **For React projects — render cycle check:**
+   - List every `useEffect` in new/modified components
+   - For each effect: what store values does it read? What store actions does it call?
+   - Draw the dependency graph: does any action's `set()` change a value in the effect's dependency array?
+   - If yes → infinite render loop. Must fix before proceeding.
+   - Check for `.focus()` calls in effects — do they need ref guards?
+5. **Verify primary user flow** — trace from user action → handler → store → render → what the user sees
+
+If the server cannot be started (methodology-only project, missing dependencies), document why and skip with a note.
 
 ## Step 3 — Pass 1: Find Bugs (parallel analysis)
 
@@ -99,6 +118,8 @@ Do not mark "fixed" until Nightwing has rerun repro and confirmed.
 ## Step 5 — Implement Fixes (Small Batches)
 
 Make changes → Re-run repro → Re-run manual flows → Add logging → Update tracker → Keep changes small.
+
+**For React re-render/state bugs:** After applying a fix, trace the FULL render cycle of the affected component tree. Don't just fix the immediate symptom — trace all `useEffect` hooks that fire during a single user action and verify none trigger a chain that leads back to itself. Fixing one render loop often reveals another in the same tree.
 
 ## Step 6 — Hardening Pass
 

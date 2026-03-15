@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [4.4.0] - 2026-03-15
+
+### Added
+- **`/imagine` command** — Celebrimbor's Forge: AI image generation from PRD visual descriptions. Scans PRD for illustrations, portraits, OG images, hero art. Derives style from brand section. Generates via OpenAI API with asset manifest for regeneration. Provider-abstracted.
+  - New agent: **Celebrimbor** (Tolkien, Silmarillion) — "Hand of Silver," greatest elven smith
+  - Sub-agents: **Nori** (asset scanner), **Ori** (prompt engineer), **Dori** (integration checker)
+- **`/debrief` command** — Bashir's Field Reports: post-session analysis that identifies methodology gaps and proposes fixes in VoidForge's own language. Can submit structured post-mortems as GitHub issues on the upstream repo.
+  - New agent: **Bashir** (Star Trek DS9) — chief medical officer, diagnostician
+  - Sub-agents: **Ezri** (timeline), **O'Brien** (root cause), **Nog** (solutions), **Jake** (report)
+- `wizard/lib/image-gen.ts` — Image generation provider abstraction with OpenAI support, asset manifest, cost estimation
+- `wizard/lib/asset-scanner.ts` — PRD parser for visual asset requirements with brand style extraction
+- `docs/methods/FORGE_ARTIST.md` — Celebrimbor's full method doc
+- `docs/methods/FIELD_MEDIC.md` — Bashir's full method doc
+
+### Changed
+- Lead agent count: 11 → 13 (Celebrimbor + Bashir)
+- Command count: 13 → 15 (`/imagine` + `/debrief`)
+- NAMING_REGISTRY.md: 7 new character entries (Celebrimbor, Nori, Ori, Dori, Ezri, Nog, Jake)
+
+---
+
+## [4.2.0] - 2026-03-14
+
+### Added
+- **Prisma type generation** (ADR-025) — runs `prisma generate` and creates `types/index.ts` barrel export. Conditional on Prisma schema existing.
+- **OpenAPI spec generation** (ADR-025) — generates starter `docs/api.yaml` with framework-aware defaults. Users fill in their endpoints.
+- **Database ERD generation** (ADR-025) — parses Prisma schema and generates `docs/schema.md` with Mermaid entity-relationship diagram.
+- **Database seeding** (ADR-025) — generates `prisma/seed.ts` with factory functions for all models. Run with `npx tsx prisma/seed.ts`.
+- **Integration templates** (ADR-025) — pre-built client wrappers selected via PRD frontmatter:
+  - `payments: stripe` → `lib/stripe.ts` (checkout, portal, webhooks)
+  - `email: resend` → `lib/resend.ts` (transactional email)
+  - `storage: s3` → `lib/s3-upload.ts` (signed URL upload/download)
+
+### Security
+- All integration templates validate required env vars at startup (fail-fast, not silent fallback)
+
+---
+
 ## [4.1.0] - 2026-03-14
 
 ### Added
