@@ -1,5 +1,5 @@
 /**
- * Headless deploy — runs the same provisioner pipeline as Strange,
+ * Headless deploy — runs the same provisioner pipeline as Haku,
  * but outputs progress to stdout instead of SSE to a browser.
  * Called by: `npx voidforge deploy --headless`
  * Used by: /build Phase 12 (Kusanagi)
@@ -106,7 +106,7 @@ export async function headlessDeploy(projectDir?: string): Promise<void> {
   const dir = projectDir || process.cwd();
 
   console.log('');
-  console.log('  \x1b[1mVoidForge — Headless Deploy (Strange CLI)\x1b[0m');
+  console.log('  \x1b[1mVoidForge — Headless Deploy (Haku CLI)\x1b[0m');
   console.log('');
 
   // --- Scan project ---

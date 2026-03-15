@@ -2,7 +2,7 @@
 /**
  * VoidForge CLI entry point
  * Usage: npx voidforge init                — Launch Merlin (setup wizard)
- *        npx voidforge deploy              — Launch Strange (deploy wizard)
+ *        npx voidforge deploy              — Launch Haku (deploy wizard)
  *        npx voidforge deploy --headless   — Deploy from CLI (no browser)
  */
 
@@ -13,7 +13,7 @@ if (command !== 'init' && command !== 'deploy') {
   console.log('VoidForge — From nothing, everything.\n');
   console.log('Usage:');
   console.log('  npx voidforge init                Launch Merlin — the setup wizard');
-  console.log('  npx voidforge deploy              Launch Strange — the deploy wizard');
+  console.log('  npx voidforge deploy              Launch Haku — the deploy wizard');
   console.log('  npx voidforge deploy --headless   Deploy from CLI without a browser');
   console.log('');
   process.exit(command === '--help' || command === '-h' ? 0 : 1);
@@ -36,7 +36,7 @@ if (command === 'deploy' && isHeadless) {
 
   const wizardNames: Record<string, { name: string; path: string }> = {
     init: { name: 'Merlin', path: '/' },
-    deploy: { name: 'Strange', path: '/deploy.html' },
+    deploy: { name: 'Haku', path: '/deploy.html' },
   };
 
   const wizard = wizardNames[command];

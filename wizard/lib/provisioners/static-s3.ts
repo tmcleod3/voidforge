@@ -191,7 +191,7 @@ echo "Site: ${outputs['S3_WEBSITE_URL'] || `http://$BUCKET.s3-website.amazonaws.
         `S3_BUCKET=${bucketName}`,
       ];
       if (outputs['S3_WEBSITE_URL']) envLines.push(`S3_WEBSITE_URL=${outputs['S3_WEBSITE_URL']}`);
-      envLines.push('# Deploy with: ./infra/deploy-s3.sh (or auto-deploys via Strange wizard)');
+      envLines.push('# Deploy with: ./infra/deploy-s3.sh (or auto-deploys via Haku wizard)');
       await appendEnvSection(ctx.projectDir, envLines);
       emit({ step: 's3-env', status: 'done', message: 'S3 config written to .env' });
     } catch (err) {

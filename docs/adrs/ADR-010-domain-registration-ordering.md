@@ -3,7 +3,7 @@
 ## Status: Proposed
 
 ## Context
-VoidForge v3.1 added Cloudflare DNS wiring as a post-provision step (ADR-006). The remaining v3.1 prophecy item is domain registration via Cloudflare Registrar — allowing users who don't own a domain yet to purchase one through Strange.
+VoidForge v3.1 added Cloudflare DNS wiring as a post-provision step (ADR-006). The remaining v3.1 prophecy item is domain registration via Cloudflare Registrar — allowing users who don't own a domain yet to purchase one through Haku.
 
 The question: where in the provisioning pipeline does registration happen?
 
@@ -30,7 +30,7 @@ Domain registration runs as a **pre-DNS** step, after the primary provisioner co
 ### Safety:
 - Domain registration is **irreversible** — Cloudflare doesn't support programmatic deletion in the first year
 - Registration is NOT tracked for automatic cleanup (unlike all other resources)
-- Requires a **separate confirmation gate** in the Strange UI with cost warning ("$10-15/year, non-refundable")
+- Requires a **separate confirmation gate** in the Haku UI with cost warning ("$10-15/year, non-refundable")
 - Requires explicit user opt-in via checkbox, not automatic
 
 ### API requirements:

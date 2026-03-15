@@ -1,5 +1,5 @@
 /**
- * Deploy wizard API routes — project scanning for Strange.
+ * Deploy wizard API routes — project scanning for Haku.
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';

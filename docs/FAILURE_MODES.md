@@ -79,7 +79,7 @@
 ```bash
 # Start VoidForge, check for incomplete runs
 npx voidforge deploy
-# Strange will show orphaned runs on step 1
+# Haku will show orphaned runs on step 1
 
 # Or via API
 curl http://localhost:3141/api/provision/incomplete

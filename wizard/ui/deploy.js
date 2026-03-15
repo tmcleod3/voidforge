@@ -1,5 +1,5 @@
 /**
- * Strange — VoidForge Deploy Wizard
+ * Haku — VoidForge Deploy Wizard
  * Steps: 1=Unlock+Project, 2=Confirm, 3=Provision, 4=Done
  */
 

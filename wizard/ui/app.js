@@ -1036,7 +1036,7 @@
     }
   });
 
-  // Provisioning moved to Strange (deploy wizard) — launch with `npm run deploy`
+  // Provisioning moved to Haku (deploy wizard) — launch with `npm run deploy`
 
   // =============================================
   // Utilities

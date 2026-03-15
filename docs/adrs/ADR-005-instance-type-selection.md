@@ -12,7 +12,7 @@ Users have no way to choose instance size. The system should recommend based on 
 
 1. Add `instance_type` field to PRD YAML frontmatter (under Deployment section)
 2. Build a scoring heuristic (`recommendInstanceType()`) in `wizard/lib/instance-sizing.ts` that reads PRD signals (type, database, cache, workers, payments, framework) and recommends `t3.micro`, `t3.small`, or `t3.medium`
-3. Surface the recommendation in the Strange deploy wizard (Step 2: Review & Configure) with a dropdown to override
+3. Surface the recommendation in the Haku deploy wizard (Step 2: Review & Configure) with a dropdown to override
 4. Add `instanceType` to `ProvisionContext` interface
 5. AWS provisioner reads `ctx.instanceType` instead of hardcoding; RDS and ElastiCache sizes mirror the EC2 choice
 6. Constrain to t3 family only: `t3.micro | t3.small | t3.medium | t3.large`

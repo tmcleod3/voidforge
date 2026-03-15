@@ -8,7 +8,7 @@
 VoidForge is a CLI-launched local web server that provides two browser-based wizards:
 
 - **Merlin** (`voidforge init`) — Project setup: credential vault, PRD generation, scaffold creation
-- **Strange** (`voidforge deploy`) — Infrastructure provisioning for 6 deploy targets
+- **Haku** (`voidforge deploy`) — Infrastructure provisioning for 6 deploy targets
 
 Single-process Node.js monolith. TypeScript strict mode. No framework (vanilla JS frontend). Zero runtime dependencies beyond AWS SDK.
 
