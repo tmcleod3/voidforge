@@ -67,6 +67,8 @@ Deployable, observable, recoverable, maintainable. Automate everything done more
 
 **Levi — Page Weight Gate (pre-deploy):** Before deploying, check total static asset size. Individual images must be < 200KB. Total `public/` or `static/` directory must be < 10MB (excluding node_modules and build cache). Flag images >4x their display dimensions — a 1024px source for a 40px avatar is a 97% bandwidth waste. If `/imagine` was used, verify Step 5.5 (Gimli optimization) ran. This gate catches the #1 cause of slow marketing sites.
 
+**Levi — Platform Build Gate (pre-deploy):** For platform targets (Vercel, Cloudflare Pages, Railway), run the framework build locally BEFORE pushing to the platform. `npm run build` (or equivalent) must succeed locally — platform build environments may use different Node/npm versions and stricter PostCSS settings. Common failures: Tailwind v4 scanning non-source directories (see Galadriel's content scanning check), TypeScript strict errors suppressed locally but caught in CI, missing env vars. For Vercel specifically: prefer `vercel --prebuilt` with local build output, or use preview deploys (`vercel` without `--prod`) before production. If the build fails on the platform but passes locally, check: Node version mismatch, PostCSS plugin versions, content scanning paths.
+
 ## Deliverables
 
 1. /scripts/provision.sh, deploy.sh, rollback.sh, backup-db.sh
