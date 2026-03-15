@@ -216,7 +216,7 @@ See `ROADMAP.md` for the full plan. Summary:
 | **v4.1** | The Observability Release | Health monitoring, error tracking (Sentry), deploy logs, cost estimation |
 | **v4.2** | The DX Release | Type generation, API docs, ERD, integration templates (Stripe/Resend/S3), database seeding |
 | **v4.3** | The Resilience Release | Multi-environment, preview deployments, platform rollback, migration automation, backups |
-| **v4.4** | The Imagination Release | `/imagine` command — AI image generation via Celebrimbor, OpenAI key in wizard, pipeline integration |
+| **v4.4** | The Imagination Release | `/imagine` (Celebrimbor — AI image generation) + `/debrief` (Bashir — post-mortem analysis, upstream feedback via GitHub issues) |
 | **v5.0** | The Intelligence Release | Lessons integration, build analytics, smart scoping, template marketplace |
 
 ---

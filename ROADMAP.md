@@ -96,7 +96,7 @@ For VPS + RDS: generate a daily backup cron (`pg_dump` to S3). For Railway/Cloud
 
 ## v4.4 — The Imagination Release
 
-*The forge can write code. Now it can create images too.*
+*The forge creates images. The forge learns from its users.*
 
 ### `/imagine` command — Celebrimbor's Image Generation
 New slash command and agent for AI image generation. Celebrimbor (Tolkien — greatest elven smith) reads the PRD for visual asset requirements (illustrations, portraits, OG images, hero art), derives a style prompt from the brand section, and generates images via OpenAI's image API. Manages an asset manifest for regeneration and auditing. Provider-abstracted (OpenAI default, extensible to Replicate/others).
@@ -120,6 +120,32 @@ Add OpenAI API key as an optional credential in Merlin's Step 2 (Cloud Providers
 - `wizard/lib/image-gen.ts` — provider abstraction + generation
 - `wizard/lib/asset-scanner.ts` — PRD parsing for image requirements
 - Update: `NAMING_REGISTRY.md`, `CLAUDE.md`, `HOLOCRON.md`, `wizard/ui/app.js`
+
+### `/debrief` command — Bashir's Field Reports
+New slash command for post-session analysis and upstream feedback. Bashir (Star Trek DS9 — chief medical officer, diagnostician) reads the session's build logs, assemble state, campaign state, and git history, then produces a structured post-mortem that identifies methodology gaps and proposes fixes in VoidForge's own language.
+
+The key innovation: the report can be **submitted as a GitHub issue** on the VoidForge upstream repo (`tmcleod3/voidforge`), labeled `field-report`. Users become contributors just by running `/debrief --submit` after a rough session. Upstream maintainers get structured, actionable feedback written in VoidForge's agent/command vocabulary.
+
+Sub-agents: Ezri (session timeline reconstruction — joined Trill, multiple lifetimes of perspective), O'Brien (root cause investigation — "the bloody EPS conduits again"), Nog (solution proposals within VoidForge's framework — first Ferengi in Starfleet, creative and resourceful), Jake (report writing — Sisko's son, aspiring journalist).
+
+Command: `/debrief`. Flags: `--submit` (create GitHub issue), `--campaign` (analyze full campaign), `--session` (just this session), `--dry-run` (generate without submitting).
+
+**The feedback loop:**
+- `/void` (Bombadil) pulls updates DOWN from upstream
+- `/debrief` (Bashir) pushes learnings BACK UP to upstream
+- When `/void` next runs, Bombadil can note: "Your field report was incorporated into v4.5"
+
+**Privacy:** Reports contain timeline, root causes, and proposed fixes — NOT source code, credentials, or personal data. User reviews and approves every word before submission.
+
+**Integration:**
+- `/campaign` Step 6: After victory, Sisko offers debrief
+- `/assemble` completion: If 3+ Must Fix items found, Fury suggests debrief
+- Standalone: run `/debrief` anytime after a session with interesting findings
+
+### Files to create
+- `.claude/commands/debrief.md` — slash command
+- `docs/methods/FIELD_MEDIC.md` — Bashir's method doc
+- Update: `NAMING_REGISTRY.md`, `CLAUDE.md`, `HOLOCRON.md`
 
 ---
 
