@@ -120,8 +120,8 @@ cd "$VOIDFORGE_DIR" && npm install --production 2>/dev/null || true
 
 # 6. Caddy config
 echo "[6/7] Configuring Caddy for ${safeDomain}..."
-sudo tee /etc/caddy/Caddyfile > /dev/null << 'CADDY'
-${safeDomain} {
+sudo tee /etc/caddy/Caddyfile > /dev/null << CADDY
+${config.domain} {
     # Rate limiting on login endpoint
     @login path /api/auth/login
     handle @login {
@@ -160,7 +160,7 @@ echo ""
 echo "═══════════════════════════════════════════"
 echo "  VoidForge deployed!"
 echo "═══════════════════════════════════════════"
-echo "  URL: https://${safeDomain}"
+echo "  URL: https://${config.domain}"
 echo ""
 echo "  Open the URL above to create your admin"
 echo "  account (username + password + TOTP 2FA)."

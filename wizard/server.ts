@@ -16,8 +16,8 @@ import './api/auth.js';
 import { handleTerminalUpgrade } from './api/terminal.js';
 import { killAllSessions } from './lib/pty-manager.js';
 import { startHealthPoller, stopHealthPoller } from './lib/health-poller.js';
-import { isRemoteMode, setRemoteMode, validateSession, parseSessionCookie, isAuthExempt } from './lib/camelot-auth.js';
-import { initAuditLog, audit } from './lib/audit-log.js';
+import { isRemoteMode, setRemoteMode, validateSession, parseSessionCookie, isAuthExempt, getClientIp } from './lib/camelot-auth.js';
+import { initAuditLog } from './lib/audit-log.js';
 
 const UI_DIR = join(import.meta.dirname, 'ui');
 
@@ -28,6 +28,11 @@ let serverHost = ''; // Set for remote mode (e.g., 'forge.yourdomain.com')
 /** Expose the server port for WebSocket origin validation. */
 export function getServerPort(): number {
   return serverPort;
+}
+
+/** Expose the server host for remote-mode WebSocket origin validation. */
+export function getServerHost(): string {
+  return serverHost;
 }
 
 const MIME_TYPES: Record<string, string> = {

@@ -17,6 +17,8 @@ import {
   findByDirectory,
   type ProjectInput,
 } from '../lib/project-registry.js';
+import { audit } from '../lib/audit-log.js';
+import { getClientIp } from '../lib/camelot-auth.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -173,7 +175,11 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  // Canonicalize and validate path
+  // Validate path — reject traversal before resolve (consistent with deploy.ts/terminal.ts)
+  if (directory.includes('..')) {
+    sendJson(res, 400, { success: false, error: 'directory must not contain ".." segments' });
+    return;
+  }
   const dir = resolve(directory);
   if (!dir.startsWith('/')) {
     sendJson(res, 400, { success: false, error: 'directory must be an absolute path' });
@@ -206,6 +212,8 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
   try {
     const input = await scanProjectMetadata(dir);
     const project = await addProject(input);
+    const ip = getClientIp(req);
+    await audit('project_create', ip, '', { action: 'import', directory: dir, name: project.name });
     sendJson(res, 201, { success: true, data: project });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Import failed';
@@ -238,6 +246,9 @@ addRoute('POST', '/api/projects/delete', async (req: IncomingMessage, res: Serve
     sendJson(res, 404, { success: false, error: 'Project not found' });
     return;
   }
+
+  const ip = getClientIp(req);
+  await audit('project_delete', ip, '', { projectId: id });
 
   sendJson(res, 200, { success: true });
 });

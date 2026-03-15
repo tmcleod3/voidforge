@@ -18,7 +18,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { addRoute } from '../router.js';
 import { getSessionPassword } from './credentials.js';
-import { getServerPort } from '../server.js';
+import { getServerPort, getServerHost } from '../server.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import {
   createSession, writeToSession, onSessionData, resizeSession,
@@ -232,6 +232,11 @@ export function handleTerminalUpgrade(req: IncomingMessage, socket: Duplex, head
   const origin = req.headers.origin || '';
   const port = getServerPort();
   const allowedOrigins = [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
+  // Add HTTPS origin for remote mode
+  const remoteHost = getServerHost();
+  if (remoteHost) {
+    allowedOrigins.push(`https://${remoteHost}`);
+  }
   if (!origin || !allowedOrigins.includes(origin)) {
     socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
     socket.destroy();
