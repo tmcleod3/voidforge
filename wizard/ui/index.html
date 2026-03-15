@@ -237,6 +237,25 @@
         </div>
       </section>
 
+      <!-- Step 4b: Project Credentials (PRD-driven) -->
+      <section class="step hidden" id="step-4b" data-step="4b">
+        <h1>Project Credentials</h1>
+        <p class="subtitle">Your PRD references these services. Add API keys now, or fill in <code>.env</code> later.</p>
+
+        <div id="env-credentials-list"></div>
+
+        <div id="env-credentials-empty" class="hidden">
+          <div class="status-row info">No project-specific credentials detected in your PRD. You're all set.</div>
+        </div>
+
+        <div class="status-row" id="env-store-status" role="status" aria-live="polite"></div>
+
+        <div class="btn-row" style="margin-top: 16px;">
+          <button class="btn btn-primary" id="store-env-credentials" type="button">Store All in Vault</button>
+          <button class="btn btn-secondary" id="skip-env-credentials" type="button">Skip — I'll add them to .env later</button>
+        </div>
+      </section>
+
       <!-- Step 5: Deploy Target -->
       <section class="step hidden" id="step-5" data-step="5">
         <h1>Deploy Target</h1>
@@ -260,6 +279,7 @@
               <tr><td class="review-label">Domain</td><td id="review-domain"></td></tr>
               <tr><td class="review-label">Hostname</td><td id="review-hostname"></td></tr>
               <tr><td class="review-label">PRD</td><td id="review-prd"></td></tr>
+              <tr><td class="review-label">API Keys</td><td id="review-env-credentials"></td></tr>
               <tr><td class="review-label">Deploy</td><td id="review-deploy"></td></tr>
             </tbody>
           </table>

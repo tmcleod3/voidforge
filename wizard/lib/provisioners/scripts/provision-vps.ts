@@ -9,6 +9,35 @@ interface ProvisionScriptOptions {
   database: string;
   cache: string;
   instanceType?: string;
+  extensions?: string[];
+}
+
+/** Generate PostgreSQL extension install commands if extensions are specified. */
+function generateExtensionBlock(opts: ProvisionScriptOptions): string {
+  if (!opts.extensions || opts.extensions.length === 0 || opts.database !== 'postgres') return '';
+
+  const lines: string[] = [
+    '',
+    '# ==========================================',
+    '# PostgreSQL Extensions',
+    '# ==========================================',
+  ];
+
+  for (const ext of opts.extensions) {
+    const extLower = ext.toLowerCase().trim();
+    if (extLower === 'postgis') {
+      lines.push('echo "Installing PostGIS..."');
+      lines.push('dnf install -y -q postgis34_16 || apt-get install -y -q postgresql-16-postgis-3 2>/dev/null || true');
+    } else if (extLower === 'pg_trgm') {
+      lines.push('echo "Installing pg_trgm..."');
+      lines.push('# pg_trgm is included in postgresql-contrib (usually pre-installed)');
+      lines.push('dnf install -y -q postgresql16-contrib 2>/dev/null || apt-get install -y -q postgresql-contrib 2>/dev/null || true');
+    }
+    // CREATE EXTENSION is idempotent
+    lines.push(`sudo -u postgres psql -d "$\{DB_NAME:-app}" -c "CREATE EXTENSION IF NOT EXISTS ${extLower};" 2>/dev/null || true`);
+  }
+
+  return lines.join('\n');
 }
 
 export function generateProvisionScript(opts: ProvisionScriptOptions): string {
@@ -167,6 +196,7 @@ cat > /etc/logrotate.d/voidforge << 'LOGROTATE'
 }
 LOGROTATE
 
+${generateExtensionBlock(opts)}
 echo ""
 echo "=== Provisioning complete ==="
 echo "App directory: $APP_DIR/releases/ (symlinked via $APP_DIR/current)"

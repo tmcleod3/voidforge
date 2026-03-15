@@ -172,3 +172,47 @@ addRoute('POST', '/api/credentials/anthropic', async (req: IncomingMessage, res:
   clearModelCache();
   sendJson(res, 200, { stored: true });
 });
+
+// POST /api/credentials/env-batch — store multiple project-specific credentials at once
+addRoute('POST', '/api/credentials/env-batch', async (req: IncomingMessage, res: ServerResponse) => {
+  if (!sessionPassword) {
+    sendJson(res, 401, { error: 'Vault is locked.' });
+    return;
+  }
+
+  const body = await parseJsonBody(req) as { credentials?: Record<string, string> };
+
+  if (!body.credentials || typeof body.credentials !== 'object') {
+    sendJson(res, 400, { error: 'credentials object is required' });
+    return;
+  }
+
+  const entries = Object.entries(body.credentials).filter(
+    ([key, val]) => typeof key === 'string' && typeof val === 'string' && val.trim().length > 0
+  );
+
+  if (entries.length === 0) {
+    sendJson(res, 400, { error: 'No non-empty credentials provided' });
+    return;
+  }
+
+  // Max 100 entries to prevent abuse
+  if (entries.length > 100) {
+    sendJson(res, 400, { error: 'Too many credentials (max 100)' });
+    return;
+  }
+
+  // Validate key format: only allow env-var-style keys
+  for (const [key] of entries) {
+    if (!/^[A-Z][A-Z0-9_]{1,100}$/.test(key)) {
+      sendJson(res, 400, { error: `Invalid credential key format: ${key}` });
+      return;
+    }
+  }
+
+  for (const [key, value] of entries) {
+    await vaultSet(sessionPassword, `env:${key}`, value.trim());
+  }
+
+  sendJson(res, 200, { stored: true, count: entries.length });
+});

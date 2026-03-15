@@ -120,6 +120,18 @@ addRoute('POST', '/api/deploy/scan', async (req: IncomingMessage, res: ServerRes
     }
   }
 
+  // Detect PostgreSQL extensions from Prisma schema
+  let extensions: string[] = [];
+  if (database === 'postgres') {
+    try {
+      const prismaSchema = await readFile(join(dir, 'prisma', 'schema.prisma'), 'utf-8');
+      const extMatch = prismaSchema.match(/extensions\s*=\s*\[([^\]]+)\]/);
+      if (extMatch) {
+        extensions = extMatch[1].split(',').map((e) => e.trim().replace(/["']/g, '')).filter(Boolean);
+      }
+    } catch { /* no Prisma schema or no extensions */ }
+  }
+
   // Auto-recommend instance type from PRD scope if not explicitly set
   if (!instanceType && (deploy === 'vps' || !deploy)) {
     instanceType = recommendInstanceType({
@@ -141,5 +153,6 @@ addRoute('POST', '/api/deploy/scan', async (req: IncomingMessage, res: ServerRes
     cache,
     instanceType: instanceType || 't3.micro',
     hostname: hostname || '',
+    extensions,
   });
 });

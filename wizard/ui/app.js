@@ -24,6 +24,8 @@
     generatedPrd: '',
     deployTarget: '',
     createdDir: '',
+    envGroups: [],        // PRD-driven env credential groups
+    envCredentials: {},   // { VAR_NAME: 'value', ... }
   };
 
   // DOM refs
@@ -45,25 +47,34 @@
     currentStep = step;
 
     // Dynamic step count — simple mode skips steps 2(cloud) and 5(deploy)
-    const visibleSteps = advancedMode
-      ? [1, 2, 3, 4, 5, 6, 7]
-      : [1, 2, 3, 4, 6, 7];
+    // Step '4b' is the PRD-driven credentials step (shown only if PRD has env vars)
+    const hasEnvStep = state.envGroups.length > 0;
+    let visibleSteps;
+    if (advancedMode) {
+      visibleSteps = hasEnvStep ? [1, 2, 3, 4, '4b', 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7];
+    } else {
+      visibleSteps = hasEnvStep ? [1, 2, 3, 4, '4b', 6, 7] : [1, 2, 3, 4, 6, 7];
+    }
     const currentIdx = visibleSteps.indexOf(step);
     const totalVisible = visibleSteps.length;
-    const displayNum = currentIdx >= 0 ? currentIdx + 1 : step;
+    const displayNum = currentIdx >= 0 ? currentIdx + 1 : (typeof step === 'number' ? step : 5);
 
     const pct = Math.round((displayNum / totalVisible) * 100);
     progressBar.style.width = `${pct}%`;
     progressBar.setAttribute('aria-valuenow', String(pct));
     stepLabel.textContent = `Step ${displayNum} of ${totalVisible}`;
 
-    btnBack.disabled = step <= 1;
+    btnBack.disabled = step === 1;
 
     if (step === 6) {
       btnNext.textContent = 'Create Project';
     } else if (step === 7) {
       btnNext.style.display = 'none';
       btnBack.style.display = 'none';
+    } else if (step === '4b') {
+      // Step 4b has its own Store/Skip buttons, hide main nav Next
+      btnNext.style.display = 'none';
+      btnBack.style.display = '';
     } else {
       btnNext.textContent = 'Next';
       btnNext.style.display = '';
@@ -115,12 +126,38 @@
     }
     clearValidationErrors();
 
-    // Skip deploy target step in simple mode (only Docker available)
-    if (currentStep === 4 && !advancedMode) {
-      // Jump from PRD (4) straight to Review (6), skipping Deploy (5)
-      syncState();
-      populateReview();
-      showStep(6);
+    // After PRD step (4), check for env requirements before proceeding
+    if (currentStep === 4) {
+      const prdText = state.prdContent || state.generatedPrd || '';
+      if (prdText) {
+        const envGroups = await loadEnvRequirements(prdText);
+        state.envGroups = envGroups;
+        if (envGroups.length > 0) {
+          renderEnvCredentials(envGroups);
+          showStep('4b');
+          return;
+        }
+      }
+      // No env requirements — skip 4b
+      if (!advancedMode) {
+        populateReview();
+        showStep(6);
+        return;
+      }
+      await loadDeployTargets();
+      showStep(5);
+      return;
+    }
+
+    // After 4b, proceed to deploy (advanced) or review (simple)
+    if (currentStep === '4b') {
+      if (!advancedMode) {
+        populateReview();
+        showStep(6);
+        return;
+      }
+      await loadDeployTargets();
+      showStep(5);
       return;
     }
 
@@ -139,10 +176,24 @@
   }
 
   function prevStep() {
-    if (currentStep <= 1) return;
-    // In simple mode, skip back over the deploy step
-    if (currentStep === 6 && !advancedMode) {
+    if (currentStep === 1) return;
+    // Step 4b goes back to 4
+    if (currentStep === '4b') {
       showStep(4);
+      return;
+    }
+    // Step 5 goes back to 4b if env groups exist, else 4
+    if (currentStep === 5 && state.envGroups.length > 0) {
+      showStep('4b');
+      return;
+    }
+    // In simple mode, review goes back to 4b (if exists) or 4
+    if (currentStep === 6 && !advancedMode) {
+      if (state.envGroups.length > 0) {
+        showStep('4b');
+      } else {
+        showStep(4);
+      }
       return;
     }
     showStep(currentStep - 1);
@@ -518,6 +569,12 @@
       $('#setup-choice').classList.remove('hidden');
       $('#cloud-setup').classList.add('hidden');
     }
+    // Step 4b needs to re-show nav buttons properly
+    if (step === '4b') {
+      btnNext.style.display = 'none';
+      btnBack.style.display = '';
+      btnBack.disabled = false;
+    }
     origShowStep(step);
   };
 
@@ -694,6 +751,112 @@
   });
 
   // =============================================
+  // Step 4b: PRD-Driven Credentials
+  // =============================================
+
+  async function loadEnvRequirements(prdText) {
+    try {
+      const res = await fetch('/api/prd/env-requirements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+        body: JSON.stringify({ content: prdText }),
+      });
+      const data = await res.json();
+      return data.groups || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function renderEnvCredentials(groups) {
+    const container = $('#env-credentials-list');
+    const emptyEl = $('#env-credentials-empty');
+    container.innerHTML = '';
+
+    if (groups.length === 0) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+
+    for (const group of groups) {
+      const section = document.createElement('div');
+      section.className = 'card';
+      section.style.marginBottom = '12px';
+
+      let fieldsHtml = '';
+      for (const field of group.fields) {
+        fieldsHtml += `
+          <div class="field">
+            <label for="env-${field.key}">${escapeHtml(field.label)}</label>
+            <input type="${field.secret ? 'password' : 'text'}" id="env-${field.key}"
+                   data-env-key="${field.key}" placeholder="${escapeHtml(field.placeholder)}" autocomplete="off">
+          </div>`;
+      }
+
+      section.innerHTML = `
+        <h3>${escapeHtml(group.name)}</h3>
+        ${fieldsHtml}`;
+      container.appendChild(section);
+    }
+  }
+
+  // Store All button
+  $('#store-env-credentials')?.addEventListener('click', async () => {
+    const statusEl = $('#env-store-status');
+    const inputs = $$('[data-env-key]');
+    const credentials = {};
+    let count = 0;
+
+    inputs.forEach((input) => {
+      if (input.value.trim()) {
+        credentials[input.dataset.envKey] = input.value.trim();
+        count++;
+      }
+    });
+
+    if (count === 0) {
+      showStatus(statusEl, 'info', 'No credentials entered — skipping.');
+      proceedFromEnvStep();
+      return;
+    }
+
+    showStatus(statusEl, 'loading', `Storing ${count} credentials in vault...`);
+    try {
+      const res = await fetch('/api/credentials/env-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+        body: JSON.stringify({ credentials }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.stored) {
+        state.envCredentials = credentials;
+        showStatus(statusEl, 'success', `${count} credentials stored in vault`);
+        setTimeout(proceedFromEnvStep, 600);
+      } else {
+        showStatus(statusEl, 'error', data.error || 'Failed to store credentials');
+      }
+    } catch (err) {
+      showStatus(statusEl, 'error', 'Connection error: ' + err.message);
+    }
+  });
+
+  // Skip button
+  $('#skip-env-credentials')?.addEventListener('click', () => {
+    proceedFromEnvStep();
+  });
+
+  function proceedFromEnvStep() {
+    if (advancedMode) {
+      loadDeployTargets().then(() => showStep(5));
+    } else {
+      populateReview();
+      showStep(6);
+    }
+  }
+
+  // =============================================
   // Step 5: Deploy Target
   // =============================================
 
@@ -782,6 +945,13 @@
       $('#review-prd').textContent = 'Generated by Claude';
     } else {
       $('#review-prd').textContent = 'Default template (edit later)';
+    }
+
+    // Show env credentials count if any were stored
+    const envCount = Object.keys(state.envCredentials).length;
+    const envRow = $('#review-env-credentials');
+    if (envRow) {
+      envRow.textContent = envCount > 0 ? `${envCount} keys stored in vault` : 'None (add to .env later)';
     }
   }
 

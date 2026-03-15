@@ -250,6 +250,126 @@ addRoute('POST', '/api/prd/generate', async (req: IncomingMessage, res: ServerRe
   apiReq.end();
 });
 
+// POST /api/prd/env-requirements — parse PRD for project-specific credentials
+addRoute('POST', '/api/prd/env-requirements', async (req: IncomingMessage, res: ServerResponse) => {
+  const body = await parseJsonBody(req) as { content?: string };
+
+  if (!body.content || typeof body.content !== 'string') {
+    sendJson(res, 400, { error: 'content is required' });
+    return;
+  }
+
+  const groups = parseEnvRequirements(body.content);
+  sendJson(res, 200, { groups });
+});
+
+/**
+ * Env vars that are auto-generated, infrastructure, or app config — never collect from user.
+ * These are either provisioned by the deploy pipeline, generated at build time,
+ * or derived from project config. Generic across all projects.
+ */
+const SKIP_VARS = new Set([
+  // App config (derived from project setup)
+  'NODE_ENV', 'PORT',
+  'NEXT_PUBLIC_APP_URL', 'NEXT_PUBLIC_APP_NAME',
+  // Infrastructure (provisioned by deploy pipeline)
+  'DATABASE_URL', 'REDIS_URL', 'REDIS_PASSWORD',
+  // Secrets (auto-generated at build time)
+  'SESSION_SECRET', 'SESSION_COOKIE_NAME', 'SESSION_TTL_DAYS',
+  'CSRF_SECRET',
+  // Storage (provisioned by deploy pipeline)
+  'S3_ENDPOINT', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_BUCKET_NAME',
+  'S3_REGION', 'S3_PUBLIC_URL',
+]);
+
+/** Prefixes that indicate feature flags — always skip. */
+const SKIP_PREFIXES = ['ENABLE_'];
+
+interface EnvField {
+  key: string;
+  label: string;
+  placeholder: string;
+  secret: boolean;
+}
+
+interface EnvGroup {
+  name: string;
+  fields: EnvField[];
+}
+
+function parseEnvRequirements(prdContent: string): EnvGroup[] {
+  // Find the env vars section — look for a block with multiple VAR="value" lines
+  const lines = prdContent.split('\n');
+  const groups: EnvGroup[] = [];
+  let currentGroup: EnvGroup | null = null;
+
+  for (const line of lines) {
+    // Detect section headers like "# ─── WhatsApp Business API ───────"
+    const headerMatch = line.match(/^#\s*[─\-]+\s*(.+?)\s*[─\-]*$/);
+    if (headerMatch) {
+      const name = headerMatch[1].trim();
+      currentGroup = { name, fields: [] };
+      groups.push(currentGroup);
+      continue;
+    }
+
+    // Detect env var assignments: VAR_NAME="value" or VAR_NAME=value
+    const varMatch = line.match(/^([A-Z][A-Z0-9_]+)=["']?(.*?)["']?\s*(?:#.*)?$/);
+    if (!varMatch || !currentGroup) continue;
+
+    const [, key, rawValue] = varMatch;
+
+    // Skip auto-generated / infrastructure / tuning vars
+    if (SKIP_VARS.has(key)) continue;
+    if (SKIP_PREFIXES.some((p) => key.startsWith(p))) continue;
+
+    const value = rawValue.trim();
+
+    // Skip tuning params — values that are purely numeric, boolean, or duration-like
+    // These are config knobs, not API credentials (e.g., MAX_RETRIES="5", TIMEOUT_MS="30000")
+    if (/^\d+$/.test(value) || value === 'true' || value === 'false') continue;
+
+    // Skip if the value looks like a real config URL (not a placeholder)
+    const isApiUrl = key.endsWith('_API_URL') || key.endsWith('_URL');
+    if (isApiUrl && value.startsWith('http')) continue;
+
+    // Only collect vars that look like they need user-provided values
+    // (empty, placeholder prefixes, or common API key patterns)
+    const isPlaceholder = !value
+      || value.includes('your-')
+      || value.includes('your_')
+      || /^(sk-|pk\.|AIza|re_|ghp_)/.test(value)
+      || value.endsWith('...')
+      || value.startsWith('Bearer ');
+
+    if (!isPlaceholder && value.length > 0) continue;
+
+    // Determine if this is a secret field
+    const secretPatterns = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD'];
+    const isSecret = secretPatterns.some((p) => key.includes(p));
+
+    // Generate human-readable label from var name
+    const label = key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .replace(/\bApi\b/g, 'API')
+      .replace(/\bUrl\b/g, 'URL')
+      .replace(/\bId\b/g, 'ID')
+      .replace(/\bSdk\b/g, 'SDK')
+      .replace(/\bApp\b/g, 'App');
+
+    currentGroup.fields.push({
+      key,
+      label,
+      placeholder: value || key.toLowerCase().replace(/_/g, '-'),
+      secret: isSecret,
+    });
+  }
+
+  // Filter out empty groups
+  return groups.filter((g) => g.fields.length > 0);
+}
+
 // GET /api/prd/template — return the PRD template
 addRoute('GET', '/api/prd/template', async (_req: IncomingMessage, res: ServerResponse) => {
   const templatePath = join(import.meta.dirname, '..', '..', 'docs', 'PRD.md');

@@ -1,8 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
  * VoidForge CLI entry point
- * Usage: npx voidforge init     — Launch Merlin (setup wizard)
- *        npx voidforge deploy   — Launch Strange (deploy wizard)
+ * Usage: npx voidforge init                — Launch Merlin (setup wizard)
+ *        npx voidforge deploy              — Launch Strange (deploy wizard)
+ *        npx voidforge deploy --headless   — Deploy from CLI (no browser)
  */
 
 const args = process.argv.slice(2);
@@ -11,37 +12,52 @@ const command = args[0];
 if (command !== 'init' && command !== 'deploy') {
   console.log('VoidForge — From nothing, everything.\n');
   console.log('Usage:');
-  console.log('  npx voidforge init      Launch Merlin — the setup wizard');
-  console.log('  npx voidforge deploy    Launch Strange — the deploy wizard');
+  console.log('  npx voidforge init                Launch Merlin — the setup wizard');
+  console.log('  npx voidforge deploy              Launch Strange — the deploy wizard');
+  console.log('  npx voidforge deploy --headless   Deploy from CLI without a browser');
   console.log('');
   process.exit(command === '--help' || command === '-h' ? 0 : 1);
 }
 
-const port = parseInt(process.env['VOIDFORGE_PORT'] ?? '3141', 10);
+const isHeadless = args.includes('--headless');
+const projectDirFlag = args.find((a, i) => args[i - 1] === '--dir');
 
-const wizardNames: Record<string, { name: string; path: string }> = {
-  init: { name: 'Merlin', path: '/' },
-  deploy: { name: 'Strange', path: '/deploy.html' },
-};
+if (command === 'deploy' && isHeadless) {
+  // Headless deploy — run provisioning from terminal
+  import('../wizard/lib/headless-deploy.js')
+    .then(({ headlessDeploy }) => headlessDeploy(projectDirFlag))
+    .catch((err: unknown) => {
+      console.error('Deploy failed:', (err as Error).message);
+      process.exit(1);
+    });
+} else {
+  // Browser wizard mode
+  const port = parseInt(process.env['VOIDFORGE_PORT'] ?? '3141', 10);
 
-const wizard = wizardNames[command];
+  const wizardNames: Record<string, { name: string; path: string }> = {
+    init: { name: 'Merlin', path: '/' },
+    deploy: { name: 'Strange', path: '/deploy.html' },
+  };
 
-async function main(): Promise<void> {
-  const { startServer } = await import('../wizard/server.js');
-  const { openBrowser } = await import('../wizard/lib/open-browser.js');
+  const wizard = wizardNames[command];
 
-  const url = `http://localhost:${port}${wizard.path}`;
-  console.log('');
-  console.log(`  VoidForge — ${wizard.name}`);
-  console.log(`  Server running at ${url}`);
-  console.log('  Press Ctrl+C to stop');
-  console.log('');
+  async function main(): Promise<void> {
+    const { startServer } = await import('../wizard/server.js');
+    const { openBrowser } = await import('../wizard/lib/open-browser.js');
 
-  await startServer(port);
-  await openBrowser(url);
+    const url = `http://localhost:${port}${wizard.path}`;
+    console.log('');
+    console.log(`  VoidForge — ${wizard.name}`);
+    console.log(`  Server running at ${url}`);
+    console.log('  Press Ctrl+C to stop');
+    console.log('');
+
+    await startServer(port);
+    await openBrowser(url);
+  }
+
+  main().catch((err: unknown) => {
+    console.error('Failed to start VoidForge:', err);
+    process.exit(1);
+  });
 }
-
-main().catch((err: unknown) => {
-  console.error('Failed to start VoidForge:', err);
-  process.exit(1);
-});

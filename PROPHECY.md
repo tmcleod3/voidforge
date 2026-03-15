@@ -103,25 +103,35 @@ A sandbox where you can see each of the 7 code patterns in action, with live exa
 
 ---
 
-## v4 Territory -- The Multiverse
+## v5.5–v7.0 Territory — Camelot
 
-*"There was an idea... to bring together a group of remarkable people." -- Fury*
+*"Merlin is building Camelot."*
 
-These are the big swings. The ones that change what VoidForge fundamentally is.
+These are not incremental features. This is the transformation of VoidForge from a development tool you use in a terminal into a **castle you live in**. The key insight: don't rebuild Claude Code via the API — embed the real thing in a browser terminal. You get actual Claude Code (full tools, 1M context, interactive conversation) inside xterm.js, connected via WebSocket to a server-side PTY. After Merlin creates the project, the UI transitions to Camelot: a persistent browser workspace where you build, deploy, SSH into production, push hotfixes, run reviews, and manage every project you've ever built — all from one browser tab. Never leave. Never open a separate terminal.
 
-**Multi-Project Orchestration**
-VoidForge managing a monorepo with multiple services, each with their own PRD. Picard designs the system boundaries. Stark builds the services independently. Kusanagi deploys them as a fleet with service mesh, shared databases, and coordinated rollbacks.
+When Camelot runs on a remote server, you access it from any device — phone, iPad, hotel business center, a friend's laptop. The server IS your development machine, build server, and production host. One VPS to rule them all.
 
-Lelouch orchestrates. He's a master strategist. He sees the whole board.
+**v5.5 — Camelot Local** *(the foundation)*
+Browser terminal via `node-pty` + xterm.js + WebSocket. Merlin transitions to embedded terminal after project creation. Single project per instance. Claude Code runs in the browser. SSH to production from the browser. Multiple terminal tabs (Claude Code, SSH, shell). Session persistence across page navigation.
 
-**Rollback Dashboard**
-Strange grows a deployment history UI. See every deploy, every version, every rollback. One-click revert to any previous release. Deploy diffs showing exactly what changed. Trunks manages the timeline. Valkyrie handles the rescue operations.
+Haku (Spirited Away — the river spirit, master of transformation) handles the WebSocket bridge. He moves between worlds seamlessly.
 
-**Cost Tracker**
-AWS billing API integration, baked into Strange. "Your infrastructure costs $47/month. RDS is 60% of that. Here's what Picard's Tier 2 scaling plan would cost." Nanami tracks the budget. He's a 9-to-5 guy. He respects the numbers.
+**v6.0 — Camelot Multi** *(the Great Hall)*
+Multi-project dashboard. Project registry at `~/.voidforge/projects.json`. The Great Hall shows all projects: status, health, deploy URL, monthly cost, quick actions. Each project is a "room" — click in to get the full terminal workspace. Background health poller pings each project's health URL every 5 minutes. Shared vault: AWS, GitHub, Cloudflare credentials work across all projects without re-entry.
 
-**Agent Memory**
-Agents that remember across projects. "Last time you built a Next.js app with Stripe, we hit this issue in Phase 6." Holocrons storing not just methodology but experience. Wong guards the knowledge. The Sanctum grows.
+Lelouch (Code Geass — master strategist) sees the whole board from the Great Hall. He orchestrates across all projects.
+
+**v6.5 — Camelot Remote** *(the drawbridge)*
+Self-hosted mode. Deploy VoidForge itself to a VPS. Access via public URL behind 5-layer security: network (IP allowlist + rate limiting), authentication (username/password + TOTP 2FA), vault (separate encryption password that auto-locks), terminal sandboxing (non-root user, resource limits, session caps), audit trail (every action logged). Two-password architecture: login password ≠ vault password. If someone compromises the session, they still can't read credentials or deploy. SSH keys never reach the browser — the server acts as a jump host.
+
+Kenobi designed the security. "The high ground is everything."
+
+**v7.0 — The Round Table** *(the kingdom)*
+Multi-user, multi-project, coordinated operations. Role-based access (admin/deployer/viewer). Per-project permissions. Linked services for monorepo awareness. Coordinated deploys across service boundaries. Rollback dashboard with one-click revert. Cost tracking across the fleet. Agent memory that learns across projects.
+
+Lelouch orchestrates the fleet. Trunks manages the timeline (rollbacks). Nanami tracks the budget. Wong guards the accumulated knowledge. Valkyrie runs rescue operations when deploys go sideways.
+
+The full Prophecy v4 vision — Multi-Project Orchestration, Rollback Dashboard, Cost Tracker, Agent Memory — all live inside Camelot's walls.
 
 ---
 
