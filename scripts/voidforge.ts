@@ -1,7 +1,7 @@
 #!/usr/bin/env npx tsx
 /**
  * VoidForge CLI entry point
- * Usage: npx voidforge init                    — Launch Merlin (setup wizard)
+ * Usage: npx voidforge init                    — Launch Gandalf (setup wizard)
  *        npx voidforge init --template saas    — Start from a project template
  *        npx voidforge init --remote           — Launch in remote mode (0.0.0.0 + auth)
  *        npx voidforge deploy                  — Launch Haku (deploy wizard)
@@ -25,7 +25,7 @@ if (command === 'templates') {
 } else if (command !== 'init' && command !== 'deploy') {
   console.log('VoidForge — From nothing, everything.\n');
   console.log('Usage:');
-  console.log('  npx voidforge init                    Launch Merlin — the setup wizard');
+  console.log('  npx voidforge init                    Launch Gandalf — the setup wizard');
   console.log('  npx voidforge init --template saas    Start from a project template');
   console.log('  npx voidforge deploy              Launch Haku — the deploy wizard');
   console.log('  npx voidforge deploy --headless   Deploy from CLI without a browser');
@@ -67,7 +67,7 @@ if (command === 'deploy' && isSelfDeploy) {
   const port = parseInt(process.env['VOIDFORGE_PORT'] ?? '3141', 10);
 
   const wizardNames: Record<string, { name: string; path: string }> = {
-    init: { name: 'Merlin', path: '/' },
+    init: { name: 'Gandalf', path: '/' },
     deploy: { name: 'Haku', path: '/deploy.html' },
   };
 

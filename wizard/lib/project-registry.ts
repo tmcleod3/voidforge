@@ -1,6 +1,6 @@
 /**
  * Project Registry — CRUD for ~/.voidforge/projects.json.
- * Zero-dep JSON file storage for multi-project Camelot.
+ * Zero-dep JSON file storage for multi-project Avengers Tower.
  * File permissions: 0600 (owner read/write only).
  *
  * Follows vault.ts patterns: serialized writes, atomic file ops, homedir().

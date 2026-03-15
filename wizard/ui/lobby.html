@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Great Hall — VoidForge</title>
+  <title>The Lobby — VoidForge</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
   <style>
     body { min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* Hall Layout */
-    .hall { max-width: 960px; margin: 0 auto; width: 100%; flex: 1; display: flex; flex-direction: column; }
-    .hall-header {
+    /* Lobby Layout */
+    .lobby { max-width: 960px; margin: 0 auto; width: 100%; flex: 1; display: flex; flex-direction: column; }
+    .lobby-header {
       padding: 24px 24px 16px;
       border-bottom: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center;
     }
-    .hall-title { font-size: 18px; font-weight: 700; color: var(--accent); }
-    .hall-subtitle { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
-    .hall-actions { display: flex; gap: 8px; }
+    .lobby-title { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .lobby-subtitle { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+    .lobby-actions { display: flex; gap: 8px; }
 
     /* Project Grid */
     .project-grid {
@@ -82,14 +82,14 @@
     /* Cost & Activity */
     .project-footer { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
 
-    /* Round Table (footer bar) */
-    .round-table {
+    /* The Penthouse (footer bar) */
+    .penthouse {
       padding: 12px 24px;
       border-top: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center;
       font-size: 12px; color: var(--text-dim);
     }
-    .round-table-stats { display: flex; gap: 16px; }
+    .penthouse-stats { display: flex; gap: 16px; }
 
     /* Empty State */
     .empty-state {
@@ -113,40 +113,40 @@
 
     @media (max-width: 600px) {
       .project-grid { grid-template-columns: 1fr; padding: 16px; }
-      .hall-header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .round-table { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .lobby-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .penthouse { flex-direction: column; gap: 8px; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div class="hall">
-    <header class="hall-header">
+  <div class="lobby">
+    <header class="lobby-header">
       <div>
-        <div class="hall-title">The Great Hall</div>
-        <div class="hall-subtitle">VoidForge Operations Console</div>
+        <div class="lobby-title">The Lobby</div>
+        <div class="lobby-subtitle">VoidForge Operations Console</div>
       </div>
-      <div class="hall-actions">
+      <div class="lobby-actions">
         <span id="auth-user" style="font-size: 12px; color: var(--text-dim); display: none;"></span>
         <button class="btn" id="btn-logout" title="Sign out" style="display: none;">Logout</button>
         <button class="btn" id="btn-import" title="Import existing VoidForge project">+ Import Project</button>
-        <button class="btn btn-primary" id="btn-new" title="Create a new project with Merlin">+ New Project</button>
+        <button class="btn btn-primary" id="btn-new" title="Create a new project with Gandalf">+ New Project</button>
       </div>
     </header>
 
     <main class="project-grid" id="project-grid" role="list">
       <div class="empty-state" id="empty-state">
         <h2>No projects yet</h2>
-        <p>Create your first project with Merlin, or import an existing one.</p>
+        <p>Create your first project with Gandalf, or import an existing one.</p>
         <button class="btn btn-primary" id="btn-new-empty">+ New Project</button>
       </div>
     </main>
 
-    <footer class="round-table" id="round-table">
-      <div class="round-table-stats">
+    <footer class="penthouse" id="penthouse">
+      <div class="penthouse-stats">
         <span id="stat-projects">0 projects</span>
         <span id="stat-cost">$0/mo</span>
       </div>
-      <div>The Round Table</div>
+      <div>The Penthouse</div>
     </footer>
   </div>
 
@@ -167,6 +167,6 @@
     </div>
   </div>
 
-  <script src="hall.js"></script>
+  <script src="lobby.js"></script>
 </body>
 </html>

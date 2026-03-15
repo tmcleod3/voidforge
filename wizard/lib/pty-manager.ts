@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { isRemoteMode } from './camelot-auth.js';
+import { isRemoteMode } from './tower-auth.js';
 import { audit } from './audit-log.js';
 
 // node-pty is a native module — dynamic import to handle missing installs gracefully

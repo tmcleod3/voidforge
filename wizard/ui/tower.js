@@ -1,5 +1,5 @@
 /**
- * Camelot — Browser terminal for VoidForge.
+ * Avengers Tower — Browser terminal for VoidForge.
  * xterm.js + WebSocket → server-side PTY (node-pty).
  * Haku moves between worlds seamlessly.
  */
@@ -25,7 +25,7 @@
 
   tabBar.setAttribute('role', 'tablist');
 
-  const statusEl = document.getElementById('camelot-status');
+  const statusEl = document.getElementById('tower-status');
 
   function showStatus(msg, durationMs) {
     statusEl.textContent = msg;
@@ -239,7 +239,7 @@
 
   async function init() {
     if (!projectDir) {
-      loadingState.textContent = 'No project directory specified. Launch Camelot from Merlin.';
+      loadingState.textContent = 'No project directory specified. Launch Avengers Tower from Gandalf.';
       return;
     }
 
@@ -261,8 +261,8 @@
     }
   }
 
-  // Back to Hall — warn if terminals are open (sessions persist server-side)
-  const backBtn = document.getElementById('btn-back-hall');
+  // Back to Lobby — warn if terminals are open (sessions persist server-side)
+  const backBtn = document.getElementById('btn-back-lobby');
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
       if (tabs.length > 0) {

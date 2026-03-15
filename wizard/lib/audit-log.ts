@@ -1,5 +1,5 @@
 /**
- * Audit Log — Append-only JSON lines logger for Camelot Remote.
+ * Audit Log — Append-only JSON lines logger for Avengers Tower Remote.
  *
  * Layer 5 of the 5-layer security architecture.
  * Every security-relevant action is recorded.

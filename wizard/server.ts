@@ -16,7 +16,7 @@ import './api/auth.js';
 import { handleTerminalUpgrade } from './api/terminal.js';
 import { killAllSessions } from './lib/pty-manager.js';
 import { startHealthPoller, stopHealthPoller } from './lib/health-poller.js';
-import { isRemoteMode, setRemoteMode, validateSession, parseSessionCookie, isAuthExempt, getClientIp } from './lib/camelot-auth.js';
+import { isRemoteMode, setRemoteMode, validateSession, parseSessionCookie, isAuthExempt, getClientIp } from './lib/tower-auth.js';
 import { initAuditLog } from './lib/audit-log.js';
 
 const UI_DIR = join(import.meta.dirname, 'ui');
@@ -135,7 +135,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   let pathname = url.pathname;
 
   if (pathname === '/' || pathname === '') {
-    pathname = '/hall.html';
+    pathname = '/lobby.html';
   }
 
   // Prevent directory traversal — resolve then verify prefix
@@ -182,7 +182,7 @@ export function startServer(port: number, options?: { remote?: boolean; host?: s
         return;
       }
 
-      // In remote mode, validate Camelot session before allowing WebSocket upgrade
+      // In remote mode, validate Tower session before allowing WebSocket upgrade
       if (isRemoteMode()) {
         const token = parseSessionCookie(req.headers.cookie);
         const ip = getClientIp(req);

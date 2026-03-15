@@ -4,12 +4,12 @@
 
 ## Context
 
-The Merlin wizard has a "Domain" field (Step 3) that captures the *business domain* (SaaS, E-commerce, Developer Tools). We now need to capture the *DNS hostname* (voidforge.dev) for DNS provisioning. Both could be called "domain" which creates confusion.
+The Gandalf wizard has a "Domain" field (Step 3) that captures the *business domain* (SaaS, E-commerce, Developer Tools). We now need to capture the *DNS hostname* (voidforge.dev) for DNS provisioning. Both could be called "domain" which creates confusion.
 
 ## Decision
 
 - **`domain`** = business domain (SaaS, E-commerce, etc.) — existing field, unchanged
-- **`hostname`** = DNS hostname (voidforge.dev) — new field in Merlin Step 3, PRD frontmatter, and ProvisionContext
+- **`hostname`** = DNS hostname (voidforge.dev) — new field in Gandalf Step 3, PRD frontmatter, and ProvisionContext
 
 The DNS hostname field is named `hostname` everywhere: PRD frontmatter (`hostname: "voidforge.dev"`), ProvisionContext (`hostname: string`), UI labels ("Hostname"), and .env (`HOSTNAME=voidforge.dev`).
 

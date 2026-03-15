@@ -136,8 +136,8 @@
 
     try {
       await loginUser(username, password, totp);
-      // Success — redirect to Great Hall
-      window.location.href = '/hall.html';
+      // Success — redirect to The Lobby
+      window.location.href = '/lobby.html';
     } catch (err) {
       loginStatus.textContent = err.message;
       loginStatus.className = 'status-row error';
@@ -168,8 +168,8 @@
     const session = await checkSession();
 
     if (session.authenticated) {
-      // Already logged in — go to Great Hall
-      window.location.href = '/hall.html';
+      // Already logged in — go to The Lobby
+      window.location.href = '/lobby.html';
       return;
     }
 

@@ -173,7 +173,7 @@ echo "════════════════════════�
  * Used when the user wants to configure Caddy themselves.
  */
 export function generateCaddyTemplate(domain: string): string {
-  return `# VoidForge Camelot Remote — Caddy Configuration
+  return `# VoidForge Avengers Tower Remote — Caddy Configuration
 # Save to /etc/caddy/Caddyfile and run: sudo systemctl reload caddy
 
 ${domain} {

@@ -1,5 +1,5 @@
 /**
- * Projects API — Multi-project CRUD for the Great Hall.
+ * Projects API — Multi-project CRUD for The Lobby.
  * Endpoints: list, get, import, delete.
  */
 
@@ -18,7 +18,7 @@ import {
   type ProjectInput,
 } from '../lib/project-registry.js';
 import { audit } from '../lib/audit-log.js';
-import { getClientIp } from '../lib/camelot-auth.js';
+import { getClientIp } from '../lib/tower-auth.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });

@@ -1,5 +1,5 @@
 /**
- * The Great Hall — Multi-project dashboard for VoidForge Camelot.
+ * The Lobby — Multi-project dashboard for VoidForge Avengers Tower.
  * Fetches project list, renders cards, handles navigation and import.
  */
 
@@ -190,7 +190,7 @@
     if (mode === 'ssh' && project.sshHost) {
       params.set('ssh', project.sshHost);
     }
-    window.location.href = '/camelot.html?' + params.toString();
+    window.location.href = '/tower.html?' + params.toString();
   }
 
   // ── Import Modal (with focus trap) ─────────────────
@@ -278,7 +278,7 @@
   }
 
   async function handleRemove(project) {
-    if (!confirm('Remove "' + project.name + '" from the Great Hall?\n\nThis only removes it from the registry — project files are not deleted.')) {
+    if (!confirm('Remove "' + project.name + '" from The Lobby?\n\nThis only removes it from the registry — project files are not deleted.')) {
       return;
     }
 

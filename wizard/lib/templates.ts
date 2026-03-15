@@ -3,7 +3,7 @@
  * recommended integrations, and seed configuration.
  *
  * Usage: `npx voidforge init --template saas`
- * Or selected in Merlin wizard Step 4 (PRD tab: "Start from a template")
+ * Or selected in Gandalf wizard Step 4 (PRD tab: "Start from a template")
  */
 
 export interface ProjectTemplate {

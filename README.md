@@ -117,7 +117,7 @@ voidforge/
     ├── server.ts                 ← Local HTTP server (127.0.0.1)
     ├── router.ts                 ← API route registry
     ├── api/                      ← API handlers
-    ├── ui/                       ← Merlin (setup) + Haku (deploy)
+    ├── ui/                       ← Gandalf (setup) + Haku (deploy)
     └── lib/                      ← Vault, model resolution, provisioners
         └── provisioners/         ← Docker, AWS VPS, Vercel, Railway, Cloudflare, S3
 ```
@@ -170,7 +170,7 @@ voidforge/
 
 | Wizard | Command | Purpose |
 |--------|---------|---------|
-| **Merlin** | `npx voidforge init` | Setup: vault, credentials, PRD generation, scaffolding |
+| **Gandalf** | `npx voidforge init` | Setup: vault, credentials, PRD generation, scaffolding |
 | **Haku** | `npx voidforge deploy` | Deploy: provisions infrastructure for 6 targets |
 
 ### Deploy Targets

@@ -18,7 +18,7 @@ import {
   isRemoteMode,
   checkRateLimit,
   getClientIp,
-} from '../lib/camelot-auth.js';
+} from '../lib/tower-auth.js';
 import { audit } from '../lib/audit-log.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown, noCache = false): void {

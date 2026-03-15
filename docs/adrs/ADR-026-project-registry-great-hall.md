@@ -1,25 +1,25 @@
-# ADR-026: Project Registry and Great Hall Architecture
+# ADR-026: Project Registry and The Lobby Architecture
 
 ## Status
 Accepted
 
 ## Context
-v5.5 Camelot Local provides a single-project browser terminal. v6.0 extends this to multi-project operations with a dashboard ("The Great Hall"), project registry, and background health monitoring.
+v5.5 Avengers Tower Local provides a single-project browser terminal. v6.0 extends this to multi-project operations with a dashboard ("The Lobby"), project registry, and background health monitoring.
 
 ## Decision
 
 ### Project Registry
 - Store project metadata in `~/.voidforge/projects.json` (JSON file, no database)
 - File permissions: 0600 (owner read/write only), consistent with vault storage
-- Registry populated automatically on project creation via Merlin, manually via import
+- Registry populated automatically on project creation via Gandalf, manually via import
 - Each entry stores: id, name, directory, deployTarget, deployUrl, framework, database, createdAt, healthCheckUrl, monthlyCost, lastBuildPhase, lastDeployAt, sshHost, healthStatus, healthCheckedAt
 - CRUD operations exposed through `wizard/lib/project-registry.ts` module
 
-### Great Hall
-- `hall.html` becomes the server landing page (root `/` serves hall instead of Merlin)
-- Merlin remains accessible at `/index.html` directly and via "New Project" button
+### The Lobby
+- `lobby.html` becomes the server landing page (root `/` serves lobby instead of Gandalf)
+- Gandalf remains accessible at `/index.html` directly and via "New Project" button
 - Project cards show real-time health status, deploy info, and quick actions
-- Navigation: Hall → Room (Camelot terminal) → Back to Hall
+- Navigation: Lobby → Room (Avengers Tower terminal) → Back to Lobby
 
 ### Health Poller
 - Background `setInterval` service started with server, stopped on graceful shutdown
@@ -38,9 +38,9 @@ v5.5 Camelot Local provides a single-project browser terminal. v6.0 extends this
 ## Alternatives Considered
 1. **SQLite for registry** — Rejected. Adds dependency, overkill for <100 projects. JSON file matches vault approach.
 2. **Polling from client** — Rejected. Server-side poller keeps health data fresh even when browser is closed.
-3. **Keep Merlin as landing** — Rejected. Multi-project dashboard is the primary view once 2+ projects exist.
+3. **Keep Gandalf as landing** — Rejected. Multi-project dashboard is the primary view once 2+ projects exist.
 
 ## Consequences
 - Server startup now initializes health poller (must stop on shutdown before killing PTYs)
-- Root `/` behavior changes — returning users see Great Hall instead of Merlin wizard
+- Root `/` behavior changes — returning users see The Lobby instead of Gandalf wizard
 - PTY manager sessions must be namespaced by project ID for multi-project support (already supported)

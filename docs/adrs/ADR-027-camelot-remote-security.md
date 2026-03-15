@@ -1,4 +1,4 @@
-# ADR-027: Camelot Remote — 5-Layer Security Architecture
+# ADR-027: Avengers Tower Remote — 5-Layer Security Architecture
 
 ## Status
 Accepted
@@ -9,7 +9,7 @@ v6.5 exposes VoidForge over the internet. Behind the door: Anthropic API keys, A
 ## Decision
 
 ### Two-Password Architecture
-Login password gets you into Camelot (dashboard, terminals). Vault password decrypts credentials. These are DIFFERENT passwords stored in DIFFERENT systems.
+Login password gets you into Avengers Tower (dashboard, terminals). Vault password decrypts credentials. These are DIFFERENT passwords stored in DIFFERENT systems.
 - Login: bcrypt hash in `~/.voidforge/auth.json`
 - Vault: PBKDF2-derived AES-256-GCM key (existing vault.ts)
 - Compromised session cannot read API keys, SSH into production, or deploy

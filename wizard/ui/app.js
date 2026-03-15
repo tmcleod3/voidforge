@@ -1,6 +1,6 @@
 /**
  * VoidForge Wizard — Vanilla JS Step Machine
- * Merlin — Setup Wizard
+ * Gandalf — Setup Wizard
  * Steps: 1=Vault, 2=Cloud, 3=Project, 4=PRD, 5=Deploy, 6=Review, 7=Create/Done
  */
 
@@ -1035,11 +1035,11 @@
     btnNext.textContent = 'Retry';
   }
 
-  $('#open-camelot')?.addEventListener('click', () => {
+  $('#open-tower')?.addEventListener('click', () => {
     if (state.createdDir) {
       const name = encodeURIComponent(state.projectName);
       const dir = encodeURIComponent(state.createdDir);
-      window.location.href = `/camelot.html?name=${name}&dir=${dir}`;
+      window.location.href = `/tower.html?name=${name}&dir=${dir}`;
     }
   });
 

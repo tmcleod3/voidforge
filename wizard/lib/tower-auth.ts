@@ -1,5 +1,5 @@
 /**
- * Camelot Auth — Authentication engine for remote mode.
+ * Tower Auth — Authentication engine for remote mode.
  *
  * 5-layer security: this module handles Layer 2 (Authentication).
  * Two-password architecture: login password ≠ vault password.

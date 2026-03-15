@@ -202,7 +202,7 @@ ${deployLine}${hostnameLine}
       console.warn('Git initialization warning:', err);
     }
 
-    // Register in project registry for the Great Hall
+    // Register in project registry for The Lobby
     try {
       await addProject({
         name: safeName,

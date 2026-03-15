@@ -103,35 +103,35 @@ A sandbox where you can see each of the 7 code patterns in action, with live exa
 
 ---
 
-## v5.5–v7.0 Territory — Camelot
+## v5.5–v7.0 Territory — Avengers Tower
 
-*"Merlin is building Camelot."*
+*"Gandalf is building Avengers Tower."*
 
-These are not incremental features. This is the transformation of VoidForge from a development tool you use in a terminal into a **castle you live in**. The key insight: don't rebuild Claude Code via the API — embed the real thing in a browser terminal. You get actual Claude Code (full tools, 1M context, interactive conversation) inside xterm.js, connected via WebSocket to a server-side PTY. After Merlin creates the project, the UI transitions to Camelot: a persistent browser workspace where you build, deploy, SSH into production, push hotfixes, run reviews, and manage every project you've ever built — all from one browser tab. Never leave. Never open a separate terminal.
+These are not incremental features. This is the transformation of VoidForge from a development tool you use in a terminal into a **castle you live in**. The key insight: don't rebuild Claude Code via the API — embed the real thing in a browser terminal. You get actual Claude Code (full tools, 1M context, interactive conversation) inside xterm.js, connected via WebSocket to a server-side PTY. After Gandalf creates the project, the UI transitions to Avengers Tower: a persistent browser workspace where you build, deploy, SSH into production, push hotfixes, run reviews, and manage every project you've ever built — all from one browser tab. Never leave. Never open a separate terminal.
 
-When Camelot runs on a remote server, you access it from any device — phone, iPad, hotel business center, a friend's laptop. The server IS your development machine, build server, and production host. One VPS to rule them all.
+When Avengers Tower runs on a remote server, you access it from any device — phone, iPad, hotel business center, a friend's laptop. The server IS your development machine, build server, and production host. One VPS to rule them all.
 
-**v5.5 — Camelot Local** *(the foundation)*
-Browser terminal via `node-pty` + xterm.js + WebSocket. Merlin transitions to embedded terminal after project creation. Single project per instance. Claude Code runs in the browser. SSH to production from the browser. Multiple terminal tabs (Claude Code, SSH, shell). Session persistence across page navigation.
+**v5.5 — Avengers Tower Local** *(the foundation)*
+Browser terminal via `node-pty` + xterm.js + WebSocket. Gandalf transitions to embedded terminal after project creation. Single project per instance. Claude Code runs in the browser. SSH to production from the browser. Multiple terminal tabs (Claude Code, SSH, shell). Session persistence across page navigation.
 
 Haku (Spirited Away — the river spirit, master of transformation) handles the WebSocket bridge. He moves between worlds seamlessly.
 
-**v6.0 — Camelot Multi** *(the Great Hall)*
-Multi-project dashboard. Project registry at `~/.voidforge/projects.json`. The Great Hall shows all projects: status, health, deploy URL, monthly cost, quick actions. Each project is a "room" — click in to get the full terminal workspace. Background health poller pings each project's health URL every 5 minutes. Shared vault: AWS, GitHub, Cloudflare credentials work across all projects without re-entry.
+**v6.0 — Avengers Tower Multi** *(The Lobby)*
+Multi-project dashboard. Project registry at `~/.voidforge/projects.json`. The Lobby shows all projects: status, health, deploy URL, monthly cost, quick actions. Each project is a "room" — click in to get the full terminal workspace. Background health poller pings each project's health URL every 5 minutes. Shared vault: AWS, GitHub, Cloudflare credentials work across all projects without re-entry.
 
-Lelouch (Code Geass — master strategist) sees the whole board from the Great Hall. He orchestrates across all projects.
+Lelouch (Code Geass — master strategist) sees the whole board from The Lobby. He orchestrates across all projects.
 
-**v6.5 — Camelot Remote** *(the drawbridge)*
+**v6.5 — Avengers Tower Remote** *(the drawbridge)*
 Self-hosted mode. Deploy VoidForge itself to a VPS. Access via public URL behind 5-layer security: network (IP allowlist + rate limiting), authentication (username/password + TOTP 2FA), vault (separate encryption password that auto-locks), terminal sandboxing (non-root user, resource limits, session caps), audit trail (every action logged). Two-password architecture: login password ≠ vault password. If someone compromises the session, they still can't read credentials or deploy. SSH keys never reach the browser — the server acts as a jump host.
 
 Kenobi designed the security. "The high ground is everything."
 
-**v7.0 — The Round Table** *(the kingdom)*
+**v7.0 — The Penthouse** *(the kingdom)*
 Multi-user, multi-project, coordinated operations. Role-based access (admin/deployer/viewer). Per-project permissions. Linked services for monorepo awareness. Coordinated deploys across service boundaries. Rollback dashboard with one-click revert. Cost tracking across the fleet. Agent memory that learns across projects.
 
 Lelouch orchestrates the fleet. Trunks manages the timeline (rollbacks). Nanami tracks the budget. Wong guards the accumulated knowledge. Valkyrie runs rescue operations when deploys go sideways.
 
-The full Prophecy v4 vision — Multi-Project Orchestration, Rollback Dashboard, Cost Tracker, Agent Memory — all live inside Camelot's walls.
+The full Prophecy v4 vision — Multi-Project Orchestration, Rollback Dashboard, Cost Tracker, Agent Memory — all live inside Avengers Tower's walls.
 
 ---
 
