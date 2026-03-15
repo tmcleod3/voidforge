@@ -25,6 +25,8 @@ import { registerDomain } from '../lib/dns/cloudflare-registrar.js';
 import { prepareGithub } from '../lib/github.js';
 import { sshDeploy } from '../lib/ssh-deploy.js';
 import { s3Deploy } from '../lib/s3-deploy.js';
+import { runBuildStep, getBuildOutputDir } from '../lib/build-step.js';
+import { generateEnvValidator } from '../lib/env-validator.js';
 
 /** Deploy targets that benefit from GitHub repo linking (ADR-015). */
 const GITHUB_LINKED_TARGETS = ['vercel', 'cloudflare', 'railway'];
@@ -55,6 +57,30 @@ const provisionRuns = new Map<string, ProvisionRun>();
 
 /** Concurrency lock — only one provisioning run at a time (F-02). */
 let activeProvisionRun: string | null = null;
+
+/** Credential scoping — each provisioner only receives vault keys it needs (ADR-020). */
+const provisionKeys: Record<string, string[]> = {
+  vps: ['aws-access-key-id', 'aws-secret-access-key', 'aws-region'],
+  static: ['aws-access-key-id', 'aws-secret-access-key', 'aws-region'],
+  vercel: ['vercel-token'],
+  railway: ['railway-token'],
+  cloudflare: ['cloudflare-api-token', 'cloudflare-account-id'],
+  docker: [],
+};
+
+/** Scope credentials to only the keys a provisioner needs. Internal _-prefixed keys pass through. */
+function scopeCredentials(allCreds: Record<string, string>, target: string): Record<string, string> {
+  const allowed = provisionKeys[target] || [];
+  const scoped: Record<string, string> = {};
+  for (const key of allowed) {
+    if (allCreds[key]) scoped[key] = allCreds[key];
+  }
+  // Internal keys (injected by pre-steps) always pass through
+  for (const [key, val] of Object.entries(allCreds)) {
+    if (key.startsWith('_')) scoped[key] = val;
+  }
+  return scoped;
+}
 
 async function loadCredentials(password: string): Promise<Record<string, string>> {
   const keys = await vaultKeys(password);
@@ -93,7 +119,7 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
 
   // Domain format validation (Fix 4: server-side validation)
   if (body.hostname && !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(body.hostname)) {
-    sendJson(res, 400, { error: 'Invalid hostname format' });
+    sendJson(res, 400, { error: 'Invalid hostname format. Expected something like: myapp.example.com' });
     return;
   }
 
@@ -114,20 +140,23 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  const credentials = await loadCredentials(password);
+  const allCredentials = await loadCredentials(password);
   const runId = randomUUID();
+
+  // Scope credentials to only what this provisioner needs (ADR-020)
+  const scopedCreds = scopeCredentials(allCredentials, body.deployTarget);
 
   const ctx: ProvisionContext = {
     runId,
     projectDir: body.projectDir,
     projectName: body.projectName,
     deployTarget: body.deployTarget,
-    framework: body.framework || 'express',
+    framework: (body.framework || 'express').toLowerCase(),
     database: body.database || 'none',
     cache: body.cache || 'none',
     instanceType: body.instanceType || 't3.micro',
     hostname: body.hostname || '',
-    credentials,
+    credentials: scopedCreds,
   };
 
   // Validate before starting SSE
@@ -176,7 +205,7 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     sseWrite(`id: ${eventId}\ndata: ${JSON.stringify(event)}\n\n`);
   };
 
-  const region = credentials['aws-region'] || 'us-east-1';
+  const region = allCredentials['aws-region'] || 'us-east-1';
 
   // Persist manifest to disk before starting (crash recovery)
   await createManifest(runId, body.deployTarget, region, body.projectName);
@@ -188,19 +217,22 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
   try {
     // ── GitHub pre-step (ADR-011) ──────────────────────────────────
     // Runs before the provisioner so platforms can link to the repo.
-    const hasGithub = credentials['github-token'];
+    // Uses allCredentials — GitHub token is not in provisioner-scoped creds (ADR-020).
+    const hasGithub = allCredentials['github-token'];
     const needsGithub = GITHUB_LINKED_TARGETS.includes(body.deployTarget);
     const wantsGithub = GITHUB_OPTIONAL_TARGETS.includes(body.deployTarget);
 
     if (hasGithub && (needsGithub || wantsGithub)) {
       const ghResult = await prepareGithub(
         runId,
-        credentials['github-token'],
-        credentials['github-owner'] || null,
+        allCredentials['github-token'],
+        allCredentials['github-owner'] || null,
         body.projectName,
         body.projectDir,
         emit,
         abortController.signal,
+        ctx.framework,
+        body.deployTarget,
       );
       if (ghResult.success) {
         sharedOutputs['GITHUB_REPO_URL'] = ghResult.repoUrl!;
@@ -226,6 +258,20 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     // Merge shared outputs into result
     for (const [k, v] of Object.entries(sharedOutputs)) {
       result.outputs[k] = v;
+    }
+
+    // ── Pre-deploy build step (ADR-016) ────────────────────────────
+    // Runs AFTER provisioner but BEFORE deploy actions.
+    if (result.success && body.deployTarget !== 'docker') {
+      const buildResult = await runBuildStep(
+        body.projectDir,
+        ctx.framework,
+        emit,
+        abortController.signal,
+      );
+      if (!buildResult.success) {
+        emit({ step: 'build-fatal', status: 'error', message: 'Build failed — infrastructure was created, but code deploy will be skipped. Fix the build locally and deploy manually.', detail: buildResult.error });
+      }
     }
 
     // ── Deploy post-step (v3.8.0 Last Mile) ──────────────────────
@@ -255,13 +301,13 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
       // S3 Static: Upload build directory
       const bucket = result.outputs['S3_BUCKET'];
       const websiteUrl = result.outputs['S3_WEBSITE_URL'];
-      const awsKeyId = credentials['aws-access-key-id'];
-      const awsSecret = credentials['aws-secret-access-key'];
+      const awsKeyId = allCredentials['aws-access-key-id'];
+      const awsSecret = allCredentials['aws-secret-access-key'];
       if (bucket && websiteUrl && awsKeyId && awsSecret) {
         const s3Result = await s3Deploy(
           bucket,
-          join(body.projectDir, 'dist'),
-          credentials['aws-region'] || 'us-east-1',
+          join(body.projectDir, getBuildOutputDir(ctx.framework)),
+          allCredentials['aws-region'] || 'us-east-1',
           {
             accessKeyId: awsKeyId,
             secretAccessKey: awsSecret,
@@ -285,10 +331,10 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
 
     // Domain registration — pre-DNS step (non-fatal, irreversible)
     // Registration creates the Cloudflare zone, which DNS needs to exist (ADR-010)
-    if (result.success && body.registerDomain && ctx.hostname && credentials['cloudflare-api-token'] && credentials['cloudflare-account-id']) {
+    if (result.success && body.registerDomain && ctx.hostname && allCredentials['cloudflare-api-token'] && allCredentials['cloudflare-account-id']) {
       const regResult = await registerDomain(
-        credentials['cloudflare-api-token'],
-        credentials['cloudflare-account-id'],
+        allCredentials['cloudflare-api-token'],
+        allCredentials['cloudflare-account-id'],
         ctx.hostname,
         emit,
       );
@@ -299,17 +345,17 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
         // Note: domain registration is NOT tracked for cleanup — it's irreversible
       }
       // Registration failure is non-fatal — DNS may still work if zone already exists
-    } else if (result.success && body.registerDomain && ctx.hostname && !credentials['cloudflare-account-id']) {
+    } else if (result.success && body.registerDomain && ctx.hostname && !allCredentials['cloudflare-account-id']) {
       emit({ step: 'registrar-skip', status: 'skipped', message: 'Domain registration requested but no Cloudflare Account ID in vault. Add it in Cloud Providers.' });
-    } else if (result.success && body.registerDomain && ctx.hostname && !credentials['cloudflare-api-token']) {
+    } else if (result.success && body.registerDomain && ctx.hostname && !allCredentials['cloudflare-api-token']) {
       emit({ step: 'registrar-skip', status: 'skipped', message: 'Domain registration requested but no Cloudflare API token in vault. Add Cloudflare credentials to enable registration.' });
     }
 
     // DNS post-provision step (non-fatal)
-    if (result.success && ctx.hostname && credentials['cloudflare-api-token']) {
+    if (result.success && ctx.hostname && allCredentials['cloudflare-api-token']) {
       const dnsResult = await provisionDns(
         runId,
-        credentials['cloudflare-api-token'],
+        allCredentials['cloudflare-api-token'],
         ctx.hostname,
         body.deployTarget,
         result.outputs,
@@ -328,8 +374,21 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
         result.outputs['DNS_HOSTNAME'] = ctx.hostname;
         result.outputs['DNS_ZONE_ID'] = dnsResult.zoneId;
       }
-    } else if (result.success && ctx.hostname && !credentials['cloudflare-api-token']) {
+    } else if (result.success && ctx.hostname && !allCredentials['cloudflare-api-token']) {
       emit({ step: 'dns-skip', status: 'skipped', message: `Hostname "${ctx.hostname}" set but no Cloudflare token in vault. Add Cloudflare credentials to enable DNS wiring.` });
+    }
+
+    // ── Environment validation script (ADR-018) ──────────────────
+    if (result.success) {
+      const envResult = await generateEnvValidator(body.projectDir, ctx.framework);
+      if (envResult.file) {
+        const hint = envResult.file.endsWith('.py')
+          ? 'Add "python validate_env.py &&" before your start command'
+          : 'Add "node validate-env.js &&" before your start command in package.json';
+        emit({ step: 'env-validator', status: 'done', message: `Generated ${envResult.file} — ${hint}` });
+      } else {
+        emit({ step: 'env-validator', status: 'skipped', message: 'No .env file found — env validation script skipped' });
+      }
     }
 
     // Track for cleanup by run ID (in-memory for current session)
@@ -345,11 +404,11 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
         docker: [],
       };
       for (const key of (cleanupKeys[body.deployTarget] || [])) {
-        if (credentials[key]) cleanupCreds[key] = credentials[key];
+        if (allCredentials[key]) cleanupCreds[key] = allCredentials[key];
       }
       // Always include Cloudflare token if DNS records were created
-      if (result.resources.some(r => r.type === 'dns-record') && credentials['cloudflare-api-token']) {
-        cleanupCreds['cloudflare-api-token'] = credentials['cloudflare-api-token'];
+      if (result.resources.some(r => r.type === 'dns-record') && allCredentials['cloudflare-api-token']) {
+        cleanupCreds['cloudflare-api-token'] = allCredentials['cloudflare-api-token'];
       }
       provisionRuns.set(runId, {
         resources: result.resources,
@@ -378,14 +437,15 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     const errMsg = (err as Error).message;
     console.error('Provisioning fatal error:', errMsg);
     await updateManifestStatus(runId, 'failed');
-    sseWrite(`data: ${JSON.stringify({ step: 'fatal', status: 'error', message: 'Provisioning failed unexpectedly' })}\n\n`);
+    // Include sanitized error detail so the user can act on it (UX H-01)
+    const safeErrMsg = errMsg.replace(/[A-Za-z0-9+/=]{40,}/g, '***'); // Strip long tokens
+    sseWrite(`data: ${JSON.stringify({ step: 'fatal', status: 'error', message: 'Provisioning failed unexpectedly. Check that credentials are valid and try again.', detail: safeErrMsg })}\n\n`);
   } finally {
     activeProvisionRun = null;
+    clearInterval(keepaliveTimer);
+    sseWrite('data: [DONE]\n\n');
+    sseEnd();
   }
-
-  clearInterval(keepaliveTimer);
-  sseWrite('data: [DONE]\n\n');
-  sseEnd();
 });
 
 // POST /api/provision/cleanup — clean up resources from a provisioning run

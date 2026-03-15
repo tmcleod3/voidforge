@@ -2,8 +2,8 @@
 
 > The plan for the plan-maker.
 
-**Current:** v3.9.0 (2026-03-14)
-**Status:** Core methodology complete. 13 commands, 11 leads, 6 deploy targets, full pipeline automation.
+**Current:** v4.0.0 (2026-03-14)
+**Status:** Reliability release shipped. Pre-deploy build, CI/CD generation, env validation, Railway API fix, credential scoping.
 
 ---
 

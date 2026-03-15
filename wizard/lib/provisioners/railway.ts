@@ -77,146 +77,137 @@ export const railwayProvisioner: Provisioner = {
       return { success: false, resources, outputs, files, error: (err as Error).message };
     }
 
-    // Step 2: Add Postgres plugin if database requested
-    if (ctx.database === 'postgres' || ctx.database === 'mysql') {
-      const dbType = ctx.database === 'postgres' ? 'postgresql' : 'mysql';
-      emit({ step: 'railway-db', status: 'started', message: `Adding ${dbType} service to Railway project` });
-      try {
-        await recordResourcePending(ctx.runId, 'railway-plugin', `${projectId}-db`, 'global');
+    // Fetch the default environment ID once — shared by all subsequent steps
+    let environmentId = '';
+    try {
+      const envRes = await gql(token, `
+        query($projectId: String!) {
+          project(id: $projectId) {
+            environments { edges { node { id name } } }
+          }
+        }
+      `, { projectId });
+      if (envRes.status === 200) {
+        const envData = safeJsonParse(envRes.body) as {
+          data?: { project?: { environments?: { edges: { node: { id: string; name: string } }[] } } };
+        } | null;
+        const edges = envData?.data?.project?.environments?.edges ?? [];
+        const prodEnv = edges.find(e => e.node.name === 'production') || edges[0];
+        environmentId = prodEnv?.node.id ?? '';
+      }
+    } catch {
+      emit({ step: 'railway-env', status: 'error', message: 'Could not fetch project environment — database/redis services will use fallback creation', detail: 'Environment query failed' });
+    }
 
-        const res = await gql(token, `
-          mutation($projectId: String!, $plugin: String!) {
-            pluginCreate(input: { projectId: $projectId, plugin: $plugin }) {
-              id
-              name
+    // Helper: deploy a database template or fall back to serviceCreate
+    async function deployTemplate(
+      templateName: string,
+      resourceLabel: string,
+      displayName: string,
+    ): Promise<void> {
+      await recordResourcePending(ctx.runId, 'railway-service', `${projectId}-${resourceLabel}`, 'global');
+
+      // Only attempt templateDeploy if we have a valid environment ID
+      if (environmentId) {
+        try {
+          const res = await gql(token, `
+            mutation($projectId: String!, $environmentId: String!, $template: String!) {
+              templateDeploy(input: {
+                projectId: $projectId,
+                environmentId: $environmentId,
+                services: [{ template: $template, hasDomain: false }]
+              }) {
+                projectId
+                workflowId
+              }
+            }
+          `, { projectId, environmentId, template: templateName });
+
+          if (res.status === 200) {
+            const data = safeJsonParse(res.body) as {
+              data?: { templateDeploy?: { projectId?: string } };
+              errors?: { message: string }[];
+            } | null;
+
+            if (!data?.errors || data.errors.length === 0) {
+              // Template deploy succeeded — resource is tracked at project level
+              // (individual service IDs are not returned by templateDeploy)
+              resources.push({ type: 'railway-service', id: `${projectId}-${resourceLabel}`, region: 'global' });
+              await recordResourceCreated(ctx.runId, 'railway-service', `${projectId}-${resourceLabel}`, 'global');
+              emit({ step: `railway-${resourceLabel}`, status: 'done', message: `${displayName} deployed via template — connection string available in Railway dashboard` });
+              return;
             }
           }
-        `, { projectId, plugin: dbType });
+        } catch {
+          // Fall through to serviceCreate fallback
+        }
+      }
 
-        if (res.status !== 200) throw new Error(`Railway API returned ${res.status}`);
+      // Fallback: create a bare service (user configures the database image in dashboard)
+      const svcRes = await gql(token, `
+        mutation($projectId: String!, $name: String!) {
+          serviceCreate(input: { projectId: $projectId, name: $name }) {
+            id
+            name
+          }
+        }
+      `, { projectId, name: `${ctx.projectName}-${templateName}` });
 
-        const data = safeJsonParse(res.body) as {
-          data?: { pluginCreate?: { id?: string } };
+      if (svcRes.status === 200) {
+        const svcData = safeJsonParse(svcRes.body) as {
+          data?: { serviceCreate?: { id?: string } };
           errors?: { message: string }[];
         } | null;
-
-        if (data?.errors && data.errors.length > 0) {
-          throw new Error(data.errors[0].message);
+        const svcId = svcData?.data?.serviceCreate?.id;
+        if (svcId) {
+          resources.push({ type: 'railway-service', id: svcId, region: 'global' });
+          await recordResourceCreated(ctx.runId, 'railway-service', svcId, 'global');
+          emit({ step: `railway-${resourceLabel}`, status: 'done', message: `${displayName} service created — configure database image in Railway dashboard` });
+        } else {
+          emit({ step: `railway-${resourceLabel}`, status: 'error', message: `${displayName} service creation returned no ID`, detail: 'Create the database manually in the Railway dashboard' });
         }
+      } else {
+        emit({ step: `railway-${resourceLabel}`, status: 'error', message: `Failed to create ${displayName} service (API returned ${svcRes.status})`, detail: 'Create the database manually in the Railway dashboard' });
+      }
+    }
 
-        const pluginId = data?.data?.pluginCreate?.id ?? '';
-        if (pluginId) {
-          resources.push({ type: 'railway-plugin', id: pluginId, region: 'global' });
-          await recordResourceCreated(ctx.runId, 'railway-plugin', pluginId, 'global');
-        }
-        outputs['RAILWAY_DB_PLUGIN'] = dbType;
-        emit({ step: 'railway-db', status: 'done', message: `${dbType} service added — connection string available in Railway dashboard` });
+    // Step 2: Add database service if requested (ADR-019: template services, not plugins)
+    if (ctx.database === 'postgres' || ctx.database === 'mysql') {
+      const dbType = ctx.database === 'postgres' ? 'Postgres' : 'MySQL';
+      const templateName = ctx.database === 'postgres' ? 'postgres' : 'mysql';
+      emit({ step: 'railway-db', status: 'started', message: `Adding ${dbType} service to Railway project` });
+      try {
+        await deployTemplate(templateName, 'db', dbType);
+        outputs['RAILWAY_DB_TYPE'] = dbType;
       } catch (err) {
-        emit({ step: 'railway-db', status: 'error', message: `Failed to add ${dbType} service`, detail: 'Railway may have deprecated this API. Create the database manually in the Railway dashboard.' });
+        emit({ step: 'railway-db', status: 'error', message: `Failed to add ${dbType} service`, detail: (err as Error).message });
         // Non-fatal
       }
     } else {
-      emit({ step: 'railway-db', status: 'skipped', message: 'No database requested' });
+      emit({ step: 'railway-db', status: 'skipped', message: ctx.database === 'sqlite' ? 'SQLite — no remote database service needed' : 'No database requested' });
     }
 
-    // Step 3: Add Redis plugin if cache requested
+    // Step 3: Add Redis service if cache requested (ADR-019: template services)
     if (ctx.cache === 'redis') {
       emit({ step: 'railway-redis', status: 'started', message: 'Adding Redis service to Railway project' });
       try {
-        await recordResourcePending(ctx.runId, 'railway-plugin', `${projectId}-redis`, 'global');
-
-        const res = await gql(token, `
-          mutation($projectId: String!, $plugin: String!) {
-            pluginCreate(input: { projectId: $projectId, plugin: $plugin }) {
-              id
-            }
-          }
-        `, { projectId, plugin: 'redis' });
-
-        if (res.status !== 200) throw new Error(`Railway API returned ${res.status}`);
-
-        const data = safeJsonParse(res.body) as {
-          data?: { pluginCreate?: { id?: string } };
-          errors?: { message: string }[];
-        } | null;
-
-        if (data?.errors && data.errors.length > 0) {
-          throw new Error(data.errors[0].message);
-        }
-
-        const pluginId = data?.data?.pluginCreate?.id ?? '';
-        if (pluginId) {
-          resources.push({ type: 'railway-plugin', id: pluginId, region: 'global' });
-          await recordResourceCreated(ctx.runId, 'railway-plugin', pluginId, 'global');
-        }
-        emit({ step: 'railway-redis', status: 'done', message: 'Redis service added' });
+        await deployTemplate('redis', 'redis', 'Redis');
       } catch (err) {
-        emit({ step: 'railway-redis', status: 'error', message: 'Failed to add Redis service', detail: 'Railway may have deprecated this API. Create the database manually in the Railway dashboard.' });
+        emit({ step: 'railway-redis', status: 'error', message: 'Failed to add Redis service', detail: (err as Error).message });
       }
     } else {
       emit({ step: 'railway-redis', status: 'skipped', message: 'No cache requested' });
     }
 
-    // Step 4: Add custom domain if hostname provided
-    if (ctx.hostname && projectId) {
-      emit({ step: 'railway-domain', status: 'started', message: `Adding domain ${ctx.hostname} to Railway project` });
-      try {
-        const res = await gql(token, `
-          mutation($projectId: String!, $domain: String!) {
-            customDomainCreate(input: { projectId: $projectId, domain: $domain }) {
-              id
-              domain
-              status { dnsRecords { type hostlabel value } }
-            }
-          }
-        `, { projectId, domain: ctx.hostname });
-
-        if (res.status !== 200) throw new Error(`Railway API returned ${res.status}`);
-
-        const data = safeJsonParse(res.body) as {
-          data?: { customDomainCreate?: { id?: string; domain?: string } };
-          errors?: { message: string }[];
-        };
-
-        if (data?.errors && data.errors.length > 0) {
-          throw new Error(data.errors[0].message);
-        }
-
-        const domain = data?.data?.customDomainCreate?.domain ?? ctx.hostname;
-        outputs['RAILWAY_DOMAIN'] = domain;
-        emit({ step: 'railway-domain', status: 'done', message: `Domain "${domain}" added to Railway project` });
-      } catch (err) {
-        emit({ step: 'railway-domain', status: 'error', message: 'Failed to add domain to Railway', detail: (err as Error).message });
-        // Non-fatal
-      }
-    }
-
-    // Step 5: Create service with GitHub source (ADR-015)
+    // Step 4: Create service with GitHub source (ADR-015)
+    // Must happen BEFORE custom domain so the domain can attach to this service
     const ghOwner = ctx.credentials['_github-owner'];
     const ghRepo = ctx.credentials['_github-repo-name'];
     let serviceId = '';
-    let environmentId = '';
 
     if (projectId && ghOwner && ghRepo) {
       emit({ step: 'railway-service', status: 'started', message: `Creating service linked to ${ghOwner}/${ghRepo}` });
       try {
-        // First get the default environment ID
-        const envRes = await gql(token, `
-          query($projectId: String!) {
-            project(id: $projectId) {
-              environments { edges { node { id name } } }
-            }
-          }
-        `, { projectId });
-        if (envRes.status === 200) {
-          const envData = safeJsonParse(envRes.body) as {
-            data?: { project?: { environments?: { edges: { node: { id: string; name: string } }[] } } };
-          } | null;
-          const envEdges = envData?.data?.project?.environments?.edges ?? [];
-          const prodEnv = envEdges.find(e => e.node.name === 'production') || envEdges[0];
-          environmentId = prodEnv?.node.id ?? '';
-        }
-
         // Create service with GitHub repo source
         const svcRes = await gql(token, `
           mutation($projectId: String!, $repo: String!) {
@@ -239,6 +230,10 @@ export const railwayProvisioner: Provisioner = {
             emit({ step: 'railway-service', status: 'error', message: 'Failed to create service', detail: svcData.errors[0].message });
           } else {
             serviceId = svcData?.data?.serviceCreate?.id ?? '';
+            if (serviceId) {
+              resources.push({ type: 'railway-service', id: serviceId, region: 'global' });
+              await recordResourceCreated(ctx.runId, 'railway-service', serviceId, 'global');
+            }
             emit({ step: 'railway-service', status: 'done', message: `Service created — linked to GitHub repo` });
           }
         }
@@ -248,16 +243,51 @@ export const railwayProvisioner: Provisioner = {
       }
     }
 
+    // Step 5: Add custom domain if hostname provided (after service creation so it can attach)
+    if (ctx.hostname && projectId && serviceId && environmentId) {
+      emit({ step: 'railway-domain', status: 'started', message: `Adding domain ${ctx.hostname} to Railway service` });
+      try {
+        const domRes = await gql(token, `
+          mutation($projectId: String!, $environmentId: String!, $serviceId: String!, $domain: String!) {
+            customDomainCreate(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, domain: $domain }) {
+              id
+              domain
+            }
+          }
+        `, { projectId, environmentId, serviceId, domain: ctx.hostname });
+
+        if (domRes.status !== 200) throw new Error(`Railway API returned ${domRes.status}`);
+
+        const domData = safeJsonParse(domRes.body) as {
+          data?: { customDomainCreate?: { domain?: string } };
+          errors?: { message: string }[];
+        };
+
+        if (domData?.errors && domData.errors.length > 0) {
+          throw new Error(domData.errors[0].message);
+        }
+
+        const domain = domData?.data?.customDomainCreate?.domain ?? ctx.hostname;
+        outputs['RAILWAY_CUSTOM_DOMAIN'] = domain;
+        emit({ step: 'railway-domain', status: 'done', message: `Domain "${domain}" added to Railway service` });
+      } catch (err) {
+        emit({ step: 'railway-domain', status: 'error', message: 'Failed to add domain to Railway', detail: (err as Error).message });
+        // Non-fatal
+      }
+    } else if (ctx.hostname && projectId && (!serviceId || !environmentId)) {
+      emit({ step: 'railway-domain', status: 'skipped', message: 'Cannot add domain — service or environment not available. Add domain manually in Railway dashboard.' });
+    }
+
     // Step 6: Set environment variables on the service
     if (serviceId && environmentId) {
       emit({ step: 'railway-envvars', status: 'started', message: 'Setting environment variables' });
       try {
-        // Railway uses ${{Plugin.VAR}} syntax for database references
+        // Railway uses ${{service.VAR}} syntax for service variable references (ADR-019)
         const variables: Record<string, string> = {};
         if (ctx.database === 'postgres' || ctx.database === 'mysql') {
           variables['DATABASE_URL'] = ctx.database === 'postgres'
             ? '${{Postgres.DATABASE_URL}}'
-            : '${{MySQL.MYSQL_URL}}';
+            : '${{MySQL.DATABASE_URL}}';
         }
         if (ctx.cache === 'redis') {
           variables['REDIS_URL'] = '${{Redis.REDIS_URL}}';
@@ -295,25 +325,23 @@ export const railwayProvisioner: Provisioner = {
           await new Promise(r => setTimeout(r, DEPLOY_POLL_INTERVAL_MS));
           if (ctx.abortSignal?.aborted) break;
 
+          // Query service by ID to avoid inspecting the wrong service (e.g., a DB service)
           const depRes = await gql(token, `
-            query($projectId: String!) {
-              project(id: $projectId) {
-                services { edges { node {
-                  serviceInstances { edges { node {
-                    domains { serviceDomains { domain } }
-                    latestDeployment { status }
-                  } } }
+            query($serviceId: String!) {
+              service(id: $serviceId) {
+                serviceInstances { edges { node {
+                  domains { serviceDomains { domain } }
+                  latestDeployment { status }
                 } } }
               }
             }
-          `, { projectId });
+          `, { serviceId });
 
           if (depRes.status === 200) {
             const depData = safeJsonParse(depRes.body) as {
-              data?: { project?: { services?: { edges: { node: { serviceInstances?: { edges: { node: { domains?: { serviceDomains?: { domain: string }[] }; latestDeployment?: { status: string } } }[] } } }[] } } };
+              data?: { service?: { serviceInstances?: { edges: { node: { domains?: { serviceDomains?: { domain: string }[] }; latestDeployment?: { status: string } } }[] } } };
             } | null;
-            const svcNode = depData?.data?.project?.services?.edges?.[0]?.node;
-            const instance = svcNode?.serviceInstances?.edges?.[0]?.node;
+            const instance = depData?.data?.service?.serviceInstances?.edges?.[0]?.node;
             const deployStatus = instance?.latestDeployment?.status;
             const domain = instance?.domains?.serviceDomains?.[0]?.domain;
 
@@ -335,7 +363,10 @@ export const railwayProvisioner: Provisioner = {
 
         if (deployUrl) {
           outputs['DEPLOY_URL'] = deployUrl;
-          outputs['RAILWAY_DOMAIN'] = deployUrl.replace('https://', '');
+          // Only set RAILWAY_DOMAIN if no custom domain was added (don't overwrite user's domain)
+          if (!outputs['RAILWAY_CUSTOM_DOMAIN']) {
+            outputs['RAILWAY_DOMAIN'] = deployUrl.replace('https://', '');
+          }
           emit({ step: 'railway-deploy', status: 'done', message: `Live at ${deployUrl}` });
         } else if (!ctx.abortSignal?.aborted) {
           emit({ step: 'railway-deploy', status: 'error', message: 'Deployment polling timed out — check Railway dashboard' });

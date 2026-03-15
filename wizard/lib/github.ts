@@ -11,6 +11,7 @@ import { execCommand, validateBinaries } from './exec.js';
 import { httpsPost, httpsGet, safeJsonParse, slugify } from './provisioners/http-client.js';
 import type { ProvisionEmitter } from './provisioners/types.js';
 import { recordResourcePending, recordResourceCreated } from './provision-manifest.js';
+import { generateCIWorkflows } from './ci-generator.js';
 
 const GH_API = 'api.github.com';
 const GH_API_VERSION = '2022-11-28';
@@ -49,6 +50,8 @@ export async function prepareGithub(
   projectDir: string,
   emit: ProvisionEmitter,
   abortSignal?: AbortSignal,
+  framework?: string,
+  deployTarget?: string,
 ): Promise<GitHubResult> {
   const repoName = slugify(projectName);
   const headers = ghHeaders(token);
@@ -224,6 +227,45 @@ export async function prepareGithub(
     });
 
     emit({ step: 'github-push', status: 'done', message: `Code pushed to ${resolvedOwner}/${repoName}` });
+
+    // ── CI/CD workflow generation (ADR-017) ────────────────────────
+    if (framework && deployTarget) {
+      emit({ step: 'github-ci', status: 'started', message: 'Generating GitHub Actions CI/CD workflows' });
+      try {
+        const ciResult = await generateCIWorkflows(projectDir, framework, deployTarget);
+        if (ciResult.success && ciResult.files.length > 0) {
+          // Commit and push the workflow files
+          await execCommand('git', ['add', ...ciResult.files], gitOpts);
+          try {
+            await execCommand('git', ['commit', '-m', 'Add CI/CD workflows — VoidForge (ADR-017)'], {
+              ...gitOpts,
+              env: {
+                GIT_AUTHOR_NAME: 'VoidForge',
+                GIT_AUTHOR_EMAIL: 'voidforge@localhost',
+                GIT_COMMITTER_NAME: 'VoidForge',
+                GIT_COMMITTER_EMAIL: 'voidforge@localhost',
+              },
+            });
+            await execCommand('git', ['push', 'origin', 'main'], {
+              ...gitOpts,
+              timeout: 120_000,
+              env: {
+                GIT_TERMINAL_PROMPT: '0',
+                GIT_CONFIG_COUNT: '1',
+                GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+                GIT_CONFIG_VALUE_0: `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`,
+              },
+            });
+            emit({ step: 'github-ci', status: 'done', message: `Generated ${ciResult.files.join(', ')} — CI/CD enabled` });
+          } catch {
+            emit({ step: 'github-ci', status: 'done', message: 'Workflows generated locally (push separately if needed)' });
+          }
+        }
+      } catch (ciErr) {
+        emit({ step: 'github-ci', status: 'error', message: 'Failed to generate CI/CD workflows', detail: (ciErr as Error).message });
+        // Non-fatal — project was still pushed
+      }
+    }
 
     return {
       success: true,
