@@ -27,6 +27,10 @@ import { sshDeploy } from '../lib/ssh-deploy.js';
 import { s3Deploy } from '../lib/s3-deploy.js';
 import { runBuildStep, getBuildOutputDir } from '../lib/build-step.js';
 import { generateEnvValidator } from '../lib/env-validator.js';
+import { emitCostEstimate } from '../lib/cost-estimator.js';
+import { logDeploy, listDeploys } from '../lib/deploy-log.js';
+import { setupHealthMonitoring } from '../lib/health-monitor.js';
+import { generateSentryInit } from '../lib/sentry-generator.js';
 
 /** Deploy targets that benefit from GitHub repo linking (ADR-015). */
 const GITHUB_LINKED_TARGETS = ['vercel', 'cloudflare', 'railway'];
@@ -252,6 +256,9 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
       ctx.credentials['_github-repo-name'] = sharedOutputs['GITHUB_REPO_NAME'];
     }
 
+    // ── Cost estimation (ADR-022) ──────────────────────────────────
+    emitCostEstimate(body.deployTarget, ctx.instanceType, ctx.database, ctx.cache, emit);
+
     // ── Provisioner ──────────────────────────────────────────────
     const result = await provisioner.provision(ctx, emit);
 
@@ -378,6 +385,16 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
       emit({ step: 'dns-skip', status: 'skipped', message: `Hostname "${ctx.hostname}" set but no Cloudflare token in vault. Add Cloudflare credentials to enable DNS wiring.` });
     }
 
+    // ── Sentry integration (ADR-024) — before env-validator so DSN is in .env ──
+    if (result.success) {
+      await generateSentryInit(
+        body.projectDir,
+        ctx.framework,
+        allCredentials['sentry-dsn'],
+        emit,
+      );
+    }
+
     // ── Environment validation script (ADR-018) ──────────────────
     if (result.success) {
       const envResult = await generateEnvValidator(body.projectDir, ctx.framework);
@@ -388,6 +405,49 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
         emit({ step: 'env-validator', status: 'done', message: `Generated ${envResult.file} — ${hint}` });
       } else {
         emit({ step: 'env-validator', status: 'skipped', message: 'No .env file found — env validation script skipped' });
+      }
+    }
+
+    // ── Health monitoring (ADR-023) ──────────────────────────────
+    if (result.success) {
+      const deployUrl = result.outputs['DEPLOY_URL'] || '';
+      await setupHealthMonitoring(
+        body.deployTarget,
+        body.projectDir,
+        body.projectName,
+        deployUrl,
+        result.outputs,
+        emit,
+      );
+    }
+
+    // ── Deploy logging (ADR-021) ─────────────────────────────────
+    if (result.success) {
+      try {
+        // Sanitize outputs before persisting — strip secrets (same logic as SSE sanitizer)
+        const logOutputs = { ...result.outputs };
+        delete logOutputs['DB_PASSWORD'];
+        delete logOutputs['GITHUB_TOKEN'];
+        for (const key of Object.keys(logOutputs)) {
+          if (key.toLowerCase().includes('password') || key.toLowerCase().includes('secret') || key.toLowerCase().includes('token')) {
+            delete logOutputs[key];
+          }
+        }
+        const logPath = await logDeploy({
+          runId,
+          timestamp: new Date().toISOString(),
+          target: body.deployTarget,
+          projectName: body.projectName,
+          framework: ctx.framework,
+          deployUrl: result.outputs['DEPLOY_URL'] || '',
+          hostname: ctx.hostname,
+          region,
+          resources: result.resources.map(r => ({ type: r.type, id: r.id })),
+          outputs: logOutputs,
+        });
+        emit({ step: 'deploy-log', status: 'done', message: `Deploy logged to ${logPath}` });
+      } catch {
+        // Non-fatal — deploy succeeded even if logging fails
       }
     }
 
@@ -534,6 +594,27 @@ addRoute('POST', '/api/provision/cleanup', async (req: IncomingMessage, res: Ser
   } catch (err) {
     sendJson(res, 500, { error: `Cleanup failed: ${(err as Error).message}` });
   }
+});
+
+// GET /api/deploys — list recent deploy history (ADR-021)
+addRoute('GET', '/api/deploys', async (_req: IncomingMessage, res: ServerResponse) => {
+  const password = getSessionPassword();
+  if (!password) {
+    sendJson(res, 401, { error: 'Vault is locked.' });
+    return;
+  }
+
+  const deploys = await listDeploys();
+  sendJson(res, 200, {
+    deploys: deploys.map(d => ({
+      timestamp: d.timestamp,
+      target: d.target,
+      projectName: d.projectName,
+      deployUrl: d.deployUrl,
+      hostname: d.hostname,
+      resourceCount: d.resources.length,
+    })),
+  });
 });
 
 // GET /api/provision/incomplete — check for orphaned runs from crashes

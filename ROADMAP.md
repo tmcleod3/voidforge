@@ -2,8 +2,8 @@
 
 > The plan for the plan-maker.
 
-**Current:** v4.0.0 (2026-03-14)
-**Status:** Reliability release shipped. Pre-deploy build, CI/CD generation, env validation, Railway API fix, credential scoping.
+**Current:** v4.1.0 (2026-03-14)
+**Status:** Observability release shipped. Deploy logs, cost estimation, health monitoring, Sentry integration.
 
 ---
 
