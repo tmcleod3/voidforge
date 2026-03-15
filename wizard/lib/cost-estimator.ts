@@ -91,7 +91,9 @@ export function emitCostEstimate(
   const estimate = estimateCost(deployTarget, instanceType, database, cache);
 
   if (!estimate) {
-    // Non-AWS targets are free-tier or usage-based — no estimate needed
+    if (['vercel', 'railway', 'cloudflare'].includes(deployTarget)) {
+      emit({ step: 'cost-estimate', status: 'done', message: `${deployTarget} pricing is usage-based — check their pricing page for details` });
+    }
     return;
   }
 

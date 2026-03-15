@@ -4,7 +4,7 @@
  * Extracted from 5 identical copy-pasted implementations.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -23,4 +23,6 @@ export async function appendEnvSection(
   try { existing = await readFile(envPath, 'utf-8'); } catch { /* new file */ }
   const separator = existing ? '\n\n' : '';
   await writeFile(envPath, existing + separator + lines.join('\n') + '\n', 'utf-8');
+  // Restrict .env permissions — credentials should not be world-readable
+  await chmod(envPath, 0o600);
 }

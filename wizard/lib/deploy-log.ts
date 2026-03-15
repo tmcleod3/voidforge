@@ -33,7 +33,7 @@ export async function logDeploy(entry: DeployLogEntry): Promise<string> {
   const filename = `${date}-${entry.target}-${entry.runId.slice(0, 8)}.json`;
   const filepath = join(DEPLOYS_DIR, filename);
 
-  await writeFile(filepath, JSON.stringify(entry, null, 2) + '\n', 'utf-8');
+  await writeFile(filepath, JSON.stringify(entry, null, 2) + '\n', { encoding: 'utf-8', mode: 0o600 });
   return filepath;
 }
 

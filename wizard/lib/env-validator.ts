@@ -100,7 +100,7 @@ function validateEnv() {
     }
     if (empty.length > 0) {
       console.error('Placeholder values (need real values):');
-      for (const key of empty) console.error('  - ' + key + ' = "' + (process.env[key] || '') + '"');
+      for (const key of empty) console.error('  - ' + key + ' (placeholder value detected)');
     }
     console.error('\\nSet these in your .env file or environment before starting the app.\\n');
     process.exit(1);
@@ -154,7 +154,7 @@ def validate_env():
         if val is None:
             missing.append(key)
         elif not val.strip() or any(val.startswith(p) for p in PLACEHOLDER_PREFIXES):
-            empty.append((key, val))
+            empty.append(key)
 
     if missing or empty:
         print("\\n=== Environment Validation Failed ===\\n", file=sys.stderr)
@@ -164,8 +164,8 @@ def validate_env():
                 print(f"  - {key}", file=sys.stderr)
         if empty:
             print("Placeholder values (need real values):", file=sys.stderr)
-            for key, val in empty:
-                print(f'  - {key} = "{val}"', file=sys.stderr)
+            for key in empty:
+                print(f"  - {key} (placeholder value detected)", file=sys.stderr)
         print("\\nSet these in your .env file or environment before starting the app.\\n", file=sys.stderr)
         sys.exit(1)
 
