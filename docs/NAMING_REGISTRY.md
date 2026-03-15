@@ -190,7 +190,7 @@
 6. Riker — Second in command, reviews all decisions
 7. Worf — Security implications of architecture
 8. Crusher — System health, diagnostics
-9. Troi — Empathy, understands user impact of architectural choices
+9. Troi — **PRD Compliance**: reads PRD prose, verifies every claim against implementation, catches visual/copy/asset gaps. Council member.
 10. Sisko — Builder, constructed DS9, large-scale architecture
 11. Kira — Pragmatic, fights for simplicity
 12. Odo — Shape of systems, finds structural anomalies

@@ -52,14 +52,17 @@ Read the PRD and diff against the codebase:
 2. Scan the codebase — what exists? Routes, schema files, components, tests
 3. Read PRD Section 16 (Launch Sequence) for user-defined phases
 4. Read YAML frontmatter for skip flags (`auth: no`, `payments: none`, etc.)
-5. Diff: what the PRD describes vs. what's implemented
-6. Produce the ordered mission list — each mission is 1-3 PRD sections, scoped to be buildable in one `/assemble` run
+5. **Classify every requirement by type:** Code (buildable), Asset (needs external generation — images, illustrations, OG cards), Copy (text accuracy), Infrastructure (DNS, env vars, dashboards)
+6. Diff: what the PRD describes vs. what's implemented — **structural AND semantic** (not just "does the route exist?" but "does the component render what the PRD describes?")
+7. Produce the ordered mission list — each mission is 1-3 PRD sections, scoped to be buildable in one `/assemble` run
+8. **Separately list BLOCKED items** — asset/infrastructure requirements that code can't satisfy
 
 **Priority cascade:**
 1. Section 16 phases (if defined by user)
 2. Dependency order: Auth → Core → Supporting → Integrations → Admin → Marketing
 3. PRD section order as tiebreaker
 4. Skip sections flagged as no/none in frontmatter
+5. Asset/infrastructure requirements → flag as BLOCKED, don't include in code missions
 
 ## Step 2 — Odo's Prerequisite Check
 
@@ -104,12 +107,17 @@ After `/assemble` completes:
    - **No** → loop back to Step 1 (next mission)
    - **Yes** → Step 6
 
-## Step 6 — Victory Condition
+## Step 6 — Victory Condition (with Troi's Compliance Check)
 
-All PRD sections implemented:
+All PRD requirements are COMPLETE or explicitly BLOCKED:
 1. Run `/assemble --skip-build` for one final full-project review
-2. Report campaign summary: missions completed, total findings, total fixes
-3. Sisko signs off: *"The Prophets' plan is fulfilled. The campaign is complete."*
+2. **Troi reads the PRD section-by-section** — verifies every prose claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Checks numeric claims, visual treatments, copy accuracy, asset gaps.
+3. Fix code discrepancies. Flag asset requirements as BLOCKED.
+4. Report: COMPLETE items, BLOCKED items (with reasons), deviations from PRD
+5. Victory only if user acknowledges all BLOCKED items
+6. Sisko signs off: *"The Prophets' plan is fulfilled. The campaign is complete."*
+
+**Victory ≠ "everything built." Victory = "everything buildable built correctly, everything unbuildable explicitly acknowledged."**
 
 ## Arguments
 - `--plan [description]` → planning mode: update PRD and/or ROADMAP.md with new ideas, don't build

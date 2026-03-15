@@ -99,13 +99,14 @@ Use the Agent tool to run these in parallel:
 - **Ahsoka** (Star Wars) — Did any review/QA fix introduce access control gaps?
 - **Nightwing** (DC) — Did any fix cause a regression? Run the full test suite.
 - **Samwise** (Tolkien) — Did any fix break accessibility?
+- **Troi** (Star Trek) — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
 
 If the Council finds issues:
-1. Fix them
+1. Fix code discrepancies. Flag asset requirements as BLOCKED.
 2. Re-run the Council (max 3 iterations)
 3. If not converged after 3 rounds, present remaining findings to the user
 
-**Gate:** All four Council members sign off. Zero cross-domain regressions. Update assemble-state.
+**Gate:** All five Council members sign off. Zero cross-domain regressions. Update assemble-state.
 
 ## Completion
 **Fury:** "The Initiative is complete."

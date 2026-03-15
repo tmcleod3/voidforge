@@ -82,14 +82,15 @@ They run in parallel. Findings are fixed. Fixed areas are re-probed.
 
 ## The Council
 
-Four domain specialists verify nobody broke anyone else's work:
+Five domain specialists verify nobody broke anyone else's work:
 
 - **Spock** (Star Trek) — pattern compliance after all fixes
 - **Ahsoka** (Star Wars) — access control gaps from fixes
 - **Nightwing** (DC) — regressions from fixes
 - **Samwise** (Tolkien) — accessibility after fixes
+- **Troi** (Star Trek) — PRD compliance: reads PRD prose section-by-section, verifies every claim against implementation, catches visual/copy/asset gaps that code reviews miss
 
-The Council re-runs until it finds zero issues (max 3 iterations).
+The Council re-runs until it finds zero issues (max 3 iterations). Troi only runs on the final iteration (or when `/assemble --skip-build` is used for campaign victory).
 
 ## Deliverables
 

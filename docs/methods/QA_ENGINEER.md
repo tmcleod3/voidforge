@@ -70,6 +70,8 @@ Create or update `/docs/qa-prompt.md` with: stack, language, framework, package 
 **Constantine (Cursed Code):** Unreachable branches, dead state, impossible conditions, logic that only works by accident, tautological checks, shadowed variables.
 **Nightwing (Regression):** Smoke validation, high-value manual flows, "break it on purpose" probes, exact commands.
 
+**Copy Accuracy Pass:** Grep for numeric claims in rendered content (e.g., "10 lead agents", "12 commands", "53 pages"). Cross-reference against actual data counts. Any mismatch is a bug — inaccurate numbers undermine credibility. This is automatable and should run on every QA pass.
+
 ## Step 2 — Baseline Repro Harness
 
 Get the project running. Create repeatable manual validation: app starts, primary flow works, auth works, data persists, error states display, mobile works. Document exact commands.
