@@ -94,6 +94,35 @@ For VPS + RDS: generate a daily backup cron (`pg_dump` to S3). For Railway/Cloud
 
 ---
 
+## v4.4 — The Imagination Release
+
+*The forge can write code. Now it can create images too.*
+
+### `/imagine` command — Celebrimbor's Image Generation
+New slash command and agent for AI image generation. Celebrimbor (Tolkien — greatest elven smith) reads the PRD for visual asset requirements (illustrations, portraits, OG images, hero art), derives a style prompt from the brand section, and generates images via OpenAI's image API. Manages an asset manifest for regeneration and auditing. Provider-abstracted (OpenAI default, extensible to Replicate/others).
+
+Sub-agents: Nori (asset scanner), Ori (prompt engineer), Dori (integration checker) — dwarves from The Hobbit.
+
+Command: `/imagine` (not `/forge` — avoids collision with VoidForge/Bombadil naming). Flags: `--scan`, `--asset "name"`, `--regen "name"`, `--style "override"`, `--provider model`.
+
+### Wizard integration — OpenAI API key in Merlin
+Add OpenAI API key as an optional credential in Merlin's Step 2 (Cloud Providers). Same vault, same AES-256-GCM encryption, same UX. Key name: `openai-api-key`. If not provided in wizard, `/imagine` prompts on first use. Non-blocking — projects work fine without it.
+
+### Pipeline integration
+- `/assemble` Phase 2b: Celebrimbor generates assets after build, before review
+- `/build` Phase 8 (Marketing): Celebrimbor runs if PRD has visual asset requirements
+- `/campaign` Step 1: Dax classifies image requirements as "Asset — via /imagine" instead of BLOCKED
+- Galadriel verifies generated images match brand during `/ux` pass
+
+### Files to create
+- `.claude/commands/imagine.md` — slash command
+- `docs/methods/FORGE_ARTIST.md` — Celebrimbor's method doc
+- `wizard/lib/image-gen.ts` — provider abstraction + generation
+- `wizard/lib/asset-scanner.ts` — PRD parsing for image requirements
+- Update: `NAMING_REGISTRY.md`, `CLAUDE.md`, `HOLOCRON.md`, `wizard/ui/app.js`
+
+---
+
 ## v5.0 — The Intelligence Release
 
 *VoidForge gets smarter with use.*
