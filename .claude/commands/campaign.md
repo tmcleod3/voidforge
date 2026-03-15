@@ -3,7 +3,29 @@ The Prophets have shown me the path. Time to execute the plan.
 ## Context Setup
 1. Read `/logs/campaign-state.md` — if it exists, we're mid-campaign
 2. Read `/docs/methods/CAMPAIGN.md` for operating rules
-3. Read `/docs/PRD.md` — the source of truth
+3. Read the PRD — check `/PRD-VOIDFORGE.md` first (VoidForge's own roadmap, root-level), fall back to `/docs/PRD.md` (user project PRD)
+
+## Planning Mode (--plan)
+
+If `$ARGUMENTS` contains `--plan`, skip execution and update the plan instead:
+
+1. Read the current PRD (`/PRD-VOIDFORGE.md` or `/docs/PRD.md`) and `ROADMAP.md` (if it exists)
+2. Parse what the user wants to add from `$ARGUMENTS` (everything after `--plan`)
+3. **Dax analyzes** where it fits:
+   - Is it a new feature? → Add to the PRD under the right section (Core Features, Integrations, etc.)
+   - Is it a bug fix or improvement? → Add to ROADMAP.md under the appropriate version
+   - Is it a new version-worth of work? → Create a new version section in ROADMAP.md
+   - Does it change priorities? → Reorder the roadmap accordingly
+4. **Odo checks** dependencies: does this new item depend on something not yet built? Flag it.
+5. Present the proposed changes to the user for review before writing
+6. On confirmation, write the updates to the PRD and/or ROADMAP.md
+7. Do NOT start building — planning mode only updates the plan
+
+After planning mode completes, the user can run `/campaign` (no flags) to start executing.
+
+---
+
+## Execution Mode (default)
 
 ## Step 0 — Kira's Operational Reconnaissance
 
@@ -26,7 +48,7 @@ Check for unfinished business:
 
 Read the PRD and diff against the codebase:
 
-1. Read `/docs/PRD.md` fully — extract every feature, route, schema, integration
+1. Read the PRD fully (`/PRD-VOIDFORGE.md` if it exists at root, otherwise `/docs/PRD.md`) — extract every feature, route, schema, integration
 2. Scan the codebase — what exists? Routes, schema files, components, tests
 3. Read PRD Section 16 (Launch Sequence) for user-defined phases
 4. Read YAML frontmatter for skip flags (`auth: no`, `payments: none`, etc.)
@@ -90,7 +112,8 @@ All PRD sections implemented:
 3. Sisko signs off: *"The Prophets' plan is fulfilled. The campaign is complete."*
 
 ## Arguments
-- `$ARGUMENTS` containing `--resume` → resume from campaign-state's active mission
-- `$ARGUMENTS` containing `--fast` → pass --fast to every /assemble call
-- `$ARGUMENTS` containing `--mission "Name"` → jump to a specific PRD section
+- `--plan [description]` → planning mode: update PRD and/or ROADMAP.md with new ideas, don't build
+- `--resume` → resume from campaign-state's active mission
+- `--fast` → pass --fast to every /assemble call
+- `--mission "Name"` → jump to a specific PRD section
 - No arguments → start fresh or auto-detect state

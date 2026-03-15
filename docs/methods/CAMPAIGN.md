@@ -45,6 +45,23 @@ Autonomous campaign execution: read the PRD, figure out what's next, build it, v
 9. **After each mission, commit.** Coulson handles versioning.
 10. **Victory condition: all PRD sections implemented.** Then one final /assemble --skip-build.
 
+## Two Modes
+
+### Planning Mode (`--plan`)
+
+When the user passes `--plan [description]`, Sisko updates the plan instead of executing it:
+
+1. Read the current PRD and ROADMAP.md
+2. Dax analyzes where the new idea fits — new feature (PRD), improvement (ROADMAP), or reprioritization
+3. Odo checks dependencies — does this depend on something not yet built?
+4. Present proposed changes for user review
+5. Write updates on confirmation
+6. Do NOT start building — planning only
+
+This is how ideas get into the plan without breaking the execution flow. The user describes what they want in plain language; Dax figures out where it goes.
+
+### Execution Mode (default)
+
 ## The Sequence
 
 ### Step 0 — Kira's Operational Reconnaissance
@@ -67,7 +84,7 @@ Kira reads the battlefield:
 
 Dax reads the Prophets' plan:
 
-1. Read `/docs/PRD.md` — the full document
+1. Read the PRD — check `/PRD-VOIDFORGE.md` first (root-level, VoidForge's own), fall back to `/docs/PRD.md`
 2. Scan the codebase — what routes, schema, components, tests exist?
 3. Read Section 16 (Launch Sequence) for phased priorities
 4. Read the YAML frontmatter for skip flags (`auth: no`, `payments: none`, etc.)
@@ -161,9 +178,10 @@ Last checkpoint: 2026-03-15T14:30:00Z
 
 `/campaign` is designed for multi-session execution:
 
-- **First run:** `/campaign` — starts from Step 0
-- **Resume:** `/campaign` (or `/campaign --resume`) — Kira detects state, picks up where you left off
-- **Skip to specific mission:** `/campaign --mission "Payments"` — jumps to that PRD section
+- **Plan:** `/campaign --plan add preview deployments for PRs` — Dax adds it to PRD/ROADMAP, doesn't build
+- **Execute:** `/campaign` — starts from Step 0 (or auto-resumes if state exists)
+- **Resume:** `/campaign --resume` — explicit resume from campaign-state
+- **Skip to mission:** `/campaign --mission "Payments"` — jumps to that PRD section
 - **Fast mode:** `/campaign --fast` — passes `--fast` to every `/assemble` call (skips Crossfire + Council)
 
 ## Deliverables

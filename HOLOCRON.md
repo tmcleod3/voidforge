@@ -450,7 +450,7 @@ Three sub-agents: Kira (detects unfinished work — if there's an in-progress bu
 
 The Prophecy Board (`/logs/campaign-state.md`) tracks which PRD sections are done, in progress, or not started — persistent across sessions. Run `/campaign` again and Sisko picks up where you left off.
 
-Flags: `--fast` (passes --fast to every /assemble call), `--resume` (explicit resume), `--mission "Payments"` (jump to a specific section).
+Flags: `--plan [idea]` (update PRD/ROADMAP without building), `--fast` (skip Crossfire+Council), `--resume` (explicit resume), `--mission "Name"` (jump to a specific section).
 
 ---
 

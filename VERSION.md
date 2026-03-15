@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 3.9.0
+**Current:** 3.9.1
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 3.9.1 | 2026-03-14 | Roadmap + VoidForge PRD + /campaign --plan mode for roadmap updates |
 | 3.9.0 | 2026-03-14 | Sisko's War Room — /campaign command, autonomous PRD-to-product mission sequencing, 11th lead agent |
 | 3.8.0 | 2026-03-14 | Strange's Last Mile — end-to-end deploy automation for all 6 targets, GitHub integration, SSH deploy with rollback |
 | 3.7.0 | 2026-03-14 | Fury's Initiative — /assemble full pipeline, /thumper Telegram bridge, Dune universe, 10 leads, 12 commands |
