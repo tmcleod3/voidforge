@@ -74,7 +74,7 @@
 1. Rogers — API design, by the book, discipline
 2. Banner — Database, calm until queries get slow
 3. Strange — Service architecture, sees all patterns
-4. Barton — Error handling, never misses
+4. Barton (Hawkeye) — **Smoke Tests**: runtime endpoint verification, route collision detection, render loop check. Also: error handling, never misses.
 5. Romanoff — Integrations, trusts no one
 6. Thor — Queue/workers, brings the thunder
 7. Hill — Mission control, tracks everything, Fury's right hand

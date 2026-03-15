@@ -84,6 +84,7 @@ Present to the user:
   Objective:  [What gets built]
   PRD Scope:  [Which sections]
   Prereqs:    [Met / Blocked]
+  BLOCKED:    [Asset/infra items that won't be built — flag for user]
   Est. Phases: [Which /build phases apply]
 ═══════════════════════════════════════════
   Confirm? [Y/n/skip/override]

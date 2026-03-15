@@ -60,14 +60,15 @@ Fury calls ALL of them. That's the point.
 |-------|---------|--------|------|
 | 1 | /architect | 1 | ADRs written, no critical concerns |
 | 2 | /build | 1 | All phase gates pass, tests green |
+| 2.5 | Smoke test (Hawkeye) | 1 | Endpoints return expected status, no route collisions, no render loops |
 | 3-5 | /review | 3 | Zero Must Fix items |
-| 6 | /ux | 1 | Zero critical UX/a11y findings |
+| 6 | /ux (usability + a11y) | 1 | Zero critical usability or a11y findings |
 | 7-8 | /security | 2 | Zero Critical/High findings |
 | 9 | /devops | 1 | Deploy scripts, monitoring, smoke tests |
 | 10 | /qa | 1 | All critical/high bugs fixed |
 | 11 | /test | 1 | Suite green, coverage acceptable |
 | 12 | Crossfire | 1 | All 4 adversarial agents sign off |
-| 13 | Council | 1-3 | All 4 cross-domain agents sign off |
+| 13 | Council | 1-3 | All 5 cross-domain agents sign off (incl. Troi PRD compliance) |
 
 ## The Crossfire
 
