@@ -74,6 +74,8 @@ Trace the primary user flow step by step. This is a narrative walkthrough, not a
 
 **Global CSS conflict check:** For projects with both a global stylesheet (globals.css, base styles) and component-level styles (Tailwind utilities, CSS modules), check for specificity conflicts. Global rules like `.parent { overflow: hidden }` will override Tailwind's `overflow-auto` on children. For each component with layout/overflow/position/z-index utilities, grep the global stylesheet for conflicting rules on parent or ancestor selectors. Common traps: `overflow: hidden` on layout containers, `position: relative` creating unexpected stacking contexts, global `:focus-visible` outlines bleeding through component boundaries.
 
+**Tailwind v4 content scanning check:** Tailwind v4 auto-scans ALL files for class names (no explicit `content` config by default). Non-source files — methodology docs (`.md`), pattern examples (`.tsx` in `docs/`), build logs, `.claude/` commands — can contain class-like strings that Tailwind tries to generate utilities for. This produces invalid CSS in some PostCSS environments (notably Vercel's build pipeline). For Tailwind v4 projects: verify the project has a `tailwind.config.ts` (or CSS `@source` directive) that explicitly limits scanning to `src/`, `app/`, `components/`, and `pages/` directories. Exclude: `docs/`, `.claude/`, `logs/`, `node_modules/`, and any directory containing `.md` files with inline code blocks.
+
 **If you cannot run the app:** Trace the state flow through the store and component tree to simulate what the user would see at each step. Follow the chain: user action → event handler → store action → state update → which components re-render → what they display.
 
 ## Step 1.75 — Éowyn's Enchantment Review
