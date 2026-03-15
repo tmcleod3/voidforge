@@ -58,6 +58,21 @@ Detect: framework, styling, component library, routing, state management. Produc
 
 All screens/routes, primary user journeys, key shared components, state taxonomy (loading/empty/error/success/partial/unauthorized).
 
+## Step 1.5 — Usability Review (MUST DO BEFORE a11y)
+
+Trace the primary user flow step by step. This is a narrative walkthrough, not a checklist. For each step ask: "What does the user see? What do they click? What happens? Is it what they expected?"
+
+**Specifically verify:**
+- Can the user complete the primary flow without confusion?
+- Do inputs retain focus when typing? (Check for `useEffect` hooks that call `.focus()` or re-render the input's parent)
+- Do modals/panels close cleanly on first click? (No double-click required)
+- Is there visual feedback for every mutation — both success AND failure?
+- Does every loading state resolve? (No infinite spinners — trace the data loading chain)
+- Do search/filter results make sense? (Exact matches before substring matches)
+- Are displayed counts accurate? (Cross-reference rendered numbers against actual data)
+
+**If you cannot run the app:** Trace the state flow through the store and component tree to simulate what the user would see at each step. Follow the chain: user action → event handler → store action → state update → which components re-render → what they display.
+
 ## Step 2 — UX/UI Attack Plan
 
 **Elrond:** IA, navigation, task flows, friction.

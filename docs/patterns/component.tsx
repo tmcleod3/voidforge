@@ -20,6 +20,34 @@
  *
  * The framework changes, the principle doesn't:
  * EVERY data-driven component handles loading, empty, error, and success.
+ *
+ * === useEffect + Store Interaction Rules ===
+ *
+ * ANTI-PATTERN: useEffect that depends on a store value it indirectly modifies
+ *   useEffect(() => {
+ *     loadData(id); // calls store.set() which changes currentData
+ *   }, [currentData]); // currentData changes → effect fires → infinite loop
+ *
+ * CORRECT: depend on the primitive trigger, not the store result
+ *   useEffect(() => {
+ *     if (id) loadData(id);
+ *   }, [id]); // URL param triggers load, not the store value
+ *
+ * CORRECT: ref guard for load-once effects
+ *   const loaded = useRef(false);
+ *   useEffect(() => {
+ *     if (loaded.current) return;
+ *     loaded.current = true;
+ *     loadData(id);
+ *   }, []);
+ *
+ * RULE: For every useEffect with store values in its dependency array,
+ * verify the effect body does NOT trigger a store update that changes
+ * those same dependencies. If it does → infinite render loop.
+ *
+ * RULE: Never call panelRef.current?.focus() in a useEffect without a
+ * ref guard. Arrow function callbacks in parent components change identity
+ * on every render, causing the effect to re-run and steal focus.
  */
 
 'use client'
