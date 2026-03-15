@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camelot — VoidForge</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d1a;
+      --surface: #1a1a2e;
+      --border: #2a2a3e;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --accent: #5b5bf7;
+      --accent-dim: rgba(91, 91, 247, 0.15);
+      --success: #22c55e;
+      --error: #ef4444;
+      --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--mono); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Header */
+    .camelot-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .camelot-header .logo { font-size: 14px; color: var(--accent); font-weight: 600; }
+    .camelot-header .project-name { font-size: 13px; color: var(--text-dim); }
+    .camelot-header .actions { display: flex; gap: 8px; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex; align-items: center; background: var(--surface);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto;
+    }
+    .tab {
+      padding: 6px 16px; font-size: 12px; color: var(--text-dim); cursor: pointer;
+      border-bottom: 2px solid transparent; white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab:hover { color: var(--text); background: var(--accent-dim); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab .close-tab {
+      font-size: 14px; cursor: pointer; color: var(--text-dim);
+      padding: 0 2px; border-radius: 3px;
+    }
+    .tab .close-tab:hover { color: var(--error); background: rgba(239, 68, 68, 0.15); }
+    .new-tab {
+      padding: 6px 12px; font-size: 14px; color: var(--text-dim);
+      cursor: pointer; border: none; background: none;
+    }
+    .new-tab:hover { color: var(--accent); }
+
+    /* Terminal container */
+    .terminal-container {
+      flex: 1; position: relative; overflow: hidden;
+    }
+    .terminal-panel {
+      position: absolute; inset: 0; display: none;
+    }
+    .terminal-panel.active { display: block; }
+
+    /* Button */
+    .btn {
+      padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: 12px;
+      font-family: var(--mono); cursor: pointer;
+    }
+    .btn:hover { border-color: var(--accent); }
+
+    /* Loading */
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: var(--text-dim); font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header class="camelot-header">
+    <div>
+      <span class="logo">Camelot</span>
+      <span class="project-name" id="project-name"></span>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btn-new-shell" title="New shell tab">+ Shell</button>
+      <button class="btn" id="btn-claude" title="Launch Claude Code">+ Claude Code</button>
+    </div>
+  </header>
+
+  <div class="tab-bar" id="tab-bar"></div>
+
+  <div class="terminal-container" id="terminal-container">
+    <div class="loading" id="loading-state">Preparing Camelot...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="camelot.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+/**
+ * Camelot — Browser terminal for VoidForge.
+ * xterm.js + WebSocket → server-side PTY (node-pty).
+ * Haku moves between worlds seamlessly.
+ */
+
+(function () {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────
+  const tabs = []; // { id, sessionId, label, terminal, ws, fitAddon, panelEl }
+  let activeTabId = null;
+
+  // Read project info from URL params
+  const params = new URLSearchParams(window.location.search);
+  const projectDir = params.get('dir') || '';
+  const projectName = params.get('name') || 'Project';
+
+  document.getElementById('project-name').textContent = '— ' + projectName;
+
+  // ── DOM refs ───────────────────────────────────────
+  const tabBar = document.getElementById('tab-bar');
+  const container = document.getElementById('terminal-container');
+  const loadingState = document.getElementById('loading-state');
+
+  // ── API helpers ────────────────────────────────────
+  async function createPtySession(label, initialCommand, cols, rows) {
+    const res = await fetch('/api/terminal/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+      body: JSON.stringify({ projectDir, projectName, label, initialCommand, cols, rows }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create session');
+    }
+    const data = await res.json();
+    return data.session;
+  }
+
+  async function killPtySession(sessionId) {
+    await fetch('/api/terminal/kill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+      body: JSON.stringify({ sessionId }),
+    });
+  }
+
+  // ── Tab management ─────────────────────────────────
+  let tabIdCounter = 0;
+
+  function createTab(label, sessionId) {
+    const tabId = ++tabIdCounter;
+
+    // Create terminal
+    const terminal = new Terminal({
+      theme: {
+        background: '#0d0d1a',
+        foreground: '#e0e0e0',
+        cursor: '#5b5bf7',
+        cursorAccent: '#0d0d1a',
+        selectionBackground: 'rgba(91, 91, 247, 0.3)',
+        black: '#1a1a2e',
+        red: '#ef4444',
+        green: '#22c55e',
+        yellow: '#eab308',
+        blue: '#5b5bf7',
+        magenta: '#a855f7',
+        cyan: '#06b6d4',
+        white: '#e0e0e0',
+        brightBlack: '#4a4a5e',
+        brightRed: '#f87171',
+        brightGreen: '#4ade80',
+        brightYellow: '#facc15',
+        brightBlue: '#818cf8',
+        brightMagenta: '#c084fc',
+        brightCyan: '#22d3ee',
+        brightWhite: '#ffffff',
+      },
+      fontFamily: "'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace",
+      fontSize: 13,
+      lineHeight: 1.2,
+      cursorBlink: true,
+      scrollback: 10000,
+      allowProposedApi: true,
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    terminal.loadAddon(fitAddon);
+
+    // Create panel
+    const panelEl = document.createElement('div');
+    panelEl.className = 'terminal-panel';
+    panelEl.id = 'panel-' + tabId;
+    container.appendChild(panelEl);
+
+    terminal.open(panelEl);
+    fitAddon.fit();
+
+    // Connect WebSocket
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/terminal?session=${sessionId}`);
+
+    ws.onopen = () => {
+      // Send initial resize
+      const dims = fitAddon.proposeDimensions();
+      if (dims) {
+        ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+      }
+    };
+
+    ws.onmessage = (event) => {
+      terminal.write(event.data);
+    };
+
+    ws.onclose = () => {
+      terminal.write('\r\n\x1b[90m[Session ended]\x1b[0m\r\n');
+    };
+
+    // Forward keystrokes to WebSocket
+    terminal.onData((data) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
+      }
+    });
+
+    // Handle resize
+    const resizeObserver = new ResizeObserver(() => {
+      fitAddon.fit();
+      const dims = fitAddon.proposeDimensions();
+      if (dims && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+      }
+    });
+    resizeObserver.observe(panelEl);
+
+    // Create tab element
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab';
+    tabEl.dataset.tabId = tabId;
+    tabEl.innerHTML = `<span class="tab-label">${escapeHtml(label)}</span><span class="close-tab" title="Close">&times;</span>`;
+
+    tabEl.querySelector('.tab-label').addEventListener('click', () => {
+      switchTab(tabId);
+    });
+
+    tabEl.querySelector('.close-tab').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(tabId);
+    });
+
+    tabBar.appendChild(tabEl);
+
+    const tab = { id: tabId, sessionId, label, terminal, ws, fitAddon, panelEl, tabEl, resizeObserver };
+    tabs.push(tab);
+
+    switchTab(tabId);
+    return tab;
+  }
+
+  function switchTab(tabId) {
+    activeTabId = tabId;
+    for (const tab of tabs) {
+      const isActive = tab.id === tabId;
+      tab.panelEl.classList.toggle('active', isActive);
+      tab.tabEl.classList.toggle('active', isActive);
+      if (isActive) {
+        tab.fitAddon.fit();
+        tab.terminal.focus();
+      }
+    }
+  }
+
+  function closeTab(tabId) {
+    const idx = tabs.findIndex((t) => t.id === tabId);
+    if (idx === -1) return;
+
+    const tab = tabs[idx];
+    tab.ws.close();
+    tab.terminal.dispose();
+    tab.resizeObserver.disconnect();
+    tab.panelEl.remove();
+    tab.tabEl.remove();
+    killPtySession(tab.sessionId);
+    tabs.splice(idx, 1);
+
+    // Switch to another tab if this was active
+    if (activeTabId === tabId && tabs.length > 0) {
+      switchTab(tabs[Math.max(0, idx - 1)].id);
+    }
+  }
+
+  // ── Button handlers ────────────────────────────────
+
+  document.getElementById('btn-new-shell').addEventListener('click', async () => {
+    try {
+      const session = await createPtySession('Shell', undefined, 120, 30);
+      createTab('Shell', session.id);
+    } catch (err) {
+      alert('Failed to create shell: ' + err.message);
+    }
+  });
+
+  document.getElementById('btn-claude').addEventListener('click', async () => {
+    try {
+      const session = await createPtySession('Claude Code', 'claude', 120, 30);
+      createTab('Claude Code', session.id);
+    } catch (err) {
+      alert('Failed to launch Claude Code: ' + err.message);
+    }
+  });
+
+  // ── Utilities ──────────────────────────────────────
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  // ── Init ───────────────────────────────────────────
+
+  async function init() {
+    if (!projectDir) {
+      loadingState.textContent = 'No project directory specified. Launch Camelot from Merlin.';
+      return;
+    }
+
+    try {
+      loadingState.textContent = 'Launching Claude Code...';
+      const session = await createPtySession('Claude Code', 'claude', 120, 30);
+      loadingState.style.display = 'none';
+      createTab('Claude Code', session.id);
+    } catch (err) {
+      loadingState.textContent = 'Failed to start: ' + err.message;
+      // Fallback — try a plain shell
+      try {
+        const session = await createPtySession('Shell', undefined, 120, 30);
+        loadingState.style.display = 'none';
+        createTab('Shell', session.id);
+      } catch (err2) {
+        loadingState.textContent = 'Could not start terminal: ' + err2.message;
+      }
+    }
+  }
+
+  init();
+})();

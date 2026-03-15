@@ -1017,6 +1017,14 @@
     btnNext.textContent = 'Retry';
   }
 
+  $('#open-camelot')?.addEventListener('click', () => {
+    if (state.createdDir) {
+      const name = encodeURIComponent(state.projectName);
+      const dir = encodeURIComponent(state.createdDir);
+      window.location.href = `/camelot.html?name=${name}&dir=${dir}`;
+    }
+  });
+
   $('#open-terminal')?.addEventListener('click', () => {
     if (state.createdDir) {
       const cmd = `cd "${state.createdDir}" && claude`;

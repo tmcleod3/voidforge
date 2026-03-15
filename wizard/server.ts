@@ -9,6 +9,10 @@ import './api/prd.js';
 import './api/project.js';
 import './api/provision.js';
 import './api/deploy.js';
+import './api/terminal.js';
+
+import { handleTerminalUpgrade } from './api/terminal.js';
+import { killAllSessions } from './lib/pty-manager.js';
 
 const UI_DIR = join(import.meta.dirname, 'ui');
 
@@ -59,7 +63,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; frame-ancestors 'none'");
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -125,13 +129,25 @@ export function startServer(port: number): Promise<void> {
       reject(err);
     });
 
+    // WebSocket upgrade handler for terminal connections
+    server.on('upgrade', (req, socket, head) => {
+      const url = new URL(req.url || '', `http://localhost:${port}`);
+      if (url.pathname === '/ws/terminal') {
+        handleTerminalUpgrade(req, socket, head);
+      } else {
+        socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+        socket.destroy();
+      }
+    });
+
     server.listen(port, '127.0.0.1', () => {
       resolve();
     });
 
-    // Graceful shutdown
+    // Graceful shutdown — kill all PTY sessions
     const shutdown = (): void => {
       console.log('\n  Shutting down...');
+      killAllSessions();
       server.close(() => process.exit(0));
       setTimeout(() => process.exit(0), 2000);
     };

@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [5.5.0] - 2026-03-15
+
+### Added
+- **Camelot Local** — browser terminal with real Claude Code. Never leave the browser.
+  - `wizard/lib/pty-manager.ts` — PTY lifecycle management using `node-pty`. Spawns real shell processes, manages multiple sessions per project, 30-min idle timeout, max 5 concurrent sessions.
+  - `wizard/api/terminal.ts` — WebSocket ↔ PTY bridge (raw RFC 6455 implementation). REST endpoints for session CRUD. Vault password required to establish connections.
+  - `wizard/ui/camelot.html` + `wizard/ui/camelot.js` — browser terminal UI using xterm.js. Tabbed interface: multiple terminals per project (Claude Code, Shell, SSH). Auto-launches Claude Code on open. Resize handling, session reconnection on navigate-back.
+  - "Open in Camelot" button on Merlin's done screen — transitions directly from project creation to browser terminal.
+  - WebSocket upgrade handler in `wizard/server.ts` — routes `/ws/terminal` to PTY bridge.
+  - Graceful shutdown: `killAllSessions()` on SIGINT/SIGTERM.
+- New dependency: `node-pty` (~2MB native module, same as VS Code terminal)
+- CSP updated to allow xterm.js CDN and WebSocket connections
+
+---
+
 ## [5.0.0] - 2026-03-15
 
 ### Added
