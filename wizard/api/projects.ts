@@ -1,43 +1,91 @@
 /**
  * Projects API — Multi-project CRUD for The Lobby.
- * Endpoints: list, get, import, delete.
+ * Endpoints: list, get, import, delete, access management.
+ * All queries filtered by per-project access control (v7.0).
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { access, readFile } from 'node:fs/promises';
+import { access as fsAccess, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { addRoute } from '../router.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { parseFrontmatter } from '../lib/frontmatter.js';
 import {
-  readRegistry,
   addProject,
   getProject,
   removeProject,
   findByDirectory,
+  getProjectsForUser,
+  grantAccess,
+  revokeAccess,
+  getProjectAccess,
+  checkProjectAccess,
   type ProjectInput,
 } from '../lib/project-registry.js';
 import { audit } from '../lib/audit-log.js';
-import { getClientIp } from '../lib/tower-auth.js';
+import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
+import { isValidRole, type SessionInfo } from '../lib/user-manager.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
 }
 
-// GET /api/projects — list all projects
-addRoute('GET', '/api/projects', async (_req: IncomingMessage, res: ServerResponse) => {
-  const projects = await readRegistry();
-  sendJson(res, 200, { success: true, data: projects });
+/** Extract session from request. Returns null if not authenticated (local mode returns synthetic admin). */
+function getSession(req: IncomingMessage): SessionInfo | null {
+  if (!isRemoteMode()) {
+    return { username: 'local', role: 'admin' };
+  }
+  const token = parseSessionCookie(req.headers.cookie);
+  const ip = getClientIp(req);
+  if (!token) return null;
+  return validateSession(token, ip);
+}
+
+// GET /api/projects — list projects visible to the current user
+addRoute('GET', '/api/projects', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const projects = await getProjectsForUser(session.username, session.role);
+
+  // Annotate each project with the user's effective role for UI rendering
+  const annotated = projects.map((p) => {
+    let userRole: string = 'viewer';
+    if (session.role === 'admin' || p.owner === session.username) {
+      userRole = 'owner';
+    } else {
+      const entry = p.access.find((a) => a.username === session.username);
+      if (entry) userRole = entry.role;
+    }
+    return { ...p, userRole };
+  });
+
+  sendJson(res, 200, { success: true, data: annotated });
 });
 
-// GET /api/projects/get — get single project by id (query param)
+// GET /api/projects/get — get single project by id (filtered by access)
 addRoute('GET', '/api/projects/get', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const id = url.searchParams.get('id');
-
   if (!id) {
     sendJson(res, 400, { success: false, error: 'id query parameter is required' });
+    return;
+  }
+
+  // Access check — returns null if project doesn't exist OR user has no access
+  const effectiveRole = await checkProjectAccess(id, session.username, session.role);
+  if (!effectiveRole) {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
     return;
   }
 
@@ -47,12 +95,11 @@ addRoute('GET', '/api/projects/get', async (req: IncomingMessage, res: ServerRes
     return;
   }
 
-  sendJson(res, 200, { success: true, data: project });
+  sendJson(res, 200, { success: true, data: { ...project, userRole: effectiveRole } });
 });
 
 /** Scan a project directory for metadata. Reuses patterns from wizard/api/deploy.ts. */
 async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
-  // Read project name from CLAUDE.md
   let name = 'Unknown';
   try {
     const claudeMd = await readFile(join(dir, 'CLAUDE.md'), 'utf-8');
@@ -63,7 +110,6 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
     }
   } catch { /* use default */ }
 
-  // Read .env once for all values
   let deployTarget = '';
   let deployUrl = '';
   let hostname = '';
@@ -87,7 +133,6 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
     }
   } catch { /* no .env */ }
 
-  // Read framework/database from PRD frontmatter
   let framework = '';
   let database = 'none';
   try {
@@ -102,7 +147,6 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
     }
   } catch { /* no PRD or no frontmatter */ }
 
-  // Auto-detect framework from files if not in PRD
   if (!framework) {
     try {
       const pkg = await readFile(join(dir, 'package.json'), 'utf-8');
@@ -122,13 +166,12 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
 
     if (!framework) {
       try {
-        await access(join(dir, 'Gemfile'));
+        await fsAccess(join(dir, 'Gemfile'));
         framework = 'rails';
       } catch { /* not Ruby */ }
     }
   }
 
-  // Read build state for last phase
   let lastBuildPhase = 0;
   try {
     const buildState = await readFile(join(dir, 'logs', 'build-state.md'), 'utf-8');
@@ -138,7 +181,6 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
     }
   } catch { /* no build state */ }
 
-  // Determine health check URL
   let healthCheckUrl = '';
   if (deployUrl) {
     healthCheckUrl = `${deployUrl}/api/health`;
@@ -157,14 +199,20 @@ async function scanProjectMetadata(dir: string): Promise<ProjectInput> {
     lastDeployAt: '',
     healthCheckUrl,
     monthlyCost: 0,
+    owner: '',
+    access: [],
   };
 }
 
-// POST /api/projects/import — import an existing project
+// POST /api/projects/import — import an existing project (sets owner to current user)
 addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: ServerResponse) => {
-  const body = await parseJsonBody(req);
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
 
-  // Runtime type validation
+  const body = await parseJsonBody(req);
   if (typeof body !== 'object' || body === null) {
     sendJson(res, 400, { success: false, error: 'Request body must be a JSON object' });
     return;
@@ -175,7 +223,6 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  // Validate path — reject traversal before resolve (consistent with deploy.ts/terminal.ts)
   if (directory.includes('..')) {
     sendJson(res, 400, { success: false, error: 'directory must not contain ".." segments' });
     return;
@@ -186,23 +233,20 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  // Check directory exists
   try {
-    await access(dir);
+    await fsAccess(dir);
   } catch {
     sendJson(res, 400, { success: false, error: 'Directory does not exist' });
     return;
   }
 
-  // Check it's a VoidForge project (has CLAUDE.md)
   try {
-    await access(join(dir, 'CLAUDE.md'));
+    await fsAccess(join(dir, 'CLAUDE.md'));
   } catch {
     sendJson(res, 400, { success: false, error: 'Not a VoidForge project — no CLAUDE.md found' });
     return;
   }
 
-  // Check not already registered
   const existing = await findByDirectory(dir);
   if (existing) {
     sendJson(res, 409, { success: false, error: 'Project already registered', data: existing });
@@ -211,13 +255,13 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
 
   try {
     const input = await scanProjectMetadata(dir);
+    input.owner = session.username; // Set owner to importing user
     const project = await addProject(input);
     const ip = getClientIp(req);
-    await audit('project_create', ip, '', { action: 'import', directory: dir, name: project.name });
-    sendJson(res, 201, { success: true, data: project });
+    await audit('project_create', ip, session.username, { action: 'import', directory: dir, name: project.name });
+    sendJson(res, 201, { success: true, data: { ...project, userRole: 'owner' } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Import failed';
-    // Don't expose full error details — check for known errors
     if (message.includes('already registered')) {
       sendJson(res, 409, { success: false, error: 'Project already registered' });
     } else {
@@ -226,11 +270,15 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
   }
 });
 
-// POST /api/projects/delete — remove a project from registry
+// POST /api/projects/delete — remove a project (owner or admin only)
 addRoute('POST', '/api/projects/delete', async (req: IncomingMessage, res: ServerResponse) => {
-  const body = await parseJsonBody(req);
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
 
-  // Runtime type validation
+  const body = await parseJsonBody(req);
   if (typeof body !== 'object' || body === null) {
     sendJson(res, 400, { success: false, error: 'Request body must be a JSON object' });
     return;
@@ -241,6 +289,13 @@ addRoute('POST', '/api/projects/delete', async (req: IncomingMessage, res: Serve
     return;
   }
 
+  // Check access — only owner or admin can delete
+  const effectiveRole = await checkProjectAccess(id, session.username, session.role);
+  if (effectiveRole !== 'admin') {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
+    return;
+  }
+
   const removed = await removeProject(id);
   if (!removed) {
     sendJson(res, 404, { success: false, error: 'Project not found' });
@@ -248,7 +303,144 @@ addRoute('POST', '/api/projects/delete', async (req: IncomingMessage, res: Serve
   }
 
   const ip = getClientIp(req);
-  await audit('project_delete', ip, '', { projectId: id });
-
+  await audit('project_delete', ip, session.username, { projectId: id });
   sendJson(res, 200, { success: true });
+});
+
+// ── Access management endpoints ─────────────────────
+
+// GET /api/projects/access — get access list for a project (owner or admin)
+addRoute('GET', '/api/projects/access', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const id = url.searchParams.get('id');
+  if (!id) {
+    sendJson(res, 400, { success: false, error: 'id query parameter is required' });
+    return;
+  }
+
+  // Only owner or admin can view access list
+  const effectiveRole = await checkProjectAccess(id, session.username, session.role);
+  if (effectiveRole !== 'admin') {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
+    return;
+  }
+
+  const accessInfo = await getProjectAccess(id);
+  if (!accessInfo) {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
+    return;
+  }
+
+  sendJson(res, 200, { success: true, data: accessInfo });
+});
+
+// POST /api/projects/access/grant — grant access (owner or admin only)
+addRoute('POST', '/api/projects/access/grant', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const body = await parseJsonBody(req);
+  if (typeof body !== 'object' || body === null) {
+    sendJson(res, 400, { success: false, error: 'Request body must be a JSON object' });
+    return;
+  }
+
+  const { projectId, username, role } = body as Record<string, unknown>;
+  if (typeof projectId !== 'string' || projectId.trim().length === 0) {
+    sendJson(res, 400, { success: false, error: 'projectId is required' });
+    return;
+  }
+  if (typeof username !== 'string' || username.trim().length === 0) {
+    sendJson(res, 400, { success: false, error: 'username is required' });
+    return;
+  }
+  if (typeof role !== 'string' || !isValidRole(role) || role === 'admin') {
+    sendJson(res, 400, { success: false, error: 'role must be one of: deployer, viewer' });
+    return;
+  }
+
+  // Only owner or admin can grant access
+  const effectiveRole = await checkProjectAccess(projectId, session.username, session.role);
+  if (effectiveRole !== 'admin') {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
+    return;
+  }
+
+  const ip = getClientIp(req);
+
+  try {
+    await grantAccess(projectId, username.trim(), role);
+    await audit('access_grant', ip, session.username, {
+      projectId,
+      target: username.trim(),
+      grantedRole: role,
+    });
+    sendJson(res, 200, { success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to grant access';
+    if (message === 'Project not found') {
+      sendJson(res, 404, { success: false, error: 'Project not found' });
+    } else {
+      sendJson(res, 400, { success: false, error: 'Failed to grant access' });
+    }
+  }
+});
+
+// POST /api/projects/access/revoke — revoke access (owner or admin only)
+addRoute('POST', '/api/projects/access/revoke', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const body = await parseJsonBody(req);
+  if (typeof body !== 'object' || body === null) {
+    sendJson(res, 400, { success: false, error: 'Request body must be a JSON object' });
+    return;
+  }
+
+  const { projectId, username } = body as Record<string, unknown>;
+  if (typeof projectId !== 'string' || projectId.trim().length === 0) {
+    sendJson(res, 400, { success: false, error: 'projectId is required' });
+    return;
+  }
+  if (typeof username !== 'string' || username.trim().length === 0) {
+    sendJson(res, 400, { success: false, error: 'username is required' });
+    return;
+  }
+
+  // Only owner or admin can revoke access
+  const effectiveRole = await checkProjectAccess(projectId, session.username, session.role);
+  if (effectiveRole !== 'admin') {
+    sendJson(res, 404, { success: false, error: 'Project not found' });
+    return;
+  }
+
+  const ip = getClientIp(req);
+
+  try {
+    await revokeAccess(projectId, username.trim());
+    await audit('access_revoke', ip, session.username, {
+      projectId,
+      target: username.trim(),
+    });
+    sendJson(res, 200, { success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to revoke access';
+    if (message === 'Project not found' || message === 'User has no access to revoke') {
+      sendJson(res, 400, { success: false, error: message });
+    } else {
+      sendJson(res, 400, { success: false, error: 'Failed to revoke access' });
+    }
+  }
 });

@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { addRoute } from '../router.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { addProject } from '../lib/project-registry.js';
+import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -217,6 +218,14 @@ ${deployLine}${hostnameLine}
         lastDeployAt: '',
         healthCheckUrl: '',
         monthlyCost: 0,
+        owner: (() => {
+          if (!isRemoteMode()) return 'local';
+          const token = parseSessionCookie(req.headers.cookie);
+          const ip = getClientIp(req);
+          const session = token ? validateSession(token, ip) : null;
+          return session?.username ?? '';
+        })(),
+        access: [],
       });
     } catch {
       // Registry write is best-effort — don't fail project creation

@@ -16,6 +16,11 @@ const REGISTRY_PATH = join(VOIDFORGE_DIR, 'projects.json');
 
 export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unchecked';
 
+export interface ProjectAccessEntry {
+  username: string;
+  role: 'admin' | 'deployer' | 'viewer';
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -32,9 +37,14 @@ export interface Project {
   monthlyCost: number;
   healthStatus: HealthStatus;
   healthCheckedAt: string;
+  owner: string;
+  access: ProjectAccessEntry[];
 }
 
-export type ProjectInput = Omit<Project, 'id' | 'healthStatus' | 'healthCheckedAt'>;
+export type ProjectInput = Omit<Project, 'id' | 'healthStatus' | 'healthCheckedAt'> & {
+  owner?: string;
+  access?: ProjectAccessEntry[];
+};
 
 // ── Write serialization (from vault.ts) ────────────
 
@@ -53,7 +63,7 @@ const VALID_HEALTH_STATUSES = new Set<string>(['healthy', 'degraded', 'down', 'u
 function isValidProject(obj: unknown): obj is Project {
   if (typeof obj !== 'object' || obj === null) return false;
   const p = obj as Record<string, unknown>;
-  return (
+  const valid = (
     typeof p.id === 'string' &&
     typeof p.name === 'string' &&
     typeof p.directory === 'string' &&
@@ -71,6 +81,11 @@ function isValidProject(obj: unknown): obj is Project {
     VALID_HEALTH_STATUSES.has(p.healthStatus) &&
     typeof p.healthCheckedAt === 'string'
   );
+  if (!valid) return false;
+  // Migrate legacy projects (pre-v7.0) without owner/access fields
+  if (typeof p.owner !== 'string') p.owner = '';
+  if (!Array.isArray(p.access)) p.access = [];
+  return true;
 }
 
 // ── Path normalization ─────────────────────────────
@@ -149,6 +164,8 @@ export function addProject(input: ProjectInput): Promise<Project> {
       id: randomUUID(),
       healthStatus: 'unchecked',
       healthCheckedAt: '',
+      owner: input.owner ?? '',
+      access: input.access ?? [],
     };
 
     projects.push(project);
@@ -229,4 +246,92 @@ export function updateHealthStatus(
     };
     await writeRegistry(projects);
   });
+}
+
+// ── Per-project access control ──────────────────────
+
+/**
+ * Get projects visible to a user.
+ * Admins see all. Others see owned + explicitly shared.
+ */
+export async function getProjectsForUser(
+  username: string,
+  globalRole: string,
+): Promise<Project[]> {
+  const projects = await readRegistry();
+  if (globalRole === 'admin') return projects;
+  return projects.filter(
+    (p) => p.owner === username || p.access.some((a) => a.username === username),
+  );
+}
+
+/**
+ * Check if a user can access a project at the given role level.
+ * Returns the effective role or null if no access.
+ */
+export async function checkProjectAccess(
+  projectId: string,
+  username: string,
+  globalRole: string,
+): Promise<'admin' | 'deployer' | 'viewer' | null> {
+  const project = await getProject(projectId);
+  if (!project) return null;
+
+  // Global admins have full access
+  if (globalRole === 'admin') return 'admin';
+
+  // Project owner has full access
+  if (project.owner === username) return 'admin';
+
+  // Check access list
+  const entry = project.access.find((a) => a.username === username);
+  return entry?.role ?? null;
+}
+
+/** Grant access to a project for a user. Overwrites existing entry for that user. */
+export function grantAccess(
+  projectId: string,
+  username: string,
+  role: 'admin' | 'deployer' | 'viewer',
+): Promise<void> {
+  return serialized(async () => {
+    const projects = await readRegistry();
+    const idx = projects.findIndex((p) => p.id === projectId);
+    if (idx === -1) throw new Error('Project not found');
+
+    const project = projects[idx];
+    // Remove existing entry for this user (if any)
+    project.access = project.access.filter((a) => a.username !== username);
+    project.access.push({ username, role });
+
+    await writeRegistry(projects);
+  });
+}
+
+/** Revoke access from a project for a user. */
+export function revokeAccess(
+  projectId: string,
+  username: string,
+): Promise<void> {
+  return serialized(async () => {
+    const projects = await readRegistry();
+    const idx = projects.findIndex((p) => p.id === projectId);
+    if (idx === -1) throw new Error('Project not found');
+
+    const project = projects[idx];
+    const before = project.access.length;
+    project.access = project.access.filter((a) => a.username !== username);
+    if (project.access.length === before) throw new Error('User has no access to revoke');
+
+    await writeRegistry(projects);
+  });
+}
+
+/** Get access list for a project. */
+export async function getProjectAccess(
+  projectId: string,
+): Promise<{ owner: string; access: ProjectAccessEntry[] } | null> {
+  const project = await getProject(projectId);
+  if (!project) return null;
+  return { owner: project.owner, access: project.access };
 }

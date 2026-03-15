@@ -37,7 +37,9 @@ export type AuditEventType =
   | 'role_change'
   | 'invite_create'
   | 'invite_complete'
-  | 'access_denied';
+  | 'access_denied'
+  | 'access_grant'
+  | 'access_revoke';
 
 export interface AuditEntry {
   timestamp: string;

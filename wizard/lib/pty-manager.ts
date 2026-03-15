@@ -28,6 +28,7 @@ export interface PtySession {
   projectName: string;
   projectDir: string;
   label: string;
+  username: string;
   createdAt: number;
   lastActivityAt: number;
   cols: number;
@@ -78,6 +79,7 @@ export async function createSession(
   initialCommand?: string,
   cols = 120,
   rows = 30,
+  username = '',
 ): Promise<PtySession> {
   const maxSessions = isRemoteMode() ? MAX_SESSIONS_REMOTE : MAX_SESSIONS_LOCAL;
   if (sessions.size >= maxSessions) {
@@ -125,6 +127,7 @@ export async function createSession(
     projectName,
     projectDir,
     label,
+    username,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
     cols,
@@ -150,7 +153,7 @@ export async function createSession(
     sessions.delete(id);
     // Audit: log terminal end in remote mode
     if (isRemoteMode()) {
-      audit('terminal_end', '', '', { sessionId: id, exitCode }).catch(() => {});
+      audit('terminal_end', '', session.username, { sessionId: id, exitCode }).catch(() => {});
     }
   });
 
@@ -159,7 +162,7 @@ export async function createSession(
 
   // Audit: log terminal start in remote mode
   if (isRemoteMode()) {
-    audit('terminal_start', '', '', { sessionId: id, project: projectName, label }).catch(() => {});
+    audit('terminal_start', '', username, { sessionId: id, project: projectName, label }).catch(() => {});
   }
 
   // SEC-004/QA-003: Validate initial command against whitelist
@@ -181,6 +184,7 @@ export async function createSession(
     projectName: session.projectName,
     projectDir: session.projectDir,
     label: session.label,
+    username: session.username,
     createdAt: session.createdAt,
     lastActivityAt: session.lastActivityAt,
     cols: session.cols,
@@ -233,6 +237,7 @@ export function listSessions(): PtySession[] {
     projectName: s.projectName,
     projectDir: s.projectDir,
     label: s.label,
+    username: s.username,
     createdAt: s.createdAt,
     lastActivityAt: s.lastActivityAt,
     cols: s.cols,

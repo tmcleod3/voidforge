@@ -10,6 +10,7 @@
   let projects = [];
   let pollTimer = null;
   let previousFocusEl = null; // For modal focus restoration
+  let currentUser = { username: '', role: '' };
   const REFRESH_INTERVAL_MS = 30_000; // 30 seconds
 
   // ── DOM refs ───────────────────────────────────────
@@ -97,16 +98,39 @@
       ? `<a href="${escapeHtml(project.deployUrl)}" class="project-url" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(project.deployUrl)}</a>`
       : '<span class="project-url" style="color: var(--text-muted)">Not deployed</span>';
 
-    const sshBtn = project.sshHost
+    // Role badge for this project
+    const userRole = project.userRole || 'viewer';
+
+    const sshBtn = project.sshHost && userRole !== 'viewer'
       ? `<button class="btn" data-action="ssh" data-id="${escapeHtml(project.id)}" title="SSH to production">SSH</button>`
+      : '';
+    const roleLabels = { owner: 'Owner', admin: 'Admin', deployer: 'Deployer', viewer: 'Viewer' };
+    const roleBadgeClass = userRole === 'owner' ? 'role-owner' : 'role-' + userRole;
+
+    // Conditional action buttons based on role
+    const canOpenRoom = userRole !== 'viewer';
+    const canRemove = userRole === 'owner' || userRole === 'admin';
+    const canManageAccess = userRole === 'owner' || userRole === 'admin';
+
+    const openBtn = canOpenRoom
+      ? `<button class="btn btn-primary" data-action="open" data-id="${escapeHtml(project.id)}" title="Open terminal workspace">Open Room</button>`
+      : '';
+    const removeBtn = canRemove
+      ? `<button class="btn btn-danger-ghost" data-action="remove" data-id="${escapeHtml(project.id)}" title="Remove from registry (does not delete files)">Remove</button>`
+      : '';
+    const accessBtn = canManageAccess
+      ? `<button class="btn" data-action="access" data-id="${escapeHtml(project.id)}" title="Manage project access">Access</button>`
       : '';
 
     card.innerHTML = `
       <div class="project-card-header">
         <div class="project-card-name">${escapeHtml(project.name)}</div>
-        <div class="health-indicator" title="${escapeHtml(healthTitle)}" role="img" aria-label="Health: ${escapeHtml(healthTitle)}">
-          <span class="health-label">${escapeHtml(healthLabels[healthStatus] || '—')}</span>
-          <div class="health-dot ${escapeHtml(healthStatus)}"></div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="badge ${escapeHtml(roleBadgeClass)} user-role-badge">${escapeHtml(roleLabels[userRole] || 'Viewer')}</span>
+          <div class="health-indicator" title="${escapeHtml(healthTitle)}" role="img" aria-label="Health: ${escapeHtml(healthTitle)}">
+            <span class="health-label">${escapeHtml(healthLabels[healthStatus] || '—')}</span>
+            <div class="health-dot ${escapeHtml(healthStatus)}"></div>
+          </div>
         </div>
       </div>
       ${urlHtml}
@@ -116,9 +140,10 @@
         ${project.database && project.database !== 'none' ? `<span class="badge">${escapeHtml(project.database)}</span>` : ''}
       </div>
       <div class="project-actions">
-        <button class="btn btn-primary" data-action="open" data-id="${escapeHtml(project.id)}" title="Open terminal workspace">Open Room</button>
+        ${openBtn}
         ${sshBtn}
-        <button class="btn btn-danger-ghost" data-action="remove" data-id="${escapeHtml(project.id)}" title="Remove from registry (does not delete files)">Remove</button>
+        ${accessBtn}
+        ${removeBtn}
       </div>
       <div class="project-footer">
         <span>${project.monthlyCost ? '$' + escapeHtml(String(project.monthlyCost)) + '/mo' : ''}</span>
@@ -153,6 +178,7 @@
         if (action === 'open') openRoom(p);
         else if (action === 'ssh') openRoom(p, 'ssh');
         else if (action === 'remove') handleRemove(p);
+        else if (action === 'access') openAccessModal(p);
       });
     });
 
@@ -291,6 +317,157 @@
     }
   }
 
+  // ── Access Modal ───────────────────────────────────
+
+  const accessModal = document.getElementById('access-modal');
+  const accessOwner = document.getElementById('access-owner');
+  const accessList = document.getElementById('access-list');
+  const accessUsername = document.getElementById('access-username');
+  const accessRole = document.getElementById('access-role');
+  const accessStatus = document.getElementById('access-status');
+  const accessGrant = document.getElementById('access-grant');
+  const accessCancel = document.getElementById('access-cancel');
+  let currentAccessProjectId = '';
+
+  async function openAccessModal(project) {
+    currentAccessProjectId = project.id;
+    accessUsername.value = '';
+    accessStatus.textContent = '';
+    accessStatus.className = 'status-row';
+
+    try {
+      const res = await fetch('/api/projects/access?id=' + encodeURIComponent(project.id));
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to load access');
+      const data = body.data;
+
+      accessOwner.textContent = 'Owner: ' + (data.owner || 'unassigned');
+
+      if (data.access.length === 0) {
+        accessList.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">No shared access</div>';
+      } else {
+        accessList.innerHTML = '';
+        data.access.forEach(function (entry) {
+          const row = document.createElement('div');
+          row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 4px 0;';
+          const label = document.createElement('span');
+          label.textContent = entry.username + ' ';
+          const badge = document.createElement('span');
+          badge.className = 'badge role-' + (entry.role || 'viewer') + ' user-role-badge';
+          badge.textContent = entry.role;
+          label.appendChild(badge);
+          const revokeBtn = document.createElement('button');
+          revokeBtn.className = 'btn btn-danger-ghost';
+          revokeBtn.style.cssText = 'padding: 2px 6px; font-size: 10px;';
+          revokeBtn.textContent = 'Revoke';
+          revokeBtn.addEventListener('click', function () {
+            revokeProjectAccess(entry.username);
+          });
+          row.appendChild(label);
+          row.appendChild(revokeBtn);
+          accessList.appendChild(row);
+        });
+      }
+    } catch (err) {
+      accessOwner.textContent = '';
+      accessList.innerHTML = '<div class="status-row error">' + escapeHtml(err.message) + '</div>';
+    }
+
+    previousFocusEl = document.activeElement;
+    accessModal.classList.add('active');
+    accessUsername.focus();
+    document.addEventListener('keydown', trapAccessFocus);
+  }
+
+  function trapAccessFocus(e) {
+    if (!accessModal.classList.contains('active')) return;
+    if (e.key === 'Escape') {
+      closeAccessModal();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const modal = accessModal.querySelector('.modal');
+    if (!modal) return;
+    const focusable = Array.from(modal.querySelectorAll(
+      'input, select, button, [tabindex]:not([tabindex="-1"])'
+    )).filter(function (el) { return !el.disabled; });
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  function closeAccessModal() {
+    accessModal.classList.remove('active');
+    document.removeEventListener('keydown', trapAccessFocus);
+    if (previousFocusEl && previousFocusEl.focus) {
+      previousFocusEl.focus();
+      previousFocusEl = null;
+    }
+  }
+
+  async function handleGrantAccess() {
+    const username = accessUsername.value.trim();
+    if (!username) {
+      accessStatus.textContent = 'Username is required';
+      accessStatus.className = 'status-row error';
+      return;
+    }
+
+    accessGrant.disabled = true;
+    try {
+      const res = await fetch('/api/projects/access/grant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+        body: JSON.stringify({ projectId: currentAccessProjectId, username: username, role: accessRole.value }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to grant access');
+      // Refresh the access list
+      const project = projects.find(function (p) { return p.id === currentAccessProjectId; });
+      if (project) await openAccessModal(project);
+    } catch (err) {
+      accessStatus.textContent = err.message;
+      accessStatus.className = 'status-row error';
+    } finally {
+      accessGrant.disabled = false;
+    }
+  }
+
+  async function revokeProjectAccess(username) {
+    try {
+      const res = await fetch('/api/projects/access/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-VoidForge-Request': '1' },
+        body: JSON.stringify({ projectId: currentAccessProjectId, username: username }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to revoke');
+      // Refresh
+      const project = projects.find(function (p) { return p.id === currentAccessProjectId; });
+      if (project) await openAccessModal(project);
+    } catch (err) {
+      alert('Failed to revoke: ' + err.message);
+    }
+  }
+
+  if (accessCancel) accessCancel.addEventListener('click', closeAccessModal);
+  if (accessGrant) accessGrant.addEventListener('click', handleGrantAccess);
+  if (accessModal) {
+    accessModal.addEventListener('click', function (e) {
+      if (e.target === accessModal) closeAccessModal();
+    });
+  }
+  if (accessUsername) {
+    accessUsername.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleGrantAccess();
+    });
+  }
+
   // ── Event Listeners ────────────────────────────────
 
   document.getElementById('btn-new').addEventListener('click', () => {
@@ -333,7 +510,9 @@
       const body = await res.json();
       const data = body.data || {};
       if (data.remoteMode && data.authenticated) {
-        authUser.textContent = data.username;
+        currentUser = { username: data.username || '', role: data.role || 'viewer' };
+        const roleLabel = { admin: 'Admin', deployer: 'Deployer', viewer: 'Viewer' }[data.role] || '';
+        authUser.textContent = data.username + (roleLabel ? ' (' + roleLabel + ')' : '');
         authUser.style.display = '';
         btnLogout.style.display = '';
       }

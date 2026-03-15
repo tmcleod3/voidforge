@@ -24,6 +24,9 @@ import {
   createSession, writeToSession, onSessionData, resizeSession,
   killSession, listSessions, killAllSessions, sessionCount,
 } from '../lib/pty-manager.js';
+import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
+import { hasProjectAccess, type SessionInfo } from '../lib/user-manager.js';
+import { findByDirectory } from '../lib/project-registry.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -78,6 +81,31 @@ addRoute('POST', '/api/terminal/sessions', async (req: IncomingMessage, res: Ser
     return;
   }
 
+  // Extract user context and check per-project access
+  let sessionUsername = '';
+  if (isRemoteMode()) {
+    const token = parseSessionCookie(req.headers.cookie);
+    const ip = getClientIp(req);
+    const userSession = token ? validateSession(token, ip) : null;
+    if (!userSession) {
+      sendJson(res, 401, { error: 'Authentication required' });
+      return;
+    }
+    sessionUsername = userSession.username;
+    // Check per-project access — deployer minimum for terminal
+    const project = await findByDirectory(body.projectDir);
+    if (!project) {
+      // Project not in registry — deny access (cannot verify permissions)
+      sendJson(res, 404, { error: 'Project not found in registry' });
+      return;
+    }
+    const projectAccess = await hasProjectAccess(userSession, project.id, 'deployer');
+    if (!projectAccess) {
+      sendJson(res, 404, { error: 'Project not found' });
+      return;
+    }
+  }
+
   try {
     const session = await createSession(
       body.projectDir,
@@ -86,6 +114,7 @@ addRoute('POST', '/api/terminal/sessions', async (req: IncomingMessage, res: Ser
       body.initialCommand,
       body.cols || 120,
       body.rows || 30,
+      sessionUsername,
     );
     // SEC-001/SEC-002: Generate per-session auth token for WebSocket upgrade
     const authToken = createHmac('sha256', password).update(session.id).digest('hex');
@@ -220,7 +249,9 @@ const MAX_BUFFER_SIZE = 1024 * 1024;
  * Handle a WebSocket upgrade request for a terminal session.
  * URL: /ws/terminal?session=<id>&token=<authToken>
  */
-export function handleTerminalUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer, _userSession?: { username: string; role: 'admin' | 'deployer' | 'viewer' }): void {
+export function handleTerminalUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer, userSession?: { username: string; role: 'admin' | 'deployer' | 'viewer' }): void {
+  // userSession is available for audit/logging — passed from server.ts auth middleware
+  void userSession; // Used for future per-connection audit enrichment
   const password = getSessionPassword();
   if (!password) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');

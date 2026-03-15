@@ -217,6 +217,29 @@ export async function completeInvite(
   return { ...result, role: invite.role };
 }
 
+// ── Per-project access checking ────────────────────
+
+import { checkProjectAccess } from './project-registry.js';
+
+/**
+ * Check if a session has the required access level for a project.
+ * Admins have implicit access to all projects. Owners have full access.
+ * Others need an explicit access list entry with sufficient role.
+ */
+export async function hasProjectAccess(
+  session: SessionInfo,
+  projectId: string,
+  requiredRole: 'admin' | 'deployer' | 'viewer',
+): Promise<boolean> {
+  const effectiveRole = await checkProjectAccess(projectId, session.username, session.role);
+  if (!effectiveRole) return false;
+
+  // Check hierarchy: admin > deployer > viewer
+  if (effectiveRole === 'admin') return true;
+  if (effectiveRole === 'deployer') return requiredRole !== 'admin';
+  return requiredRole === 'viewer';
+}
+
 // ── Re-exports for convenience ─────────────────────
 
 export {

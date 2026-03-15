@@ -37,6 +37,7 @@ const ROUTE_ROLES: Array<{ prefix: string; minRole: UserRole }> = [
   { prefix: '/api/deploy', minRole: 'deployer' },
   { prefix: '/api/terminal', minRole: 'deployer' },
   { prefix: '/api/project/create', minRole: 'deployer' },
+  { prefix: '/api/projects/access', minRole: 'deployer' }, // Fine-grained owner check in handler
   { prefix: '/api/projects/import', minRole: 'deployer' },
   { prefix: '/api/projects/delete', minRole: 'deployer' },
   { prefix: '/api/prd', minRole: 'deployer' },
