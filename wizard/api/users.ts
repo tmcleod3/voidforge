@@ -25,6 +25,7 @@ import {
   isValidRole,
 } from '../lib/user-manager.js';
 import { audit } from '../lib/audit-log.js';
+import { removeUserFromAllProjects } from '../lib/project-registry.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown, noCache = false): void {
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -216,7 +217,9 @@ addRoute('POST', '/api/users/remove', async (req: IncomingMessage, res: ServerRe
 
   try {
     await removeUser(username.trim());
-    await audit('user_remove', ip, session.username, { target: username.trim() });
+    // Clean up project access entries for the removed user
+    const cleanedProjects = await removeUserFromAllProjects(username.trim());
+    await audit('user_remove', ip, session.username, { target: username.trim(), projectsCleanedUp: cleanedProjects });
     sendJson(res, 200, { success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to remove user';

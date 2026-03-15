@@ -244,9 +244,9 @@ export function startServer(port: number, options?: { remote?: boolean; host?: s
           socket.destroy();
           return;
         }
-        // Viewers cannot access terminals — read-only dashboard only
-        if (session.role === 'viewer') {
-          socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        // Deployer minimum for terminal access (consistent with hasRole hierarchy)
+        if (!hasRole(session, 'deployer')) {
+          socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
           socket.destroy();
           return;
         }

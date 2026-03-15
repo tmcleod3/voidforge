@@ -18,7 +18,7 @@ export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unchecked';
 
 export interface ProjectAccessEntry {
   username: string;
-  role: 'admin' | 'deployer' | 'viewer';
+  role: 'deployer' | 'viewer';
 }
 
 export interface Project {
@@ -292,7 +292,7 @@ export async function checkProjectAccess(
 export function grantAccess(
   projectId: string,
   username: string,
-  role: 'admin' | 'deployer' | 'viewer',
+  role: 'deployer' | 'viewer',
 ): Promise<void> {
   return serialized(async () => {
     const projects = await readRegistry();
@@ -324,6 +324,26 @@ export function revokeAccess(
     if (project.access.length === before) throw new Error('User has no access to revoke');
 
     await writeRegistry(projects);
+  });
+}
+
+/** Remove a user from all project access lists and clear ownership (cleanup on user deletion). */
+export function removeUserFromAllProjects(username: string): Promise<number> {
+  return serialized(async () => {
+    const projects = await readRegistry();
+    let changedCount = 0;
+    for (const project of projects) {
+      const before = project.access.length;
+      project.access = project.access.filter((a) => a.username !== username);
+      if (project.access.length < before) changedCount++;
+      // Clear ownership to prevent privilege escalation via username reuse
+      if (project.owner === username) {
+        project.owner = '';
+        changedCount++;
+      }
+    }
+    if (changedCount > 0) await writeRegistry(projects);
+    return changedCount;
   });
 }
 

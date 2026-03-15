@@ -35,14 +35,28 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 
 // ── REST endpoints for session management ──────────────
 
-// GET /api/terminal/sessions — list active PTY sessions
-addRoute('GET', '/api/terminal/sessions', async (_req: IncomingMessage, res: ServerResponse) => {
+// GET /api/terminal/sessions — list active PTY sessions (filtered by project access)
+addRoute('GET', '/api/terminal/sessions', async (req: IncomingMessage, res: ServerResponse) => {
   const password = getSessionPassword();
   if (!password) {
     sendJson(res, 401, { error: 'Vault is locked.' });
     return;
   }
-  sendJson(res, 200, { sessions: listSessions(), count: sessionCount() });
+
+  let allSessions = listSessions();
+
+  // In remote mode, filter sessions by user's project access
+  if (isRemoteMode()) {
+    const token = parseSessionCookie(req.headers.cookie);
+    const ip = getClientIp(req);
+    const userSession = token ? validateSession(token, ip) : null;
+    if (userSession && userSession.role !== 'admin') {
+      // Non-admins only see their own sessions
+      allSessions = allSessions.filter((s) => s.username === userSession.username);
+    }
+  }
+
+  sendJson(res, 200, { sessions: allSessions, count: allSessions.length });
 });
 
 // POST /api/terminal/sessions — create a new PTY session
@@ -124,7 +138,7 @@ addRoute('POST', '/api/terminal/sessions', async (req: IncomingMessage, res: Ser
   }
 });
 
-// POST /api/terminal/sessions/:id/kill — kill a session
+// POST /api/terminal/sessions/:id/kill — kill a session (ownership check in remote mode)
 addRoute('POST', '/api/terminal/kill', async (req: IncomingMessage, res: ServerResponse) => {
   const password = getSessionPassword();
   if (!password) {
@@ -136,6 +150,21 @@ addRoute('POST', '/api/terminal/kill', async (req: IncomingMessage, res: ServerR
   if (!body.sessionId) {
     sendJson(res, 400, { error: 'sessionId is required' });
     return;
+  }
+
+  // In remote mode, non-admins can only kill their own sessions
+  if (isRemoteMode()) {
+    const token = parseSessionCookie(req.headers.cookie);
+    const ip = getClientIp(req);
+    const userSession = token ? validateSession(token, ip) : null;
+    if (userSession && userSession.role !== 'admin') {
+      const sessions = listSessions();
+      const target = sessions.find((s) => s.id === body.sessionId);
+      if (!target || target.username !== userSession.username) {
+        sendJson(res, 404, { error: 'Session not found' });
+        return;
+      }
+    }
   }
 
   killSession(body.sessionId);
