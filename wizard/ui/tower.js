@@ -260,29 +260,37 @@
       loadingState.style.display = 'none';
       createTab('Claude Code', session.id, authToken);
 
-      // Auto-command banner: show a prompt to run /campaign or /build
+      // Auto-send command after Claude Code boots (~3s delay)
       if (autoCommand) {
+        const cmdLabel = autoCommand === 'campaign' ? '/campaign' : '/' + autoCommand;
         const banner = document.createElement('div');
         banner.className = 'auto-command-banner';
         banner.setAttribute('role', 'status');
-        const cmdLabel = autoCommand === 'campaign' ? '/campaign' : '/' + autoCommand;
-        banner.innerHTML = `
-          <span>Ready to build <strong>${projectName}</strong>.</span>
-          <button class="btn btn-primary" id="auto-cmd-run">Run ${cmdLabel}</button>
-          <button class="btn btn-secondary" id="auto-cmd-dismiss">Dismiss</button>
-        `;
+        banner.innerHTML = `<span>Sending <strong>${cmdLabel}</strong> in <span id="auto-countdown">3</span>s...</span> <button class="btn btn-secondary" id="auto-cmd-cancel">Cancel</button>`;
         document.querySelector('.tower-header').after(banner);
-        document.getElementById('auto-cmd-run').addEventListener('click', () => {
-          // Find the active tab's WebSocket and send the command
-          const activeTab = tabs.find(t => t.id === activeTabId);
-          if (activeTab && activeTab.ws && activeTab.ws.readyState === WebSocket.OPEN) {
-            activeTab.ws.send(cmdLabel + '\n');
+
+        let cancelled = false;
+        let countdown = 3;
+        document.getElementById('auto-cmd-cancel').addEventListener('click', () => {
+          cancelled = true;
+          banner.remove();
+        });
+
+        const timer = setInterval(() => {
+          countdown--;
+          var el = document.getElementById('auto-countdown');
+          if (el) el.textContent = String(countdown);
+          if (countdown <= 0) {
+            clearInterval(timer);
+            if (!cancelled) {
+              const activeTab = tabs.find(t => t.id === activeTabId);
+              if (activeTab && activeTab.ws && activeTab.ws.readyState === WebSocket.OPEN) {
+                activeTab.ws.send(cmdLabel + '\n');
+              }
+              banner.remove();
+            }
           }
-          banner.remove();
-        });
-        document.getElementById('auto-cmd-dismiss').addEventListener('click', () => {
-          banner.remove();
-        });
+        }, 1000);
       }
     } catch (err) {
       const msg = err.message || '';
