@@ -125,6 +125,18 @@ Without the `void element.offsetWidth` reflow, the browser batches the remove+ad
 
 (Field report #20: forge-lit vault pulse only fired once without this pattern.)
 
+### Admin Self-Referential Case
+
+For any admin page that lists user accounts with mutation actions (deactivate, demote, delete), verify the component checks the current user's identity and disables destructive actions on their own row. A single mis-click should not let an admin lock themselves out. (Field report #28: admin could deactivate and demote themselves — caught as Critical by Gauntlet UX.)
+
+### Server Components for Content Pages
+
+Marketing pages, landing pages, and content-heavy pages must be server components (or statically rendered). A `"use client"` directive on a homepage produces zero server HTML — invisible to search engines. Pattern: render ALL content server-side, extract interactive elements (scroll animations, typing effects, particle systems) into small client component islands. (Field report #27: 1369-line "use client" homepage produced zero server HTML.)
+
+### Background Operations Need Visible Progress
+
+Any fire-and-forget background operation (AI generation, file processing, deploy) needs a feedback channel. Without visible progress, users think the operation is broken — even when it's working perfectly. Minimum: loading state ("Building..."), progress indicator (percentage or step count), completion notification (auto-switch to result). (Field report #27: version generation worked perfectly but showed a blank preview.)
+
 ### Action Inventory Before Hiding Containers
 Before hiding, relocating, or collapsing a UI container (dropdown, panel, menu, toolbar), list ALL actions inside it — primary (viewing, selecting, navigating) AND secondary (creating, deleting, configuring, exporting). Verify every action remains reachable after the redesign. A "simplification" that hides a version picker also hides the "New Version" button inside it.
 (Field report #22: workspace redesign hid the version creation button that lived inside a dropdown.)

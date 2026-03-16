@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [7.4.0] - 2026-03-16
+
+### Added
+- **Runtime smoke test** in Gauntlet Round 2 — start server, hit endpoints, test WebSocket lifecycle. Catches what static analysis misses. (Field report #30)
+- **First-run scenario checklist** in QA — fresh install, server restart, project import, dependency update transitions. (Field report #30)
+- **Restart resilience checklist** in DevOps — inventory in-memory state, define recovery paths. (Field report #30)
+- **Campaign-mode assemble pipeline** — reduced phases (arch + build + 1 review + security if needed) for multi-mission campaigns. Full pipeline deferred to Victory Gauntlet. (Field report #26)
+- **Lightweight inline debrief** option for blitz — 3-line summary to log file when full `/debrief --submit` is too heavy. (Field report #26)
+- **Minimum 1 review round guarantee** — even `--fast` gets 1 review, never 0. (Field report #28)
+
+### Changed
+- **Direct-ID entity access** is now High severity minimum in security audit — never defer. (Field report #28)
+- **Role enforcement** must cover ALL write routes, not just CRUD — batch, merge, import/export, admin utilities. (Field report #28)
+- **Admin self-referential case** added to UX checklist — disable destructive actions on own user row. (Field report #28)
+- **SQL fragment builders** must accept alias parameter from day 1 — breaks in JOINs without it. (Field report #28)
+- **Per-item processing** for unreliable inputs — individual items with timeouts, not batch. (Field report #27)
+- **Cache AI agent outputs** — reuse cached intermediate results to prevent cross-generation drift. (Field report #27)
+- **Server components for content pages** — "use client" on marketing pages kills SEO. (Field report #27)
+- **Background operations need visible progress** — loading state, progress indicator, completion notification. (Field report #27)
+- **Mode instructions must replace, not append** — each mode needs complete spec, not a footnote. (Field report #27)
+- **Platform networking** — bind `::` (dual-stack) not `127.0.0.1`. macOS resolves localhost to IPv6. (Field report #30)
+- **Tailwind v4 deployment guide** — pin versions, restrict source scanning, avoid `attr()` in CSS. (Field report #29)
+- **Don't interleave debugging with syncs** — sync first, verify, THEN debug separately. (Field report #29)
+- **Infrastructure dependency exception** — zero-dep policy applies to business logic, not protocol infrastructure (ws, node-pty). (Field report #30)
+
+---
+
 ## [7.3.2] - 2026-03-16
 
 ### Changed

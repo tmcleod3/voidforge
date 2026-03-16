@@ -173,6 +173,25 @@ User confirms, redirects, or overrides. On confirm → Step 4.
 3. Monitor for context pressure symptoms — if noticed, ask user to run `/context` before checkpointing
 4. On completion → Step 5
 
+### Campaign-Mode Pipeline
+
+When `/assemble` runs from within `/campaign`, the full 13-phase pipeline is impractical (130 phase executions for a 10-mission campaign). Campaign missions should use a reduced pipeline:
+
+| Phase | Campaign Mode | Full Mode |
+|-------|--------------|-----------|
+| Architecture | Quick scan | Full review |
+| Build | Full | Full |
+| Review | 1 round | 3 rounds |
+| Security | If new endpoints | 2 rounds |
+| UX/DevOps/QA/Test | Deferred to Victory Gauntlet | Full |
+| Crossfire/Council | Deferred to Victory Gauntlet | Full |
+
+The Victory Gauntlet at campaign end covers everything the per-mission pipeline defers. This is why the Victory Gauntlet is non-negotiable even with `--fast`. (Field report #26)
+
+### Minimum Review Guarantee
+
+Even in `--fast` mode, each mission gets at least **1 review round** (not 3, but never 0). A single review catches ~80% of issues for 33% of the review cost. Zero reviews in blitz caused 7 Critical+High issues to accumulate undetected across 4 missions — all caught by the Victory Gauntlet but at much higher fix cost. (Field report #28)
+
 ### Step 4.5 — Gauntlet Checkpoint (Thanos)
 
 After every 4th completed mission (missions 4, 8, 12, etc.), Thanos runs a Gauntlet checkpoint:
@@ -184,6 +203,18 @@ After every 4th completed mission (missions 4, 8, 12, etc.), Thanos runs a Gaunt
 5. `--fast` mode skips checkpoint gauntlets (but NOT the mandatory final Gauntlet in Step 6).
 
 **Why every 4 missions:** Each `/assemble` catches ~95% of issues within its scope. The remaining ~5% are cross-cutting — a bug introduced in mission 2 that affects mission 6. Catching these periodically prevents compounding. The cost is one context window per checkpoint; the ROI is real (the v6.0-v6.5 Gauntlet found a build-breaking missing import that two full `/assemble` pipelines missed).
+
+### Lightweight Blitz Debrief (Alternative)
+
+If context pressure makes full `/debrief --submit` impractical mid-campaign, capture a **3-line mission summary** appended to `/logs/campaign-debriefs.md` instead:
+
+```
+### Mission N — [Name] (vX.Y.Z)
+- **Findings:** [count] MUST FIX, [count] SHOULD FIX
+- **Key lesson:** [one sentence]
+```
+
+Full debrief runs once at campaign end (after Victory Gauntlet), covering all missions together. This reduces per-mission debrief cost from ~5-10% context to ~0.5%. The BLITZ GATE in the command file still applies — this is a lighter alternative that satisfies the gate without invoking the full skill. (Field report #26)
 
 ### Step 5 — Debrief and Commit
 
