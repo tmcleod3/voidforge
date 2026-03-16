@@ -13,6 +13,8 @@ The Prophets have shown me the path. Time to execute the plan.
 
 **`--blitz` ≠ `--fast`.** Blitz skips human interaction. Fast skips review phases. They are independent flags and can be combined (`--blitz --fast`) if the user wants both.
 
+**In blitz mode, make ALL decisions autonomously. Never ask the user a question. If uncertain, choose the option that preserves quality (e.g., run the Gauntlet, not skip it). The only human interaction in blitz mode is the final completion summary.**
+
 ## Context Setup
 1. Read `/logs/campaign-state.md` — if it exists, we're mid-campaign
 2. Read `/docs/methods/CAMPAIGN.md` for operating rules
@@ -119,6 +121,9 @@ On confirmation (or immediately in `--blitz` mode):
 After every 4th mission (missions 4, 8, 12, etc.), run a Gauntlet checkpoint before continuing:
 
 1. **Count completed missions** in this campaign. If `completedMissions % 4 === 0`, trigger checkpoint.
+
+**ENFORCEMENT:** After committing each mission, increment your mission counter. Check: if completedMissionsThisCampaign is divisible by 4, trigger the checkpoint. In blitz mode, this check is mandatory and automatic — do not skip or defer it. Log the count in campaign-state.md after each mission: "Missions completed: N. Next checkpoint at: N+X."
+
 2. **Run `/gauntlet --quick`** (3 rounds: Discovery → First Strike → Second Strike). This catches cross-module integration bugs that individual `/assemble` runs miss — each `/assemble` only reviews its own changeset, but the Gauntlet reviews the **combined system**.
 3. **Fix all Critical and High findings** before proceeding to the next mission.
 4. **Commit fixes** via `/git` with message: `Gauntlet checkpoint after mission N: X fixes`
