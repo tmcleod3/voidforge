@@ -26,7 +26,9 @@
 
   // ── Build status helper ───────────────────────────
   function getBuildStatus(project) {
-    if (project.deployUrl) return { label: 'Live', action: 'Open Room', badge: 'success', auto: '' };
+    // deployUrl alone isn't proof of deployment — it's set during wizard setup as the intended domain.
+    // lastDeployAt confirms an actual deploy happened.
+    if (project.deployUrl && project.lastDeployAt) return { label: 'Live', action: 'Open Room', badge: 'success', auto: '' };
     if (project.lastBuildPhase >= 13) return { label: 'Built', action: 'Open Room', badge: 'info', auto: '' };
     if (project.lastBuildPhase > 0) return { label: 'Phase ' + project.lastBuildPhase + '/13', action: 'Resume Build', badge: 'warning', auto: 'campaign' };
     return { label: 'Ready', action: 'Start Building', badge: 'accent', auto: 'campaign' };
