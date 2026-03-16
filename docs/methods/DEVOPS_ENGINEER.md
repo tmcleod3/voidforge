@@ -71,6 +71,37 @@ Deployable, observable, recoverable, maintainable. Automate everything done more
 
 **Pin Node.js version:** Every project must have a `.node-version` file AND `engines.node` in package.json. Platform-managed environments (Vercel, Railway) auto-upgrade Node versions — silent failures when new Node breaks a dependency. Pin to the version used during development.
 
+### Restart Resilience Checklist
+
+Inventory all in-memory state and define what happens when the process restarts:
+
+| State | Where | On Restart | Recovery |
+|-------|-------|-----------|----------|
+| Vault password | Module-scope variable | Lost | Prompt user to re-enter |
+| Auth sessions | In-memory Map | Lost | Redirect to login |
+| PTY sessions | In-memory Map | Killed | Show "session ended", offer retry |
+| Provision locks | Module-scope boolean | Reset | Safe (allows new provisions) |
+| Caches | In-memory objects | Cleared | Rebuild on next access |
+
+For every entry: does the UI handle the "gone" state gracefully? Or does the user see a cryptic error? (Field report #30: "Vault is locked" with no recovery path.)
+
+### Platform Networking Defaults
+
+Bind to `::` (dual-stack) not `127.0.0.1` on localhost. macOS resolves `localhost` to `::1` (IPv6) before `127.0.0.1` (IPv4). Binding IPv4-only makes HTTP work (browser tries both) but WebSocket fails (only tries first resolution). The `::` address accepts both. (Field report #30: 1 hour to diagnose.)
+
+### Tailwind v4 + Vercel Deployment
+
+Known issues when deploying Tailwind v4 to Vercel or similar build platforms:
+1. **Pin exact versions** — `tailwindcss@4.1.8` + `@tailwindcss/postcss@4.1.8`. Minor version mismatches cause build failures.
+2. **Restrict source scanning** — Use `@source('../src')` to limit Tailwind's class extraction. Default scans ALL files including markdown method docs containing CSS-like tokens.
+3. **Avoid `attr()` in CSS** — `attr(data-text)` is valid in browsers but PostCSS rejects it at build time. Use static content instead.
+4. **CSS variables in `@keyframes`** — Valid in modern browsers but some CSS optimizers reject them. Test in the platform build environment, not just local dev.
+5. **Always verify in the platform build** — `npm run build` locally ≠ platform build. Different PostCSS versions, stricter optimization passes. (Field report #29: 20 commits / 19% of project fighting one CSS deployment issue.)
+
+### Don't Interleave Debugging with Syncs
+
+Never combine methodology syncs (`/void`) with unrelated debugging in the same session. If a sync introduces a problem, the debug commits interleave with sync commits, making it impossible to identify which change broke what. Rule: sync first, verify, THEN debug separately. If needed, hard-reset to the pre-sync state and reapply incrementally. (Field report #29: 6 retcon commits interleaved with 20 CSS-fix commits.)
+
 ## Deliverables
 
 1. /scripts/provision.sh, deploy.sh, rollback.sh, backup-db.sh

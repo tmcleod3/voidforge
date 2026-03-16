@@ -78,6 +78,18 @@ Create or update `/docs/qa-prompt.md` with: stack, language, framework, package 
 After checking API routes for tier gating, ALSO search `.tsx` and `.jsx` files for hardcoded tier comparisons (`=== 'PRO'`, `=== 'ENTERPRISE'`, `includes('SCALE')`). These must include ALL paid tiers or use the centralized tier config. Tier drift in UI components is invisible to API-level audits — a paying customer can be blocked from features they paid for by a stale comparison in a settings page.
 (Field report #22: third occurrence of tier drift — fixed in API routes, survived in .tsx settings files.)
 
+### First-Run Scenarios
+
+The most fragile path in any application is the first run after a state transition. Test these explicitly:
+
+- **Fresh install → first start → first page load → first interactive action** (e.g., first terminal session, first form submission)
+- **Server restart → vault/session/auth re-lock → user returns → recovery prompt**
+- **Project import → first open → build state detection → correct UI state**
+- **Dependency update → server restart → native module reload → feature still works**
+- **Database migration → first query → schema matches expectations**
+
+Every bug in the v7.3 Avengers Tower crisis was a first-run scenario. Steady-state worked fine; transitions broke. (Field report #30)
+
 ### Timestamp Format Enforcement
 Grep for `strftime`, `format(`, `toISOString`, `new Date().to` calls and verify they use the project's canonical timestamp format (typically `%Y-%m-%dT%H:%M:%SZ` or ISO 8601). Flag any non-canonical format strings. Non-canonical timestamps cause: cache TTL bugs (string comparison fails), sorting issues, and cross-system timestamp mismatches.
 (Field report #21: cache used `%Y-%m-%d %H:%M:%S` while all other code used `%Y-%m-%dT%H:%M:%SZ` — cache effectively never expired.)

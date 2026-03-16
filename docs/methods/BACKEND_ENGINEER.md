@@ -91,6 +91,18 @@ try {
 
 **Why:** In Node.js, two requests arriving in the same event loop tick can both see `lock === false` if an `await` separates the check from the set. The check-and-set must be synchronous to prevent TOCTOU races. (Field report #20: provisioning lock had 100+ lines of async work between check and set.)
 
+### SQL Fragment Builders Need Aliases
+
+Any function that generates SQL WHERE fragments should accept `*, alias: str = ""` and prefix all column references with `f"{alias}."` when set. Without this, fragments work in simple queries but break in JOINs where column names are ambiguous. Retrofit the alias parameter from day 1 — adding it later requires changing every call site. (Field report #28)
+
+### Per-Item Processing for Unreliable Inputs
+
+When processing user-uploaded content (PDFs, images, CSVs), process items individually with per-item timeouts and adaptive parameters — not as a batch. One item failing should not kill the entire batch. Pattern: iterate items, wrap each in try/catch with timeout, collect results + errors, report both. For media: use adaptive quality (DPI fallback: 200→150→100). (Field report #27: PDF conversion failed on 41MB files in batch mode.)
+
+### Cache AI Agent Outputs
+
+In multi-output AI pipelines, cache intermediate results on the entity model. Running the AI fresh for every output produces random drift (different design choices each time). Make "reuse cached output" the default with an explicit opt-out (e.g., "Regenerate" checkbox). One cache miss costs one API call; uncached outputs cost drift across every generation. (Field report #27: Design Agent ran fresh for every version, producing inconsistent designs.)
+
 ## Step 5 — Deliverables
 
 1. BACKEND_AUDIT.md
