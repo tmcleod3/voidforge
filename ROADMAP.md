@@ -73,24 +73,42 @@ Generate `seed.ts` with factory functions for all schema models. Used by tests a
 
 ---
 
-## v4.3 — The Resilience Release
+## v4.3 — The Resilience Pack (opt-in, integrated into Gandalf)
 
-*From "it works" to "it stays working."*
+*From "it works" to "it stays working." Now an opt-in feature pack in Gandalf's Act 3 operations menu — not a standalone release.*
 
-### Multi-environment support
-Generate separate `.env.development`, `.env.staging`, `.env.production`. Haku wizard asks which environment to deploy. Platform deploys scope env vars per environment (Vercel already supports this — extend to Railway/Cloudflare).
+**Status:** Reclassified. Originally a standalone version, now integrated as the "Resilience Pack" card in the v7.1 wizard redesign. Users choose which features they want during project setup. All features are also addable after creation via `/campaign --plan add resilience`.
 
-### Preview deployments
-For Vercel and Cloudflare Pages, configure PR preview deployments automatically. Each pull request gets a unique URL. Links posted as PR comments via GitHub API.
+### Deploy Resilience (opt-in toggles)
+- **Multi-environment** — generate `.env.development`, `.env.staging`, `.env.production`. Platform deploys scope env vars per environment.
+- **Preview deployments** — for Vercel and Cloudflare Pages, configure PR preview deploys automatically. PR comments via GitHub API.
+- **Auto-rollback** — one-click rollback via platform API (Vercel/Railway/Cloudflare). Surface in Avengers Tower rollback panel.
+- **Migration automation** — run `prisma migrate deploy` (or framework equivalent) as part of deploy. For VPS, before symlink swap.
+- **Backup automation** — daily `pg_dump` to S3 for VPS+RDS. Platform-native backups documented for Railway/D1. S3 versioning for static.
 
-### Platform rollback
-Vercel, Railway, and Cloudflare all support rollback via API. Add a `/api/provision/rollback` endpoint that reverts to the previous deployment. Surface in the Haku UI as a "Rollback" button on the Done screen.
+### Runtime Resilience (opt-in toggles)
+- **Health check endpoint** — generates `/api/health` checking DB, Redis, disk. Framework-aware.
+- **Graceful shutdown** — `SIGTERM` → drain connections → close DB → exit. Critical for zero-downtime platform deploys.
+- **Error boundaries** — React error boundaries for frontend, global exception handler for backend.
+- **Rate limiting** — basic rate limiter on auth endpoints. Per-IP counter middleware.
+- **Dead letter queue** — for projects with `workers: yes`. Failed jobs to DLQ instead of silent drops.
 
-### Database migration automation
-Run `prisma migrate deploy` (or `rails db:migrate`, `python manage.py migrate`) as part of the deploy step. For VPS, include in the SSH deploy sequence before the symlink swap. For platforms, add as a build step.
+### PRD Frontmatter
+```yaml
+resilience:
+  multi-env: yes | no
+  preview-deploys: yes | no
+  rollback: yes | no
+  migrations: auto | manual | no
+  backups: daily | weekly | no
+  health-check: yes | no
+  graceful-shutdown: yes | no
+  error-boundaries: yes | no  # only if framework has UI
+  rate-limiting: yes | no
+  dead-letter-queue: yes | no  # only if workers: yes
+```
 
-### Backup automation
-For VPS + RDS: generate a daily backup cron (`pg_dump` to S3). For Railway/Cloudflare D1: document the platform's built-in backup features. For S3 static: enable versioning on the bucket.
+Smart defaults based on deploy target and framework — Vercel gets preview deploys on by default, static sites skip backups, API-only projects skip error boundaries.
 
 ---
 
@@ -550,6 +568,38 @@ Agents that remember across projects. After each build, key learnings are extrac
 
 ### Estimated effort
 ~1,400 lines (including security), 3-4 sessions.
+
+---
+
+## v7.1 — The Redesign
+
+*The wizard becomes a conversation.*
+
+Gandalf's setup wizard is restructured from a 7-step linear form into a three-act conversation: identity, vision, operations. The simple/advanced toggle is eliminated — replaced by an operations menu where every user picks what they need.
+
+### Act 1 — "Secure Your Forge" (2 steps)
+Vault password alone on the first screen — clean, focused, one field. API key on the second screen. The forge is lit.
+
+### Act 2 — "Describe Your Vision" (2 steps + conditional)
+Project name + directory. Then PRD (generate/paste/skip). If PRD has env vars, collect credentials. The project is taking shape.
+
+### Act 3 — "Equip Your Project" (1 menu screen)
+A single screen with expandable cards — not a sequence of steps. Five cards: Deploy Target, Cloud Credentials (contextual), Domain & Hostname, The Resilience Pack (v4.3 features as opt-in toggles), Monitoring. Each card expands in-place. Smart defaults from PRD frontmatter. "Skip All" for lean setup.
+
+### Éowyn's Enchantment Notes
+- First screen: mostly empty, dark, one glowing input. The forge lighting moment.
+- Project name: header updates live as user types — the project is already becoming real.
+- PRD generation: text streams like it's being written by hand, not loaded from a server.
+- Operations menu: cards feel like choosing equipment before an adventure.
+- Creation moment: brief animation of project structure appearing, then terminal fills screen. You're home.
+
+### Files to modify
+- `wizard/ui/index.html` — restructure into 3 acts, add operations menu
+- `wizard/ui/app.js` — remove simple/advanced, add card expand/collapse, smart defaults
+- `wizard/ui/styles.css` — act transitions, card animations, enchantment styling
+
+### Estimated effort
+~400 lines changed (mostly restructuring existing code), 1-2 sessions.
 
 ---
 

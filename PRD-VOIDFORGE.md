@@ -145,13 +145,40 @@ deploy: "static"
 
 ### Feature 3: The Wizards (Gandalf + Haku)
 
-**Gandalf (Setup):**
-1. Create encrypted vault
-2. Add cloud provider credentials (AWS, Vercel, Railway, Cloudflare, GitHub)
-3. Name project, set domain, configure hostname
-4. Generate PRD with Claude or paste custom
-5. Choose deploy target
-6. Scaffold project
+**Gandalf (Setup) — Three-Act Flow (v7.1 redesign):**
+
+The wizard is a conversation, not a form. Three natural acts: who are you, what are you building, how should it run. Each act has a distinct emotional register. Éowyn's enchantment principles: the first screen should feel like lighting a forge, the PRD step like describing a dream, the operations menu like choosing equipment before an adventure, and the creation moment like something coming to life.
+
+*Act 1 — "Secure Your Forge" (Identity):*
+1. Vault only. One password field, one button. The screen is mostly empty — dark background, a single glowing input. The subtitle fades in: "This password protects everything you build." When the vault unlocks, a subtle pulse ripples outward — the forge is lit. No progress bar yet. Just the moment.
+2. Anthropic API key. One field. "Claude needs a key to help you build." Skip link for users who'll add it later. When the key is stored, the progress bar appears for the first time — Act 1 complete, two segments lit.
+
+*Act 2 — "Describe Your Vision" (What you're building):*
+3. Project identity. Name + directory only. Domain and hostname moved to Act 3 where they're contextually relevant. The heading changes from "Gandalf — VoidForge Setup" to "Gandalf — [Project Name]" the moment they type a name. The project is already becoming real.
+4. PRD. Generate with Claude / paste / skip. If generating, the streaming response should feel like the project is being imagined into existence — not a loading spinner, but text flowing onto the screen like it's being written by hand. If the PRD defines env vars, Step 4b collects project-specific credentials (same as current).
+
+*Act 3 — "Equip Your Project" (Operations menu):*
+5. A single screen with expandable cards — NOT a sequence of steps. Each card is an independent choice. The user picks what they need and skips the rest. Cards are contextually smart: if the PRD says `deploy: "vercel"`, the deploy card is pre-selected and Vercel-specific options are shown.
+
+   Cards:
+   - **Deploy Target** — where does this ship? (Vercel / AWS / Railway / Cloudflare / S3 / Docker)
+   - **Cloud Credentials** — only shown if deploy target needs keys not yet in the vault
+   - **Domain & Hostname** — custom domain configuration (only shown if deploy target supports it)
+   - **The Resilience Pack** — opt-in operational hardening (see below)
+   - **Monitoring** — Sentry DSN, health endpoint (optional)
+
+   The Resilience Pack card expands to show toggles with smart defaults:
+   - Deploy resilience: multi-env, preview deploys, auto-rollback, migration automation, backups
+   - Runtime resilience: health check endpoint, graceful shutdown, error boundaries, rate limiting, dead letter queue
+   Each toggle shows a one-line explanation. Toggles are pre-set based on deploy target and framework.
+
+   Footer: "[Skip All — I'll configure later]" and "[Continue to Review]"
+
+*Finale:*
+6. Review. Clean summary of all choices grouped by act. Edit buttons per section.
+7. Create → Avengers Tower. The project is scaffolded, and the UI transitions to the terminal. The moment of creation should feel conclusive — not "redirecting..." but a brief animation of the project structure appearing, then the terminal filling the screen. You're home now.
+
+The old simple/advanced toggle is eliminated. Every user gets the same flow — Act 3's menu means "advanced" users configure more cards, "simple" users click "Skip All." Same path, different depth.
 
 **Haku (Deploy):**
 1. Unlock vault, scan project
@@ -253,7 +280,7 @@ See `ROADMAP.md` for the full plan. Summary:
 | **v4.0** | The Reliability Release | Pre-deploy build step, CI/CD generation, env validation, Railway API fix, credential scoping |
 | **v4.1** | The Observability Release | Health monitoring, error tracking (Sentry), deploy logs, cost estimation |
 | **v4.2** | The DX Release | Type generation, API docs, ERD, integration templates (Stripe/Resend/S3), database seeding |
-| **v4.3** | The Resilience Release | Multi-environment, preview deployments, platform rollback, migration automation, backups |
+| **v4.3** | The Resilience Pack | Opt-in operational hardening in Gandalf's Act 3 menu: multi-env, preview deploys, rollback, migrations, backups, health checks, graceful shutdown, error boundaries, rate limiting, DLQ |
 | **v4.4** | The Imagination Release | `/imagine` (Celebrimbor — AI image generation) + `/debrief` (Bashir — post-mortem analysis, upstream feedback via GitHub issues) |
 | **v4.5** | The Seamless Release | PRD-driven credential collection in Gandalf, headless deploy mode (`--headless`), PostgreSQL extension support |
 | **v5.0** | The Intelligence Release | Lessons integration, build analytics, smart scoping, template marketplace |
@@ -261,6 +288,7 @@ See `ROADMAP.md` for the full plan. Summary:
 | **v6.0** | Avengers Tower Multi | Project registry, The Lobby dashboard, multi-terminal per project, health poller |
 | **v6.5** | Avengers Tower Remote | Self-hosted mode, 5-layer security (network + auth + vault + sandbox + audit), TOTP 2FA, two-password architecture |
 | **v7.0** | The Penthouse | Multi-user RBAC, per-project permissions, linked services, coordinated deploys, rollback dashboard, cost tracker, agent memory |
+| **v7.1** | The Redesign | Three-act wizard flow, operations menu replaces simple/advanced toggle, Resilience Pack as opt-in card, Éowyn's enchantment layer |
 
 ---
 
