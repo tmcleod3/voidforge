@@ -262,7 +262,7 @@
 
       // Auto-send command after Claude Code boots (~3s delay)
       if (autoCommand) {
-        const cmdLabel = autoCommand === 'campaign' ? '/campaign' : '/' + autoCommand;
+        const cmdLabel = autoCommand.startsWith('/') ? autoCommand : '/' + autoCommand;
         const banner = document.createElement('div');
         banner.className = 'auto-command-banner';
         banner.setAttribute('role', 'status');
@@ -285,7 +285,7 @@
             if (!cancelled) {
               const activeTab = tabs.find(t => t.id === activeTabId);
               if (activeTab && activeTab.ws && activeTab.ws.readyState === WebSocket.OPEN) {
-                activeTab.ws.send(cmdLabel + '\n');
+                activeTab.ws.send(cmdLabel + '\r');
               }
               banner.remove();
             }
