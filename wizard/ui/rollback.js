@@ -59,6 +59,12 @@
       }
 
       var project = body.data;
+
+      // Viewers cannot see deploy details
+      if (project.userRole === 'viewer') {
+        deployList.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 8px;">Deploy history requires deployer access</div>';
+        return;
+      }
       deployList.innerHTML = '';
 
       if (!project.lastDeployAt) {

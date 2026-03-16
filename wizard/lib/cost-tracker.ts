@@ -58,5 +58,8 @@ export async function setProjectCost(
   projectId: string,
   monthlyCost: number,
 ): Promise<void> {
+  if (!Number.isFinite(monthlyCost) || monthlyCost < 0) {
+    throw new Error('monthlyCost must be a non-negative finite number');
+  }
   await updateProject(projectId, { monthlyCost });
 }

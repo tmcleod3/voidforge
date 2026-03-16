@@ -39,7 +39,9 @@ export async function checkDeployNeeded(projectId: string): Promise<CoordinatedD
     let needsDeploy = false;
     let reason = 'Up to date';
 
-    if (!project.lastDeployAt) {
+    if (!project.deployTarget || project.deployTarget === 'unknown') {
+      reason = 'No deploy target configured';
+    } else if (!project.lastDeployAt) {
       needsDeploy = true;
       reason = 'Never deployed';
     } else if (project.lastBuildPhase > 0) {

@@ -709,5 +709,7 @@ addRoute('POST', '/api/projects/lessons', async (req: IncomingMessage, res: Serv
   };
 
   const created = await addLesson(input);
+  const ip = getClientIp(req);
+  await audit('project_create', ip, session.username, { action: 'add_lesson', framework: input.framework, category: input.category });
   sendJson(res, 201, { success: true, data: created });
 });
