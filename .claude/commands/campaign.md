@@ -1,5 +1,15 @@
 The Prophets have shown me the path. Time to execute the plan.
 
+## Blitz Mode Check
+
+**IMPORTANT: If `$ARGUMENTS` contains `--blitz`, this is BLITZ MODE.** In blitz mode:
+- Do NOT ask for confirmation at mission briefs — proceed immediately
+- Pass `--fast` to every `/assemble` call (skip Crossfire + Council per-mission)
+- Auto-continue to the next mission after each one completes
+- Still run the Victory Gauntlet at Step 6 (non-negotiable)
+- Still commit after each mission via `/git`
+- Log mission briefs but do not wait for user input
+
 ## Context Setup
 1. Read `/logs/campaign-state.md` — if it exists, we're mid-campaign
 2. Read `/docs/methods/CAMPAIGN.md` for operating rules
