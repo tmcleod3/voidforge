@@ -15,6 +15,13 @@ The Prophets have shown me the path. Time to execute the plan.
 
 **In blitz mode, make ALL decisions autonomously. Never ask the user a question. If uncertain, choose the option that preserves quality (e.g., run the Gauntlet, not skip it). The only human interaction in blitz mode is the final completion summary.**
 
+**Blitz per-mission checklist** (verify ALL before continuing to next mission):
+1. `/assemble` completed
+2. `/git` committed
+3. `/debrief --submit` filed (MANDATORY — not optional)
+4. `campaign-state.md` updated with mission status + debrief issue number
+5. Proceed to next mission
+
 ## Context Setup
 1. Read `/logs/campaign-state.md` — if it exists, we're mid-campaign
 2. Read `/docs/methods/CAMPAIGN.md` for operating rules
@@ -135,8 +142,8 @@ After every 4th mission (missions 4, 8, 12, etc.), run a Gauntlet checkpoint bef
 
 After `/assemble` completes:
 1. Run `/git` to commit and version the mission
-2. Update `/logs/campaign-state.md` — mark mission complete, update stats
-3. **Blitz debrief:** If `$ARGUMENTS` contains `--blitz`, run `/debrief --submit` to capture learnings from this mission and auto-submit as a GitHub field report. Do not wait for user review — blitz mode trusts the debrief output. This ensures every mission's learnings are captured while context is fresh, even when nobody is watching.
+2. Update `/logs/campaign-state.md` — mark mission complete, update stats. When updating, include the debrief issue number: "Debrief: #XX" or "Debrief: SKIPPED (not blitz)" or "Debrief: N/A (normal mode)".
+3. **BLITZ GATE:** If `$ARGUMENTS` contains `--blitz`, run `/debrief --submit` NOW. Do not proceed to the next step until the debrief is filed. This is non-negotiable — blitz captures learnings while context is fresh. Log the debrief issue number in campaign-state.md.
 4. **Collect BLOCKED items** from this mission (assets, infrastructure, copy issues). For each:
    - If it's a future feature → append to `ROADMAP.md` under the appropriate version
    - If it's a missing asset the user must provide → add to a `## Blocked Items` section in campaign-state.md with what's needed and who can unblock it
