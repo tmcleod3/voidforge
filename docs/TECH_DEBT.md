@@ -26,9 +26,13 @@
 | 8 | No vault schema versioning | Deferred decision | Medium — blocks schema changes | Low | Later |
 | 9 | Raw HTTPS vs AWS SDK inconsistency | Dependency debt | Low — two HTTP patterns to maintain | High | Later |
 | 10 | PBKDF2 vs Argon2id for key derivation | Deferred decision | Low — PBKDF2 is still safe at 100k iterations | Medium | Much later |
+| 11 | Native module updates require manual server restart | Missing capability | High — npm install updates disk but running process keeps old binary in memory. User must manually kill + restart. Terminal shows "Session ended" with no explanation. | Medium | v8.0 |
+| 12 | Stale PTY sessions not cleaned on page reload | Missing cleanup | Medium — old dead sessions count against MAX_SESSIONS limit and show "Session ended" in Tower. No auto-cleanup or "Retry" button. | Low | Next release |
 
 ## Recommended Next Actions
 
 1. **#1 — Truncated PRD:** If SSE stream ends without `[DONE]` or content is suspiciously short (<500 chars), show a warning banner.
 2. **#2 — Project rollback:** On creation failure, attempt to delete the partially created directory.
 3. **#5 — Dead code:** Either call `recordResourceCleaned` during cleanup, or remove it.
+4. **#11 — Server auto-restart:** Detect when native modules change on disk (compare mtime of .node files at startup vs current). If mismatch, show banner in Lobby: "VoidForge updated — restart required. [Restart Now]". The restart button calls a server endpoint that executes graceful shutdown + re-exec (kills PTY sessions, then `process.execve()` to replace the process).
+5. **#12 — Stale session cleanup:** Tower `init()` should check if the auto-created session actually connected successfully. If "Session ended" appears within 2 seconds of creation, auto-close the tab and try again once. After 2 failures, show: "Terminal failed to start. The VoidForge server may need to restart." with a link to the Lobby.
