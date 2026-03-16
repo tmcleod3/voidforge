@@ -30,8 +30,8 @@
     // lastDeployAt confirms an actual deploy happened.
     if (project.deployUrl && project.lastDeployAt) return { label: 'Live', action: 'Open Room', badge: 'success', auto: '' };
     if (project.lastBuildPhase >= 13) return { label: 'Built', action: 'Open Room', badge: 'info', auto: '' };
-    if (project.lastBuildPhase > 0) return { label: 'Phase ' + project.lastBuildPhase + '/13', action: 'Resume Build', badge: 'warning', auto: 'campaign --blitz' };
-    return { label: 'Ready', action: 'Start Building', badge: 'accent', auto: 'campaign --blitz' };
+    if (project.lastBuildPhase > 0) return { label: 'Phase ' + project.lastBuildPhase + '/13', action: 'Return to the Shire', badge: 'warning', auto: 'campaign --blitz --resume' };
+    return { label: 'Ready', action: 'Engage', badge: 'accent', auto: 'campaign --blitz' };
   }
 
   // ── API helpers ────────────────────────────────────
@@ -125,8 +125,16 @@
     const canRemove = userRole === 'owner' || userRole === 'admin';
     const canManageAccess = userRole === 'owner' || userRole === 'admin';
 
+    // Contextual tooltips for build-state buttons
+    const tooltips = {
+      'Engage': 'Begin building this project — "Make it so."',
+      'Return to the Shire': 'Resume the campaign with fresh context — pick up where you left off',
+      'Open Room': 'Open the terminal workspace',
+    };
+    const tooltip = tooltips[buildStatus.action] || 'Open terminal workspace';
+
     const openBtn = canOpenRoom
-      ? `<button class="btn btn-primary" data-action="open" data-id="${escapeHtml(project.id)}" data-auto="${escapeHtml(buildStatus.auto)}" title="Open terminal workspace">${escapeHtml(buildStatus.action)}</button>`
+      ? `<button class="btn btn-primary" data-action="open" data-id="${escapeHtml(project.id)}" data-auto="${escapeHtml(buildStatus.auto)}" title="${escapeHtml(tooltip)}">${escapeHtml(buildStatus.action)}</button>`
       : '';
     const removeBtn = canRemove
       ? `<button class="btn btn-danger-ghost" data-action="remove" data-id="${escapeHtml(project.id)}" title="Remove from registry (does not delete files)">Remove</button>`
