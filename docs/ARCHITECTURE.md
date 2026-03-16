@@ -7,7 +7,7 @@
 
 VoidForge is a CLI-launched local web server that provides two browser-based wizards:
 
-- **Merlin** (`voidforge init`) — Project setup: credential vault, PRD generation, scaffold creation
+- **Gandalf** (`voidforge init`) — Project setup: credential vault, PRD generation, scaffold creation
 - **Haku** (`voidforge deploy`) — Infrastructure provisioning for 6 deploy targets
 
 Single-process Node.js monolith. TypeScript strict mode. No framework (vanilla JS frontend). Zero runtime dependencies beyond AWS SDK.
@@ -90,3 +90,13 @@ Adding a new deploy target = implement this interface + register in `wizard/api/
 | `@aws-sdk/client-sts` | Credential validation | Lazy (AWS targets only) |
 | `tsx` | TypeScript execution | Dev only |
 | `typescript` | Type checking | Dev only |
+
+### Infrastructure Dependency Exception
+
+The "zero runtime dependencies" principle applies to **business logic** — no ORM, no HTTP framework, no utility libraries for things Node.js handles natively. It does NOT apply to **protocol infrastructure**:
+
+- **WebSocket:** Use `ws` library (same as VS Code). Custom RFC 6455 implementations are tech debt — they look correct in code review but fail with runtime/platform differences.
+- **Terminal:** Use `node-pty` (same as VS Code, Gitpod). No alternative.
+- **Crypto:** Use Node.js built-in `crypto` module. Never homegrown.
+
+Custom implementations of standard protocols save one dependency and cost days of debugging. (Field report #30: 200 lines of RFC-correct custom WebSocket code replaced by 2-line `ws` import after 8 debugging commits.)

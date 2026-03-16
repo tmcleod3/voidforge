@@ -177,6 +177,10 @@ For larger projects where agents need to make code changes simultaneously, use s
 
 ---
 
+### Mode Instructions Must Replace, Not Append
+
+When an AI system has modal behavior (e.g., different output types, deck modes, project types), each mode's instructions must COMPLETELY REPLACE the default instructions — not append a footnote. A one-line override ("no scrolling") gets ignored when the default 11-section architecture contradicts it. Each mode needs its own complete specification. (Field report #27: one-line mode instructions were ignored because they contradicted the default architecture.)
+
 ## Anti-Patterns
 
 1. Don't run all agents at once on fresh codebase. Start Picard + Stark, layer others.

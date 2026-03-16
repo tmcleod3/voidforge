@@ -120,6 +120,7 @@ If `$ARGUMENTS` contains `--blitz`, skip confirmation and proceed immediately. O
 
 On confirmation (or immediately in `--blitz` mode):
 1. Run `/assemble` with the scoped mission description
+   When running from within `/campaign`, use a reduced pipeline: architecture (quick) + build + 1 review round + security (if new endpoints). Defer UX, DevOps, QA, Test, Crossfire, and Council to the Victory Gauntlet. This keeps per-mission cost manageable across multi-mission campaigns.
 2. If `$ARGUMENTS` includes `--fast`, pass `--fast` to assemble (skip Crossfire + Council). Note: `--blitz` does NOT imply `--fast`.
 3. Monitor for context pressure symptoms (re-reading files, forgetting decisions). If noticed, ask user to run `/context` — only checkpoint if usage exceeds 70%.
 
@@ -144,6 +145,7 @@ After `/assemble` completes:
 1. Run `/git` to commit and version the mission
 2. Update `/logs/campaign-state.md` — mark mission complete, update stats. When updating, include the debrief issue number: "Debrief: #XX" or "Debrief: SKIPPED (not blitz)" or "Debrief: N/A (normal mode)".
 3. **BLITZ GATE:** If `$ARGUMENTS` contains `--blitz`, run `/debrief --submit` NOW. Do not proceed to the next step until the debrief is filed. This is non-negotiable — blitz captures learnings while context is fresh. Log the debrief issue number in campaign-state.md.
+   **Lightweight alternative:** If context is too heavy for full `/debrief --submit`, append a 3-line summary to `/logs/campaign-debriefs.md` instead (mission name, finding counts, key lesson). This satisfies the gate. Full debrief runs at campaign end.
 4. **Collect BLOCKED items** from this mission (assets, infrastructure, copy issues). For each:
    - If it's a future feature → append to `ROADMAP.md` under the appropriate version
    - If it's a missing asset the user must provide → add to a `## Blocked Items` section in campaign-state.md with what's needed and who can unblock it
