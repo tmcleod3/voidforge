@@ -205,10 +205,22 @@
       }
     }
 
-    // Update stats
+    // Update stats from API for accurate cost aggregation
     statProjects.textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
-    const totalCost = projects.reduce((sum, p) => sum + (p.monthlyCost || 0), 0);
-    statCost.textContent = totalCost > 0 ? '$' + totalCost + '/mo' : '$0/mo';
+    fetchCosts();
+  }
+
+  async function fetchCosts() {
+    try {
+      const res = await fetch('/api/projects/costs');
+      if (!res.ok) return;
+      const body = await res.json();
+      const data = body.data || {};
+      statCost.textContent = data.totalMonthlyCost > 0 ? '$' + data.totalMonthlyCost + '/mo' : '$0/mo';
+    } catch {
+      const fallback = projects.reduce(function (sum, p) { return sum + (p.monthlyCost || 0); }, 0);
+      statCost.textContent = fallback > 0 ? '$' + fallback + '/mo' : '$0/mo';
+    }
   }
 
   // ── Navigation ─────────────────────────────────────

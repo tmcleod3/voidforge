@@ -26,9 +26,11 @@ import {
   type ProjectInput,
 } from '../lib/project-registry.js';
 import { getDeployPlan } from '../lib/deploy-coordinator.js';
+import { getAggregateCosts } from '../lib/cost-tracker.js';
+import { addLesson, getLessons, getLessonCount, type LessonInput } from '../lib/agent-memory.js';
 import { audit } from '../lib/audit-log.js';
 import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
-import { isValidRole, type SessionInfo } from '../lib/user-manager.js';
+import { isValidRole, hasRole, type SessionInfo } from '../lib/user-manager.js';
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -630,4 +632,82 @@ addRoute('POST', '/api/projects/deploy-check', async (req: IncomingMessage, res:
   }
 
   sendJson(res, 200, { success: true, data: plan });
+});
+
+// ── Cost + Lessons endpoints ────────────────────────
+
+// GET /api/projects/costs — aggregate costs across accessible projects
+addRoute('GET', '/api/projects/costs', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const costs = await getAggregateCosts(session.username, session.role);
+  sendJson(res, 200, { success: true, data: costs });
+});
+
+// GET /api/projects/lessons — get lessons (optionally filtered by framework)
+addRoute('GET', '/api/projects/lessons', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const framework = url.searchParams.get('framework') || undefined;
+  const category = url.searchParams.get('category') || undefined;
+
+  const lessons = await getLessons({ framework, category });
+  const count = await getLessonCount();
+  sendJson(res, 200, { success: true, data: { lessons, total: count } });
+});
+
+// POST /api/projects/lessons — add a lesson (deployer+)
+addRoute('POST', '/api/projects/lessons', async (req: IncomingMessage, res: ServerResponse) => {
+  const session = getSession(req);
+  if (!session) {
+    sendJson(res, 401, { success: false, error: 'Authentication required' });
+    return;
+  }
+
+  // Deployer minimum to write lessons
+  if (!hasRole(session, 'deployer')) {
+    sendJson(res, 404, { success: false, error: 'Not found' });
+    return;
+  }
+
+  const body = await parseJsonBody(req);
+  if (typeof body !== 'object' || body === null) {
+    sendJson(res, 400, { success: false, error: 'Request body must be a JSON object' });
+    return;
+  }
+
+  const { framework, category, lesson, action, project, agent } = body as Record<string, unknown>;
+  if (typeof framework !== 'string' || typeof category !== 'string' ||
+      typeof lesson !== 'string' || typeof action !== 'string' ||
+      typeof project !== 'string' || typeof agent !== 'string') {
+    sendJson(res, 400, { success: false, error: 'framework, category, lesson, action, project, and agent are required strings' });
+    return;
+  }
+
+  // Cap field lengths
+  if (lesson.length > 1000 || action.length > 500) {
+    sendJson(res, 400, { success: false, error: 'lesson max 1000 chars, action max 500 chars' });
+    return;
+  }
+
+  const input: LessonInput = {
+    framework: framework.slice(0, 50),
+    category: category.slice(0, 50),
+    lesson: lesson.slice(0, 1000),
+    action: action.slice(0, 500),
+    project: project.slice(0, 100),
+    agent: agent.slice(0, 50),
+  };
+
+  const created = await addLesson(input);
+  sendJson(res, 201, { success: true, data: created });
 });
