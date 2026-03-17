@@ -4,6 +4,7 @@
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/QA_ENGINEER.md`
 3. Read `/docs/methods/TESTING.md` (Testing Pyramid + Running Tests sections)
+4. Read `/docs/LESSONS.md` — check for QA-relevant lessons (antipatterns, gotchas, prior misses). Flag matches during analysis.
 
 ## Step 0 — Orient
 1. Create or update `/docs/qa-prompt.md` with: stack, framework, how to run, how to validate

@@ -5,6 +5,9 @@
 2. Read `/docs/methods/SYSTEMS_ARCHITECT.md`
 3. Read `/docs/PRD.md` (System Architecture + Tech Stack sections)
 
+## Pre-Analysis — Conflict Scan
+Before any deep analysis, scan the PRD frontmatter for structural contradictions (see SYSTEMS_ARCHITECT.md Conflict Checklist). Check: auth+database, payments+auth, websockets+deploy, workers+deploy, database+deploy, cache+deploy, admin+auth, email+credentials. Flag any contradictions immediately — these cost hours if caught late.
+
 ## Step 0 — System Discovery
 Produce: system identity, component inventory, data flow diagram (ASCII), dependency graph.
 Write to `/logs/` (phase-00 if during orient, or a dedicated architecture log).

@@ -77,7 +77,7 @@ cp -r /tmp/vf/.claude /tmp/vf/CLAUDE.md /tmp/vf/docs your-project/
 
 Every tier includes:
 - **CLAUDE.md** — Root context loaded at every session start
-- **16 slash commands** — `/build`, `/qa`, `/test`, `/security`, `/ux`, `/review`, `/devops`, `/architect`, `/git`, `/void`, `/thumper`, `/assemble`, `/campaign`, `/imagine`, `/debrief`, `/gauntlet`
+- **17 slash commands** — `/prd`, `/build`, `/qa`, `/test`, `/security`, `/ux`, `/review`, `/devops`, `/architect`, `/git`, `/void`, `/thumper`, `/assemble`, `/campaign`, `/imagine`, `/debrief`, `/gauntlet`
 - **13-phase build protocol** — PRD to production with verification gates
 - **14 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
 - **170+ named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, and Anime

@@ -3,6 +3,7 @@
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/PRODUCT_DESIGN_FRONTEND.md`
+3. Read `/docs/LESSONS.md` — check for UX-relevant lessons (a11y gaps, component gotchas, CSS issues). Flag matches during review.
 
 ## Step 0 — Orient
 Detect: framework, styling system, component library, routing, state management.
