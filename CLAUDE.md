@@ -41,13 +41,19 @@ Pre-load active domain methodology. Load application code on demand. See `/docs/
 
 Reference implementations in `/docs/patterns/`. Match these shapes when writing. All patterns include framework adaptations (Next.js, Express, Django, Rails).
 
-- `api-route.ts` — Validation, auth, service call, consistent response
-- `service.ts` — Business logic, ownership checks, typed errors
-- `component.tsx` — Loading, empty, error, success states. Keyboard accessible.
-- `middleware.ts` — Auth, request logging, rate limiting
-- `error-handling.ts` — Canonical error strategy (single source of truth)
-- `job-queue.ts` — Background jobs: idempotency, retry, dead letter queue
-- `multi-tenant.ts` — Workspace scoping, tenant isolation, role-based access
+- `api-route.ts` — Validation, auth, service call, consistent response (+ Django DRF, FastAPI)
+- `service.ts` — Business logic, ownership checks, typed errors (+ Django, FastAPI)
+- `component.tsx` — Loading, empty, error, success states. Keyboard accessible. (+ HTMX)
+- `middleware.ts` — Auth, request logging, rate limiting (+ Django, FastAPI)
+- `error-handling.ts` — Canonical error strategy (+ Django DRF, FastAPI)
+- `job-queue.ts` — Background jobs: idempotency, retry, dead letter queue (+ Celery, ARQ)
+- `multi-tenant.ts` — Workspace scoping, tenant isolation, role-based access (+ django-tenants)
+- `third-party-script.ts` — External script loading with 3 states
+- `mobile-screen.tsx` — React Native screen with safe area, a11y, 4 states
+- `mobile-service.ts` — Offline-first data pattern with sync queue, conflict resolution
+- `game-loop.ts` — Fixed timestep game loop with interpolation, pause/resume
+- `game-state.ts` — Hierarchical state machine with history, save/load
+- `game-entity.ts` — Entity Component System with component stores and systems
 
 ## Slash Commands
 
@@ -100,7 +106,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | **Field Medic** | `/docs/methods/FIELD_MEDIC.md` | Bashir — when running post-mortems and submitting upstream feedback |
 | **PRD Generator** | `/docs/methods/PRD_GENERATOR.md` | Sisko — when generating a PRD from scratch |
 | **Meta-Workflow** | `/docs/META_WORKFLOW.md` | How to use VoidForge to develop VoidForge — campaigns on self, anti-patterns, feedback loop |
-| **Patterns** | `/docs/patterns/` | When writing code (8 reference implementations) |
+| **Patterns** | `/docs/patterns/` | When writing code (13 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
 
 ## The Team
