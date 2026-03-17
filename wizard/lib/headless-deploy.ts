@@ -160,19 +160,35 @@ export async function envOnlyDeploy(projectDir?: string): Promise<void> {
 
   // Build env entries from vault
   const lines: string[] = [];
+  // Track written env names to prevent env:/infra collision duplicates
+  const writtenNames = new Set<string>();
   let written = 0;
   let skipped = 0;
+
+  /** Check if an env var name already exists in the .env file (line-anchored match) */
+  function envExists(name: string): boolean {
+    return new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=`, 'm').test(existingEnv);
+  }
+
+  /** Quote a value for .env — escape newlines, quotes, and backslashes */
+  function quoteValue(val: string): string {
+    if (/[\n\r"\\$`#\s]/.test(val)) {
+      return `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`;
+    }
+    return val;
+  }
 
   // env:-prefixed keys → strip prefix, use as env var name directly
   for (const key of envKeys) {
     const envName = key.slice(4); // strip "env:"
-    if (existingEnv.includes(`${envName}=`)) {
+    if (envExists(envName) || writtenNames.has(envName)) {
       skipped++;
       continue;
     }
     const val = await vaultGet(password, key);
-    if (val) {
-      lines.push(`${envName}=${val}`);
+    if (val !== null) {
+      lines.push(`${envName}=${quoteValue(val)}`);
+      writtenNames.add(envName);
       written++;
     }
   }
@@ -195,13 +211,14 @@ export async function envOnlyDeploy(projectDir?: string): Promise<void> {
   for (const key of infraKeys) {
     const envName = infraMap[key];
     if (!envName) continue; // unknown infra key, skip
-    if (existingEnv.includes(`${envName}=`)) {
+    if (envExists(envName) || writtenNames.has(envName)) {
       skipped++;
       continue;
     }
     const val = await vaultGet(password, key);
-    if (val) {
-      lines.push(`${envName}=${val}`);
+    if (val !== null) {
+      lines.push(`${envName}=${quoteValue(val)}`);
+      writtenNames.add(envName);
       written++;
     }
   }
@@ -211,10 +228,17 @@ export async function envOnlyDeploy(projectDir?: string): Promise<void> {
     return;
   }
 
-  // Append to .env
+  // Append to .env with restricted permissions (0o600 — owner only, matches vault.ts)
   const section = `\n# --- VoidForge vault (${new Date().toISOString().slice(0, 10)}) ---\n${lines.join('\n')}\n`;
-  const { writeFile: writeFileAsync } = await import('node:fs/promises');
-  await writeFileAsync(envPath, existingEnv + section, 'utf-8');
+  const { writeFile: writeFileSync, open: openFile } = await import('node:fs/promises');
+  const content = existingEnv + section;
+  const fh = await openFile(envPath, 'w', 0o600);
+  try {
+    await fh.writeFile(content, 'utf-8');
+    await fh.sync();
+  } finally {
+    await fh.close();
+  }
 
   log('✓', `Wrote ${written} env vars to .env (${skipped} already present)`);
   console.log('');

@@ -1,7 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, readdir } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
-import { globSync } from 'node:fs';
 import { route } from './router.js';
 
 import './api/credentials.js';
@@ -223,16 +222,31 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 // compare. If any changed, the server is running stale native modules.
 let nativeModuleMtimes: Map<string, number> = new Map();
 
+async function findNodeFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...await findNodeFiles(fullPath));
+      } else if (entry.name.endsWith('.node')) {
+        results.push(fullPath);
+      }
+    }
+  } catch { /* skip unreadable directories */ }
+  return results;
+}
+
 async function snapshotNativeModules(): Promise<void> {
   try {
-    const nodeModulesDir = resolve(join(import.meta.dirname ?? '.', '..', 'node_modules'));
-    const files = globSync('**/*.node', { cwd: nodeModulesDir });
-    for (const file of files) {
-      const fullPath = join(nodeModulesDir, file);
+    const nodeModulesDir = resolve(join(import.meta.dirname, '..', 'node_modules'));
+    const files = await findNodeFiles(nodeModulesDir);
+    for (const fullPath of files) {
       const s = await stat(fullPath);
       nativeModuleMtimes.set(fullPath, s.mtimeMs);
     }
-  } catch { /* non-fatal — if glob fails, we just can't detect changes */ }
+  } catch { /* non-fatal — if scan fails, we just can't detect changes */ }
 }
 
 export async function checkNativeModulesChanged(): Promise<boolean> {

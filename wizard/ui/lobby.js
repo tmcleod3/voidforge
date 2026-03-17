@@ -751,11 +751,12 @@
     const banner = document.createElement('div');
     banner.id = 'restart-banner';
     banner.setAttribute('role', 'alert');
-    banner.style.cssText = 'background:#2d1b00;border:1px solid #f59e0b;color:#fbbf24;padding:12px 16px;margin:0 0 16px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;';
-    banner.innerHTML = `
-      <span>VoidForge updated — native modules changed on disk. Restart required for changes to take effect.</span>
-      <button onclick="fetch('/api/server/restart',{method:'POST',headers:{'X-VoidForge-Request':'1'}}).then(()=>setTimeout(()=>location.reload(),2000))" style="background:#f59e0b;color:#000;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;margin-left:12px;">Restart Now</button>
-    `;
+    banner.style.cssText = 'background:#2d1b00;border:1px solid #f59e0b;color:#fbbf24;padding:12px 16px;margin:0 0 16px;border-radius:8px;';
+
+    const msg = document.createElement('span');
+    msg.textContent = 'VoidForge updated \u2014 native modules changed on disk. Restart the server (Ctrl+C, then re-run) for changes to take effect.';
+    banner.appendChild(msg);
+
     const header = document.querySelector('.lobby-header');
     if (header) header.after(banner);
   }

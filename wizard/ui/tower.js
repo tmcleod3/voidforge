@@ -138,16 +138,19 @@
         terminal.write('\x1b[33m[Session failed to start — cleaning up...]\x1b[0m\r\n');
         // Remove the tab after a brief delay so the user can see the message
         setTimeout(() => {
-          const tabEl = document.querySelector(`[data-tab-id="${sessionId}"]`);
-          if (tabEl) tabEl.remove();
-          const panelEl = document.getElementById(`panel-${sessionId}`);
-          if (panelEl) panelEl.remove();
-          tabs = tabs.filter(t => t.id !== sessionId);
+          // Use tabId (not sessionId) — DOM elements are keyed by tabId
+          const deadTabEl = document.querySelector(`[data-tab-id="${tabId}"]`);
+          if (deadTabEl) deadTabEl.remove();
+          const deadPanelEl = document.getElementById(`panel-${tabId}`);
+          if (deadPanelEl) deadPanelEl.remove();
+          // Remove from tabs array using splice (tabs is const)
+          const idx = tabs.findIndex(t => t.id === tabId);
+          if (idx !== -1) tabs.splice(idx, 1);
+          terminal.dispose();
           // If this was the auto-created first tab, retry once
           if (tabs.length === 0 && !hasRetried) {
             hasRetried = true;
-            terminal.dispose();
-            initTower();
+            init();
           }
         }, 1500);
       }
