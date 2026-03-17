@@ -53,6 +53,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 
 | Command | What It Does |
 |---------|-------------|
+| `/prd` | Sisko's PRD generator — 5-act structured interview producing a complete PRD with valid YAML frontmatter |
 | `/build` | Execute full build protocol — self-contained with inline steps per phase |
 | `/qa` | Batman's full QA pass with double-pass verification and regression checklist |
 | `/test` | Batman's test-writing mode — coverage analysis, test architecture, write missing tests |

@@ -1,0 +1,73 @@
+# /prd — Sisko's PRD Generator
+
+> Structured interview to generate a production-ready PRD with valid YAML frontmatter.
+
+## Context Setup
+1. Read `/docs/PRD.md` — understand the template structure
+2. Read `/docs/methods/CAMPAIGN.md` — understand how PRDs drive campaigns
+
+## The Interview
+
+Sisko conducts a 5-act structured interview. Each act drafts that PRD section, shows it for confirmation, then moves to the next. The user can revise any section before moving on.
+
+### Act 1 — "What are you building?"
+Ask:
+- What's the name of this project?
+- Describe it in one sentence.
+- Who is this for? (audience)
+- What does it do? (2-3 sentences)
+- What's the brand personality? (e.g., "Confident, witty, warm. Never corporate.")
+
+**Draft:** PRD Section 1 (Product Vision). Present for confirmation.
+
+### Act 2 — "What stack?"
+Propose defaults based on Act 1, then ask:
+- Framework? (Next.js, Express, Django, Rails, etc.) — Sisko proposes based on project type
+- Database? (Postgres, MySQL, SQLite, MongoDB, none)
+- Cache? (Redis, none)
+- Styling? (Tailwind, CSS modules, styled-components, vanilla)
+- Auth? (yes/no — Sisko recommends based on features)
+- Payments? (Stripe, LemonSqueezy, none)
+- Deploy target? (VPS, Vercel, Railway, Cloudflare, static, Docker)
+
+**Draft:** PRD Section 3 (Tech Stack) + YAML frontmatter. Present for confirmation.
+
+### Act 3 — "What features?"
+Ask:
+- What's the core user flow? (Step by step: user does X, sees Y, system does Z)
+- Any supporting features? (settings, profile, notifications, search)
+- Any integrations? (email, payments, file upload, third-party APIs)
+- What data do you need to store? (Sisko proposes a schema based on features)
+
+**Draft:** PRD Section 4 (Core Features) with user flows and data models. Present for confirmation.
+
+### Act 4 — "What does it look like?"
+Ask:
+- Key screens? (list the main pages/views)
+- Any specific UI requirements? (dark mode, mobile-first, dashboard layout)
+- Route structure? (Sisko proposes based on features)
+
+**Draft:** PRD Section 2 (System Architecture) with route structure + ASCII diagram. Present for confirmation.
+
+### Act 5 — "How does it ship?"
+Ask:
+- Any phased launch? (MVP first, then features?)
+- Success metrics? (users, revenue, performance targets)
+- Any non-functional requirements? (accessibility, performance, SEO)
+
+**Draft:** PRD Sections 5-8 (remaining sections). Present for confirmation.
+
+## Output
+
+After all 5 acts are confirmed:
+1. Assemble the complete PRD from all confirmed sections
+2. Write to `/docs/PRD.md`
+3. Verify YAML frontmatter is valid and complete
+4. Announce: "PRD written to /docs/PRD.md. Run `/build` to start building, or `/campaign` for autonomous execution."
+
+## Rules
+- Sisko proposes smart defaults — the user should confirm, not configure from scratch
+- Each act is self-contained — the user sees and approves before moving on
+- If the user is vague, Sisko asks one clarifying question (not three)
+- The output PRD must have valid YAML frontmatter that `/build` Phase 0 can parse
+- Never generate placeholder content — every section should have real, specific content based on the interview

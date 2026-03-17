@@ -47,6 +47,23 @@ Ensure architecture matches product needs. Identify structural risks and scaling
 6. Document decisions, not just outcomes.
 7. PRD decides *what*. Picard decides *how*.
 
+## Conflict Checklist
+
+Before building, scan the PRD frontmatter for structural contradictions. These are the common patterns that escape until late-stage reviews:
+
+| Contradiction | Why It Breaks |
+|--------------|---------------|
+| `auth: yes` + `database: none` | Auth requires session storage |
+| `payments: stripe` + `auth: no` | Payments need user identity for billing |
+| WebSocket features + `deploy: cloudflare` | Cloudflare Workers don't support persistent connections |
+| `workers: yes` + `deploy: vercel` | Vercel has no background process support |
+| `database: postgres` + `deploy: static` | Static hosting can't run a database |
+| `cache: redis` + `deploy: static` | Static hosting can't run Redis |
+| `admin: yes` + `auth: no` | Admin panel without auth is an open backdoor |
+| Email integration + no provider credentials | Email features will fail at runtime |
+
+When running `/architect` or Phase 0.5 of `/build`, check every combination. Flag contradictions with specific resolution options (e.g., "Add `database: sqlite` for local auth, or switch to a stateless auth provider like Auth0").
+
 ## Sequence
 
 **Step 0 — System Discovery:** System identity, component inventory, data flow diagram, dependency graph.

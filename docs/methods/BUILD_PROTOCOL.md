@@ -83,9 +83,26 @@ Every phase produces a log file in `/logs/`. See `/docs/methods/BUILD_JOURNAL.md
 3. Determine project profile and skip rules
 4. Flag missing items — list each gap explicitly with "inferred [assumption]" or "BLOCKED — needs answer"
 5. Check for VoidForge vault (`~/.voidforge/vault.enc`). If present, cross-reference env vars from the PRD against vault contents and provisioning state (`~/.voidforge/runs/*.json`). Distinguish "missing credential" (truly BLOCKED) from "vault-available credential" (resolvable via `voidforge deploy`). (Field report #40)
-6. Produce initial ADRs in `/docs/adrs/`
-7. Create `/logs/build-state.md` and `/logs/phase-00-orient.md`
-8. If PRD has critical gaps (no schema, no stack, no features defined): **STOP. Flag to user. Do not proceed.**
+6. **Wong loads lessons:** Read `/docs/LESSONS.md`. For each entry matching the current project's framework, database, auth pattern, or integration stack, note it: "Lesson from prior build: [summary]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+. Log matched lessons in phase-00-orient.md.
+7. Produce initial ADRs in `/docs/adrs/`
+8. Create `/logs/build-state.md` and `/logs/phase-00-orient.md`
+9. If PRD has critical gaps (no schema, no stack, no features defined): **STOP. Flag to user. Do not proceed.**
+
+**Phase 0.5 — Picard's Conflict Scan.**
+
+Before a single line is written, scan the PRD frontmatter for structural contradictions:
+- Auth required but no session store (database: none + auth: yes) → flag
+- Payments enabled but auth disabled (payments: stripe + auth: no) → flag
+- WebSocket features but static/Cloudflare deploy (deploy: cloudflare + features needing persistent connections) → flag
+- Workers enabled but deploy target has no background process support (workers: yes + deploy: vercel) → flag
+- Database specified but deploy target doesn't support persistent storage (database: postgres + deploy: static) → flag
+- Cache specified but deploy target can't run Redis (cache: redis + deploy: static) → flag
+- Admin panel but no auth (admin: yes + auth: no) → flag
+- Email integration but no env vars for provider credentials → flag
+
+If any contradictions found: present them to the user with specific resolution options. Do NOT proceed to Phase 1 until all contradictions are resolved or acknowledged. Log resolutions in `/logs/phase-00-orient.md`.
+
+This catches architecture mistakes that currently escape until Phase 9-11 reviews — where fixing them costs hours instead of minutes.
 
 **Phase 1 — Stark + Kusanagi Scaffold.**
 1. Initialize framework, configs, schema, directory structure, types, utils, root layout

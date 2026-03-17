@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v7.7.0 (2026-03-16)
-**Next:** v8.0 — The Hive Mind
-**Status:** v7.7.0 shipped. Next: v8.0 (Hive Mind).
+**Current:** v8.0.0 (2026-03-16)
+**Next:** v8.1 — The Evolution
+**Status:** v8.0.0 shipped. Next: v8.1 (Evolution) → v8.2 (Autonomy).
 
 ---
 
