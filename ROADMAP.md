@@ -1024,9 +1024,9 @@ deploy: "web"           # web (WebGL/HTML5) | steam | itch | mobile
 
 Each agent reports a confidence score (0-100) on their findings. Low-confidence findings (<60) get escalated to a second agent from a different universe instead of being presented as definitive. Reduces false positives. High-confidence findings (>90) skip re-verification in Pass 2. The system learns which agents are reliable in which domains.
 
-### 2. Live Session Replay
+### 2. Agent Debates
 
-Record every agent decision, file read, and code change as a replayable timeline. Stored in `/logs/session-replay-YYYY-MM-DD.json`. New team members can watch how a feature was built — not just read the diff, but see which agents ran, what they found, and why decisions were made. Like a DVR for development sessions.
+When two agents disagree on a finding (Kenobi says "security risk," Stark says "by design"), instead of listing both opinions, run a structured debate. Each agent makes their case with evidence from the codebase. Picard or the user arbitrates. The debate transcript is logged as an ADR. Better decisions come from argued positions than from listed bullet points. The debate format: Agent A states finding → Agent B responds → Agent A rebuts → Arbiter decides. 3 exchanges max.
 
 ### 3. Adversarial PRD Review (`/prd --challenge`)
 
@@ -1056,9 +1056,9 @@ Run two versions of a methodology step on the same codebase and compare results.
 
 Render the campaign's Prophecy Board as a visual dependency graph in the browser. Nodes are PRD sections; edges are dependencies. Completed nodes are green, in-progress yellow, blocked red. Click a node to see which missions touched it, what agents reviewed it, and what findings remain. Sisko's war table, visualized.
 
-### 10. Voice-Driven Forge (`/prd --voice`)
+### 10. The Living PRD
 
-Instead of typing answers to Sisko's 5-act interview, speak them. Use the browser's Web Speech API for transcription. Sisko asks "What are you building?" — you describe it out loud while pacing your office. The PRD writes itself from conversation. Lower friction than typing for people who think by talking. The Gandalf wizard already runs in the browser; this adds a microphone button.
+The PRD is currently static — read at Phase 0, checked at the end by Troi. Make it a living document that evolves with the build. Phase 4 reveals the schema needs a field the PRD didn't mention? The PRD's data model section updates. Feature gets BLOCKED? PRD marks it inline. Gauntlet finds the implementation deviates from the PRD? The user chooses: fix the code OR update the PRD. Troi's compliance check becomes a two-way sync, not a one-way audit. The PRD stays true because it evolves with reality instead of fossilizing at Phase 0.
 
 ---
 
