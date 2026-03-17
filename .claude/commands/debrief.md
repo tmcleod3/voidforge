@@ -44,6 +44,14 @@ For each root cause, Nog proposes a fix that works within VoidForge's existing f
 
 **Constraint:** All proposals must reference existing VoidForge concepts (agents, phases, commands, patterns). No solutions that require reimagining the system.
 
+## Step 2.5 — Promotion Analysis (Wong)
+
+After Nog proposes solutions, Wong checks `docs/LESSONS.md` for lesson clusters:
+- If 3+ lessons share the same category AND target the same method doc → Wong drafts a specific method doc update
+- Present for user approval: "Wong recommends promoting these lessons into [method doc] [section]: [proposed text]. Approve?"
+- If approved: apply the change, mark lessons as "Promoted to: [doc]" in LESSONS.md
+- If submitting upstream (`--submit`): include the proposed change in the GitHub issue body
+
 ## Step 3 — Write the Report (Jake)
 
 Produce a structured post-mortem:

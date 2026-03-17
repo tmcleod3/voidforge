@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v8.0.1 (2026-03-16)
-**Next:** v8.1 — The Deep Roster
-**Status:** v8.0.1 shipped. Next: v8.1 (Deep Roster) → v8.2 (Evolution) → v8.3 (Autonomy).
+**Current:** v8.2.0 (2026-03-16)
+**Next:** v8.3 — The Autonomy
+**Status:** v8.2.0 shipped. Next: v8.3 (Autonomy) → v9.0+ (Horizon).
 
 ---
 
