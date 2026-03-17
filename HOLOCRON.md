@@ -47,7 +47,7 @@ npm run wizard
 **Best for:** Users who want the guided experience. Gandalf walks you through setup, Haku handles deployment. After creation, Avengers Tower gives you a full terminal in the browser — type `/build`, `/campaign`, SSH to production, all from one tab. The Lobby shows all your projects. The Penthouse adds team access.
 
 #### Scaffold (`scaffold` branch)
-The methodology without the tooling. CLAUDE.md, all 15 slash commands, all agent protocols, all code patterns, project scaffolding script. No wizard, no npm dependencies, no TypeScript compilation.
+The methodology without the tooling. CLAUDE.md, all 17 slash commands, all agent protocols, all code patterns, project scaffolding script. No wizard, no npm dependencies, no TypeScript compilation.
 
 ```bash
 mkdir my-app && cd my-app
@@ -60,7 +60,7 @@ git clone --branch scaffold https://github.com/tmcleod3/voidforge.git .
 **Best for:** Developers who know what they're doing and want to skip the wizard. You manage your own infrastructure. VoidForge manages your build process.
 
 #### Core (`core` branch)
-The lightest possible version. CLAUDE.md, the 13 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
+The lightest possible version. CLAUDE.md, all 17 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
 
 ```bash
 # Option A: Drop into an existing project
@@ -377,7 +377,12 @@ When agents disagree (security vs. simplicity, architecture vs. implementation c
 
 ### Slash Commands
 
-Sixteen commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
+Seventeen commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
+
+#### `/prd` — Sisko's PRD Generator
+**When:** Starting a new project and you need a PRD. Or when the existing PRD needs a rewrite.
+
+Sisko conducts a 5-act structured interview: what are you building, what stack, what features, what does it look like, how does it ship. Each act drafts that PRD section, shows it for confirmation, then moves on. Output: complete `docs/PRD.md` with valid YAML frontmatter. This is the lowest-friction path from "I have an idea" to "I have a buildable PRD."
 
 #### `/build` — The Full Protocol
 **When:** Starting a new project or resuming a build.
@@ -505,17 +510,23 @@ Flags: `--submit` (create GitHub issue after review), `--campaign` (full campaig
 
 ### Code Patterns
 
-Seven reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, and Rails.
+Thirteen reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, FastAPI, and Rails. Mobile and game patterns added in v9.2-v9.3.
 
 | Pattern | File | What It Teaches |
 |---------|------|----------------|
-| **API Route** | `api-route.ts` | Zod validation, auth check, service call, consistent response shape |
-| **Service** | `service.ts` | Business logic in services (not routes), ownership checks, typed errors |
-| **Component** | `component.tsx` | All 4 states (loading, empty, error, success), keyboard accessible |
-| **Middleware** | `middleware.ts` | Auth middleware, request logging, rate limiting |
-| **Error Handling** | `error-handling.ts` | Canonical error strategy — the single source of truth |
-| **Job Queue** | `job-queue.ts` | Background jobs with idempotency, retry, dead letter queue |
-| **Multi-Tenant** | `multi-tenant.ts` | Workspace scoping, tenant isolation, RBAC |
+| **API Route** | `api-route.ts` | Zod validation, auth check, service call, consistent response (+ DRF, FastAPI) |
+| **Service** | `service.ts` | Business logic in services, ownership checks, typed errors (+ Django, FastAPI) |
+| **Component** | `component.tsx` | All 4 states (loading, empty, error, success), keyboard accessible (+ HTMX) |
+| **Middleware** | `middleware.ts` | Auth middleware, request logging, rate limiting (+ Django, FastAPI) |
+| **Error Handling** | `error-handling.ts` | Canonical error strategy (+ DRF exception handler, FastAPI) |
+| **Job Queue** | `job-queue.ts` | Background jobs: idempotency, retry, dead letter queue (+ Celery, ARQ) |
+| **Multi-Tenant** | `multi-tenant.ts` | Workspace scoping, tenant isolation, RBAC (+ django-tenants) |
+| **Third-Party Script** | `third-party-script.ts` | External script loading with 3 states |
+| **Mobile Screen** | `mobile-screen.tsx` | React Native screen with safe area, a11y, 4 states |
+| **Mobile Service** | `mobile-service.ts` | Offline-first data with sync queue, conflict resolution |
+| **Game Loop** | `game-loop.ts` | Fixed timestep with interpolation, pause/resume, frame budget |
+| **Game State** | `game-state.ts` | Hierarchical state machine with history, save/load |
+| **Game Entity** | `game-entity.ts` | Entity Component System with component stores and systems |
 
 ### Coding Standards
 
