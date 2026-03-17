@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
+import { globSync } from 'node:fs';
 import { route } from './router.js';
 
 import './api/credentials.js';
@@ -191,8 +192,16 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
+  // Server status endpoint — native module mtime check for restart detection
+  const reqUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  if (reqUrl.pathname === '/api/server/status' && req.method === 'GET') {
+    const needsRestart = await checkNativeModulesChanged();
+    sendJson(res, 200, { needsRestart });
+    return;
+  }
+
   // Static file serving
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const url = reqUrl;
   let pathname = url.pathname;
 
   if (pathname === '/' || pathname === '') {
@@ -207,6 +216,33 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
   await serveStatic(res, safePath);
+}
+
+// ── Native module mtime detection (tech debt #11) ──
+// At startup, snapshot the mtimes of all .node files. On each Lobby request,
+// compare. If any changed, the server is running stale native modules.
+let nativeModuleMtimes: Map<string, number> = new Map();
+
+async function snapshotNativeModules(): Promise<void> {
+  try {
+    const nodeModulesDir = resolve(join(import.meta.dirname ?? '.', '..', 'node_modules'));
+    const files = globSync('**/*.node', { cwd: nodeModulesDir });
+    for (const file of files) {
+      const fullPath = join(nodeModulesDir, file);
+      const s = await stat(fullPath);
+      nativeModuleMtimes.set(fullPath, s.mtimeMs);
+    }
+  } catch { /* non-fatal — if glob fails, we just can't detect changes */ }
+}
+
+export async function checkNativeModulesChanged(): Promise<boolean> {
+  try {
+    for (const [path, mtime] of nativeModuleMtimes) {
+      const s = await stat(path);
+      if (s.mtimeMs !== mtime) return true;
+    }
+  } catch { /* file missing = changed */ return true; }
+  return false;
 }
 
 export function startServer(port: number, options?: { remote?: boolean; host?: string }): Promise<void> {
@@ -275,6 +311,7 @@ export function startServer(port: number, options?: { remote?: boolean; host?: s
     server.listen(port, bindAddress, async () => {
       await initAuditLog();
       startHealthPoller();
+      await snapshotNativeModules();
       resolve();
     });
 

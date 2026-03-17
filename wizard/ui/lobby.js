@@ -735,10 +735,36 @@
 
   // ── Init ───────────────────────────────────────────
 
+  // ── Restart detection ────────────────────────────────
+  async function checkServerRestart() {
+    try {
+      const res = await fetch('/api/server/status', { headers: { 'X-VoidForge-Request': '1' } });
+      const data = await res.json();
+      if (data.needsRestart) {
+        showRestartBanner();
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  function showRestartBanner() {
+    if (document.getElementById('restart-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'restart-banner';
+    banner.setAttribute('role', 'alert');
+    banner.style.cssText = 'background:#2d1b00;border:1px solid #f59e0b;color:#fbbf24;padding:12px 16px;margin:0 0 16px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;';
+    banner.innerHTML = `
+      <span>VoidForge updated — native modules changed on disk. Restart required for changes to take effect.</span>
+      <button onclick="fetch('/api/server/restart',{method:'POST',headers:{'X-VoidForge-Request':'1'}}).then(()=>setTimeout(()=>location.reload(),2000))" style="background:#f59e0b;color:#000;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;margin-left:12px;">Restart Now</button>
+    `;
+    const header = document.querySelector('.lobby-header');
+    if (header) header.after(banner);
+  }
+
   async function init() {
     await checkAuth();
     projects = await fetchProjects();
     render();
+    await checkServerRestart();
 
     // Start polling for health updates
     pollTimer = setInterval(async () => {
