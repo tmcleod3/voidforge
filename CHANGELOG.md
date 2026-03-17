@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [8.0.0] - 2026-03-16
+
+### Added
+- **Agent Memory — Active Lessons Read-Back.** Wong loads `/docs/LESSONS.md` during Phase 0 Orient. Review commands (`/qa`, `/security`, `/ux`, `/review`) read LESSONS.md in Context Setup and flag matches during analysis.
+- **Conflict Prediction — Phase 0.5 Architecture Scan.** Picard scans PRD frontmatter for 8 structural contradictions before any code is written. Added Conflict Checklist to SYSTEMS_ARCHITECT.md and pre-analysis step to `/architect`.
+- **`/prd` command** — Sisko's PRD generator. 5-act structured interview producing a complete PRD with valid YAML frontmatter.
+
+---
+
 ## [7.7.0] - 2026-03-16
 
 ### Added

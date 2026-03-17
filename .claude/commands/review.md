@@ -5,6 +5,7 @@
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read the relevant pattern files from `/docs/patterns/` for the code being reviewed
+3. Read `/docs/LESSONS.md` — check for review-relevant lessons (integration tracing gaps, render loops, cross-module issues). Flag matches during review.
 
 ## Step 0 — Scope
 Determine what to review:

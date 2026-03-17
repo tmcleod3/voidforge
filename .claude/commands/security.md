@@ -3,6 +3,7 @@
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/SECURITY_AUDITOR.md`
+3. Read `/docs/LESSONS.md` — check for security-relevant lessons (prior vulnerabilities, auth gotchas). Flag matches during audit.
 
 ## Audit Sequence
 
