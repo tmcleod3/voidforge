@@ -199,6 +199,27 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
+  // War Room API — reads from existing state files
+  if (reqUrl.pathname.startsWith('/api/war-room/') && req.method === 'GET') {
+    const endpoint = reqUrl.pathname.slice('/api/war-room/'.length);
+    try {
+      if (endpoint === 'version') {
+        const versionFile = await readFile(resolve(join(import.meta.dirname, '..', 'VERSION.md')), 'utf-8');
+        const match = versionFile.match(/\*\*Current:\*\*\s*([\d.]+)/);
+        sendJson(res, 200, { version: match ? match[1] : 'unknown', branch: 'main' });
+      } else if (endpoint === 'campaign' || endpoint === 'build' || endpoint === 'findings' || endpoint === 'deploy' || endpoint === 'context') {
+        // These endpoints return empty data until real-time data feeds are connected
+        // The War Room UI handles null gracefully
+        sendJson(res, 200, null);
+      } else {
+        sendJson(res, 404, { error: 'Unknown war-room endpoint' });
+      }
+    } catch {
+      sendJson(res, 200, null); // Graceful fallback
+    }
+    return;
+  }
+
   // Static file serving
   const url = reqUrl;
   let pathname = url.pathname;
