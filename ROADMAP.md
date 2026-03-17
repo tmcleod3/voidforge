@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v10.0.0 (2026-03-17)
-**Next:** v10.0.x — Frontier feature panels (confidence, debates, archaeology, etc.)
-**Status:** v10.0.0 shipped (War Room foundation). Frontier features ship as patches.
+**Current:** v10.0.1 (2026-03-17)
+**Next:** v10.1 — War Room Data Feeds + Feature Enforcement
+**Status:** v10.0.1 shipped (War Room UI + methodology specs). v10.1 connects the data feeds and adds enforcement to methodology features. See "Remaining v10.x Work" below.
 
 ---
 
@@ -1233,6 +1233,58 @@ The PRD is currently static — read at Phase 0, checked at the end by Troi. Mak
 8-12 sessions. 11 missions. The War Room foundation (Missions 1-2) ships first; frontier features (Missions 3-11) add panels incrementally.
 
 ---
+
+---
+
+## Remaining v10.x Work
+
+*What was claimed as shipped but needs real implementation. Field report #76.*
+
+### v10.1 — War Room Data Feeds + Feature Enforcement
+
+**Mission 1 — War Room WebSocket handler + data feeds**
+- Add `/ws/war-room` WebSocket upgrade handler in `wizard/server.ts` (alongside existing `/ws/terminal`)
+- Connect campaign-state.md parsing to `/api/war-room/campaign` endpoint (return mission list with statuses)
+- Connect assemble-state.md to `/api/war-room/build` (return phase pipeline with statuses)
+- Parse phase logs for finding counts → `/api/war-room/findings`
+- Read deploy-log.json → `/api/war-room/deploy`
+- Emit real-time agent activity events via WebSocket when agents are launched
+
+**Mission 2 — Confidence Scoring enforcement**
+- Update `.claude/commands/gauntlet.md`: finding format MUST include `[CONFIDENCE: XX]`
+- Update `.claude/commands/qa.md`, `security.md`, `ux.md`, `review.md`: all findings require confidence score
+- Add low-confidence escalation instructions to each command: "If confidence <60, launch a second agent from a different universe to verify"
+
+**Mission 3 — Agent Debates enforcement**
+- Update `.claude/commands/assemble.md`: when parallel review agents produce conflicting findings, trigger debate protocol (not just list both)
+- Update `.claude/commands/review.md`: add conflict detection step after parallel analysis
+
+**Mission 4 — Living PRD enforcement**
+- Update `.claude/commands/build.md`: Phase 4/6/8 gates must include "check: does implementation match PRD? If not, fix code OR update PRD"
+- Store Phase 0 snapshot: add instruction to save `docs/PRD-snapshot-phase0.md` at Phase 0
+
+### v10.2 — Unbuilt Features
+
+**Mission 5 — Natural Language Deploy**
+- Build prose → frontmatter resolver in `wizard/lib/natural-language-deploy.ts`
+- Parse: "I want a $20/month server with SSL" → `deploy: vps, instance_type: t3.small, hostname: ...`
+- Integrate into `/prd` Act 5 or as standalone command
+
+**Mission 6 — Methodology A/B Testing**
+- Design experiment schema: `~/.voidforge/experiments.json`
+- Track per-agent true-positive rates across projects
+- Build experiment runner that runs protocol variant A and B on same code, compares results
+- Add Experiment Dashboard panel to War Room
+
+**Mission 7 — Prophecy Visualizer**
+- Build dependency graph renderer (SVG or canvas) in `wizard/ui/war-room-prophecy.js`
+- Parse campaign-state.md into node/edge graph
+- Clickable nodes → drill into mission details, findings, agent reviews
+- Color-coded: green (complete), yellow (active), red (blocked), gray (pending)
+
+### Estimated effort
+v10.1: 2-3 sessions (4 missions — data feeds + 3 enforcement missions)
+v10.2: 3-4 sessions (3 missions — all require real implementation code)
 
 ### Deferred Indefinitely
 
