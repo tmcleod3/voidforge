@@ -348,6 +348,35 @@ All PRD requirements are COMPLETE or explicitly BLOCKED:
 
 **The Victory Gauntlet is NEVER skipped.** Not for methodology-only campaigns. Not for "no code changes." Not for single-mission campaigns. The Gauntlet checks methodology consistency (cross-references, command↔doc sync, agent assignments, version drift) in ADDITION to code quality. Five consecutive campaigns (v8.1-v9.2) shipped without Gauntlets because the first skip was self-justified as "methodology-only" and the pattern stuck. This is a protocol violation on the same level as the Quality Reduction Anti-Pattern.
 
+### Deliverable Completeness Anti-Pattern
+
+**"Methodology-only" is NOT a complete deliverable unless it includes enforcement.**
+
+Writing instructions in a method doc ("agents should report confidence scores") is a specification, not an implementation. A feature is only COMPLETE when:
+1. **Methodology section exists** in the relevant method doc (the "what")
+2. **Command file enforces it** — the paired command instructs the agent to actually do it (the "how")
+3. **The described behavior is verifiable** — you can check whether it happened
+
+A methodology section WITHOUT command enforcement = **PARTIAL**, not COMPLETE. Mark it as such in campaign-state.md and do NOT declare victory.
+
+**Per-mission evidence required at sign-off.** The Victory sign-off must list each mission with its actual status and evidence:
+```
+Mission 1: COMPLETE — war-room.html created (233 lines), war-room.js (199 lines), server endpoints verified
+Mission 2: PARTIAL — methodology section in GAUNTLET.md, command file NOT updated
+Mission 3: NOT BUILT — deferred
+```
+No aggregate "11 missions done." Per-mission evidence or it didn't happen. (Field report #76: campaign claimed 11 missions complete, 3 were not built, 4 were methodology-only stubs.)
+
+### Roadmap Compliance Check (Troi)
+
+During the Victory Gauntlet, Troi reads the ROADMAP.md section for the current version and verifies each mission's deliverables against reality:
+- Does the described feature actually exist (file, function, section)?
+- Does it actually WORK as described (not just exist)?
+- Is enforcement present in command files (not just documentation)?
+- Are data feeds connected (not just null stubs)?
+
+This is the check that catches "the file exists but the feature doesn't work." (Field report #76: Victory Gauntlet signed off on v10.0 because files existed and docs were consistent, but 3 features were not built and 4 had no enforcement.)
+
 ### Periodic Architecture Health Check
 
 After every 2-3 campaigns (or when transitioning between major project phases), run a full `/architect` with all agents deployed (Spock, Uhura, Worf, Tuvok, La Forge, Data, Torres, Riker). This catches systemic issues that per-mission reviews and Gauntlets miss:
