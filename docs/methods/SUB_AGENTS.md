@@ -118,9 +118,30 @@ RISKS: [Side effects]
 REGRESSION: [How to verify]
 ```
 
+## Custom Sub-Agents
+
+Users can create project-specific sub-agents that carry domain knowledge. Define them in `docs/CUSTOM_AGENTS.md`:
+
+```markdown
+### Jarvis-Tailwind
+**Universe:** Marvel | **Reports to:** Galadriel
+**Domain:** Tailwind CSS v4 configuration, PostCSS, source() directive
+**Behavioral directives:** Always check for v3→v4 migration issues. Verify @config path.
+**Reference docs:** tailwindcss.com/docs/upgrade-guide
+```
+
+**Rules:**
+- Custom agents run alongside built-in agents, not instead of them
+- Names must NOT collide with the naming registry — check `docs/NAMING_REGISTRY.md` before creating
+- Use the format `[BaseName]-[Specialty]` to avoid collisions (e.g., `Jarvis-Tailwind`, not just `Jarvis`)
+- Custom agents are loaded during Phase 0 Orient when the orchestrator reads `docs/CUSTOM_AGENTS.md`
+- They participate in the review rounds of their lead's domain (e.g., a Galadriel custom agent runs during UX reviews)
+
+**When to create a custom agent:** When a project has a domain-specific pattern that the built-in agents miss repeatedly. If the same lesson appears 3+ times in LESSONS.md about the same technology, that's a signal for a custom agent rather than more method doc checklist items.
+
 ## Naming Rule
 
-When spinning up agents, check NAMING_REGISTRY.md. First claim wins. No duplicates across sessions. Log active names.
+When spinning up agents, check NAMING_REGISTRY.md AND `docs/CUSTOM_AGENTS.md` (if it exists). First claim wins. No duplicates across sessions. Log active names.
 
 ---
 

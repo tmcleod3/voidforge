@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [8.2.0] - 2026-03-16
+
+### Added
+- **Self-Improving Methodology (Wong Promotion Analysis)** — when 3+ lessons in LESSONS.md share the same category and target the same method doc, Wong auto-drafts a promotion: a specific checklist item or rule based on the lesson cluster. Presented for user approval, never auto-applied. Added to FIELD_MEDIC.md and `/debrief` command.
+- **Custom Sub-Agents** — users can create project-specific sub-agents in `docs/CUSTOM_AGENTS.md`. Agents carry domain knowledge (e.g., `Jarvis-Tailwind` for Tailwind v4 patterns). Run alongside built-in agents. Naming collision check rule added to NAMING_REGISTRY.md. Template file created.
+
+---
+
 ## [8.1.2] - 2026-03-16
 
 ### Changed
