@@ -377,7 +377,12 @@ When agents disagree (security vs. simplicity, architecture vs. implementation c
 
 ### Slash Commands
 
-Sixteen commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
+Seventeen commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
+
+#### `/prd` — Sisko's PRD Generator
+**When:** Starting a new project and you need a PRD. Or when the existing PRD needs a rewrite.
+
+Sisko conducts a 5-act structured interview: what are you building, what stack, what features, what does it look like, how does it ship. Each act drafts that PRD section, shows it for confirmation, then moves on. Output: complete `docs/PRD.md` with valid YAML frontmatter. This is the lowest-friction path from "I have an idea" to "I have a buildable PRD."
 
 #### `/build` — The Full Protocol
 **When:** Starting a new project or resuming a build.
