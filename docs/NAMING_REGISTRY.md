@@ -13,6 +13,7 @@
 4. **When spinning up additional agents of the same type**, pick the next unused name from the pool.
 5. **Log which names are active** in your session to prevent collisions.
 6. **Names in the Reserved column** are held for lead agents or have cross-universe conflicts. Don't use them as sub-agents.
+7. **Custom sub-agents** (defined in `docs/CUSTOM_AGENTS.md`) must use the `[BaseName]-[Specialty]` format to avoid collisions with this registry. Check both this registry AND the custom agents file before claiming a name.
 
 ---
 
