@@ -1,30 +1,27 @@
-# Campaign State — VoidForge Campaign 7 (v11.1 The Treasury)
+# Campaign State — VoidForge Campaign 8 (v11.2 The Distribution)
 
 ## Campaign Info
 
-**Version:** v11.1
-**Codename:** The Treasury
+**Version:** v11.2
+**Codename:** The Distribution
 **Mode:** `--blitz --continuous --major`
-**Started:** 2026-03-18 (continuing from Campaign 6)
-**PRD:** PRD-VOIDFORGE.md Section 9 (§9.4, §9.7, §9.9, §9.16 ADR-1/3/5, §9.19)
+**Started:** 2026-03-18 (continuing from Campaign 7)
+**PRD:** PRD-VOIDFORGE.md Section 9 (§9.3 Ph 4, §9.5, §9.10, §9.12, §9.17, §9.19)
 
 ## Mission Plan
 
 | # | Mission | PRD Scope | Status | Debrief |
 |---|---------|-----------|--------|---------|
-| 1 | Treasury Methodology | §9.4, §9.7, §9.19.10-11 | COMPLETE | — |
-| 2 | Heartbeat Daemon | §9.7, §9.18, §9.19.2, §9.20.11 | COMPLETE | — |
-| 3 | Revenue + Reconciliation | §9.4, §9.9, §9.17, ADR-1/3/5/6 | COMPLETE | — |
-| 4 | Treasury Tab | §9.10, §9.15, §9.20.2 | COMPLETE | — |
+| 1 | Ad Platform Adapters | §9.5, §9.19.10 | NOT STARTED | — |
+| 2 | Spend Execution + State Machine | §9.17, §9.18, §9.20.4 | NOT STARTED | — |
+| 3 | Growth Agents | §9.3 Ph 4, §9.12 | NOT STARTED | — |
+| 4 | Ad Campaigns Tab | §9.10, §9.15, §9.20.2 | NOT STARTED | — |
 
-Missions completed: 4. Victory Gauntlet: 6/6 SIGN OFF (0C, 0H, 1M, 6L). v11.1.0 released.
-
-## Victory
-
-v11.1.0 released. Campaign 7 complete. The Treasury is open for business.
+Missions completed: 0. Next checkpoint at: 4.
 
 ## Previous Campaigns
 
+- Campaign 7 (v11.1): 4 missions, COMPLETE (2026-03-18). Victory Gauntlet passed 6/6.
 - Campaign 6 (v11.0): 3 missions, COMPLETE (2026-03-18). Victory Gauntlet passed 6/6.
 - Campaign 5 (v10.2): 3 missions, COMPLETE (2026-03-17). Victory Gauntlet passed 3/3.
 - Campaign 4 (v10.1): 4 missions, COMPLETE (2026-03-17). Victory Gauntlet passed 4/4.

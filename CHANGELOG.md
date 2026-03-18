@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [11.2.0] - 2026-03-18
+
+### Added — The Distribution (Ad Platform Adapters + Spend Execution)
+- **6 ad platform adapters** — Meta Marketing, Google Ads, TikTok Marketing, LinkedIn Marketing, Twitter/X Ads, Reddit Ads. Each with Setup (interactive OAuth) + Adapter (daemon runtime). All use OutboundRateLimiter.
+- **`docs/patterns/outbound-rate-limiter.ts`** — Token bucket with per-platform configs, safety margin reservation, daily quota tracking, executeWithRetry with exponential backoff
+- **Campaign state machine** — 10 states with validated transitions, agent-allowed subset (active→paused only), event-sourced history with source/reason/ruleId
+- **Spend execution pipeline** — WAL intent → budget lock → platform API → spend log. Idempotency keys per ADR-3.
+- **Szeth's compliance framework** — GDPR cookie consent, CAN-SPAM unsubscribe/address, per-platform ToS checks. Critical findings block campaign launch.
+- **Danger Room Ad Campaigns tab** — Campaign performance table with semantic HTML, A/B test groups panel, agent recommendations panel
+- **Platform adapter registry** — Index with name and minimum budget per platform
+
+### Fixed
+- ARC-001: Removed dead TokenBucketLimiter re-export from adapter types
+- QA-002: Budget lock uses `>=` (not `>`) for hard stop enforcement
+
+---
+
 ## [11.1.0] - 2026-03-18
 
 ### Added — The Treasury (Dockson's Financial Operations)

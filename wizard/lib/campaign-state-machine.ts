@@ -149,7 +149,7 @@ function lockBudget(
   currentDailySpendCents: number,
   hardStopCents: number
 ): boolean {
-  if (currentDailySpendCents + dailyBudgetCents > hardStopCents) {
+  if (currentDailySpendCents + dailyBudgetCents >= hardStopCents) {
     return false; // Would exceed hard stop
   }
   intent.budgetLocked = true;
