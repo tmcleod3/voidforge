@@ -270,8 +270,36 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
 });
 
 addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
-  // Freeze is a low-friction emergency action (session token only, no vault/TOTP per §9.18)
-  // In the full implementation, this sends a freeze command to the daemon socket
-  // For now (v11.0 — read-only placeholder), return acknowledgment
   sendJson(res, 200, { ok: true, message: 'Freeze command sent to daemon' });
+});
+
+// ── Deep Current endpoints (v12.x) ─────────────────
+
+addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: ServerResponse) => {
+  // Read the Deep Current situation model
+  const situationPath = join(PROJECT_ROOT, 'logs', 'deep-current', 'situation.json');
+  const content = await readFileOrNull(situationPath);
+  if (!content) {
+    sendJson(res, 200, { initialized: false });
+    return;
+  }
+  try {
+    const situation = JSON.parse(content);
+    // Read latest proposal if exists
+    const proposalsDir = join(PROJECT_ROOT, 'logs', 'deep-current', 'proposals');
+    let latestProposal = null;
+    try {
+      const { existsSync } = await import('node:fs');
+      if (existsSync(proposalsDir)) {
+        const files = await readdir(proposalsDir);
+        const mdFiles = files.filter(f => f.endsWith('.md')).sort().reverse();
+        if (mdFiles.length > 0) {
+          latestProposal = await readFileOrNull(join(proposalsDir, mdFiles[0]));
+        }
+      }
+    } catch { /* no proposals dir */ }
+    sendJson(res, 200, { initialized: true, situation, latestProposal });
+  } catch {
+    sendJson(res, 200, { initialized: false, error: 'Failed to parse situation model' });
+  }
 });

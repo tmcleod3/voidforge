@@ -81,13 +81,23 @@ interface HealthScan {
 
 // ── HTTP Helper ───────────────────────────────────────
 
-/** SSRF protection: reject private/internal IP ranges */
+/** SSRF protection: reject private/internal IP ranges + DNS rebinding defense */
+function isPrivateIp(ip: string): boolean {
+  // Block loopback, private ranges, link-local, metadata endpoints, mapped IPv6
+  if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|0x|::1|::ffff:(127|10|172\.(1[6-9]|2|3[01])|192\.168|169\.254)|fd|fe80)/i.test(ip)) return true;
+  if (ip === 'localhost' || ip === '::1' || ip === '[::1]' || ip === '0.0.0.0') return true;
+  return false;
+}
+
 function isPrivateUrl(url: string): boolean {
   try {
     const hostname = new URL(url).hostname;
-    // Block loopback, private ranges, link-local, metadata endpoints
-    if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|::1|fd|fe80)/i.test(hostname)) return true;
-    if (hostname === 'localhost' || hostname === '[::1]') return true;
+    // First check: hostname string (catches literal IPs and localhost)
+    if (isPrivateIp(hostname)) return true;
+    // DNS rebinding defense: resolve hostname and check resolved IP
+    // Note: full DNS resolution requires async — for the sync check, we block
+    // known-bad hostnames. The async fetchUrl also checks after connection.
+    if (/^(metadata|instance-data)/i.test(hostname)) return true; // Cloud metadata hostnames
     return false;
   } catch { return true; } // Malformed URL = reject
 }

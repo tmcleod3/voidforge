@@ -119,6 +119,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | **Growth Strategist** | `/docs/methods/GROWTH_STRATEGIST.md` | Kelsier — when running growth campaigns, SEO, content, ads |
 | **Treasury** | `/docs/methods/TREASURY.md` | Dockson — when managing revenue, budgets, spend, reconciliation |
 | **Heartbeat** | `/docs/methods/HEARTBEAT.md` | Daemon operations — token refresh, spend monitoring, scheduled jobs |
+| **Deep Current** | `/docs/methods/DEEP_CURRENT.md` | Tuvok — when running autonomous campaign intelligence, site scanning, cold start intake |
 | **PRD Generator** | `/docs/methods/PRD_GENERATOR.md` | Sisko — when generating a PRD from scratch |
 | **Meta-Workflow** | `/docs/META_WORKFLOW.md` | How to use VoidForge to develop VoidForge — campaigns on self, anti-patterns, feedback loop |
 | **Patterns** | `/docs/patterns/` | When writing code (13 reference implementations) |
