@@ -66,6 +66,13 @@
 **Action:** Document this limitation. For true isolation, use containerized environments or non-login shells with `--noprofile --norc`.
 **Promoted to:** Not yet
 
+### Infrastructure credentials must survive .env edits
+**Agent:** Kusanagi (DevOps) + Kira (Campaign) | **Category:** antipattern
+**Context:** Dialog Travel Campaign 9 deploy failure (field report #103)
+**Lesson:** SSH_HOST was written to `.env` by the provisioner during initial setup but was lost during subsequent `.env` edits across 9 campaigns. No redundant storage existed for infrastructure credentials. The `rsync --delete` then destroyed 250 VPS-only avatar files, and the recovery attempt cleared 251 DB fields unnecessarily.
+**Action:** (1) Write deploy credentials to BOTH `.env` AND `~/.voidforge/projects.json`. (2) Validate SSH_HOST, SSH_KEY before any deploy. (3) NEVER `rsync --delete` without excluding VPS-only directories. (4) Before any destructive DB operation, check if the data can be restored from backup first.
+**Promoted to:** CAMPAIGN.md (Step 0 credential check), DEVOPS_ENGINEER.md (rsync exclusion + credential pre-flight), TROUBLESHOOTING.md (destructive DB recovery checklist)
+
 ### Iframe stacking context defeats z-index
 **Agent:** Galadriel (UX) | **Category:** gotcha
 **Context:** Dialog Travel map overlay (field report #79)
