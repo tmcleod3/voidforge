@@ -66,10 +66,12 @@ These require interactive testing:
 ## Step 4 — Issue Tracker
 Log all findings to `/logs/phase-10-ux-audit.md`:
 
-| ID | Title | Severity | Category | Location | Current | Expected | Fix | Status |
-|----|-------|----------|----------|----------|---------|----------|-----|--------|
+| ID | Title | Severity | Confidence | Category | Location | Current | Expected | Fix | Status |
+|----|-------|----------|------------|----------|----------|---------|----------|-----|--------|
 
 Categories: UX, Visual, A11y, Copy, Performance, Edge Case
+
+**Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Samwise found it, escalate to Padmé or Nightwing) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 7.5.
 
 ## Step 5 — Enhancement Specs (before coding)
 For each fix: problem statement, proposed solution, acceptance criteria, a11y requirements (Samwise signs off), copy (Bilbo signs off). **Faramir** checks whether polish effort targets the right screens — high-traffic core flows, not low-traffic edge pages.

@@ -68,11 +68,13 @@ For every `useEffect` in new/modified components:
 ## Step 2 — Synthesize Findings
 Merge all findings into a review table:
 
-| # | File | Line | Category | Severity | Finding | Suggestion |
-|---|------|------|----------|----------|---------|-----------|
+| # | File | Line | Category | Severity | Confidence | Finding | Suggestion |
+|---|------|------|----------|----------|------------|---------|-----------|
 
 Categories: Pattern, Quality, Maintainability
 Severity: Must Fix > Should Fix > Consider > Nit
+
+**Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Spock found it, escalate to Oracle or Stark) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 3.5.
 
 ## Step 3 — Fix (small batches)
 Fix "Must Fix" and "Should Fix" items. After each batch:
