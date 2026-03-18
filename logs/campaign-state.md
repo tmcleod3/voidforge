@@ -12,12 +12,14 @@
 
 | # | Mission | PRD Scope | Status | Debrief |
 |---|---------|-----------|--------|---------|
-| 1 | Treasury Methodology | §9.4, §9.7, §9.19.10-11 | NOT STARTED — resume here | — |
-| 2 | Heartbeat Daemon | §9.7, §9.18, §9.19.2, §9.20.11 | NOT STARTED | — |
-| 3 | Revenue + Reconciliation | §9.4, §9.9, §9.17, ADR-1/3/5/6 | NOT STARTED | — |
-| 4 | Treasury Tab | §9.10, §9.15, §9.20.2 | NOT STARTED | — |
+| 1 | Treasury Methodology | §9.4, §9.7, §9.19.10-11 | COMPLETE | — |
+| 2 | Heartbeat Daemon | §9.7, §9.18, §9.19.2, §9.20.11 | COMPLETE | — |
+| 3 | Revenue + Reconciliation | §9.4, §9.9, §9.17, ADR-1/3/5/6 | COMPLETE | — |
+| 4 | Treasury Tab | §9.10, §9.15, §9.20.2 | COMPLETE | — |
 
-Missions completed: 0. Next checkpoint at: 4.
+Missions completed: 4. All built. **Victory Gauntlet next** — run in fresh session.
+
+Resume: `/campaign --resume --blitz --continuous --major` → Victory Gauntlet → version bump → continue to v11.2
 
 ## Previous Campaigns
 
