@@ -183,6 +183,7 @@
     <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Danger Room tabs">
       <button role="tab" id="tab-ops" aria-selected="true" aria-controls="panel-ops" data-tab="ops">Ops</button>
       <button role="tab" id="tab-growth" aria-selected="false" aria-controls="panel-growth" data-tab="growth">Growth</button>
+      <button role="tab" id="tab-campaigns" aria-selected="false" aria-controls="panel-campaigns" data-tab="campaigns">Campaigns</button>
       <button role="tab" id="tab-treasury" aria-selected="false" aria-controls="panel-treasury" data-tab="treasury">Treasury</button>
     </div>
 
@@ -294,6 +295,47 @@
           <div style="font-size:13px;color:var(--text-dim);">No conversion data</div>
         </div>
       </div><!-- /panel-growth -->
+
+      <!-- ═══ AD CAMPAIGNS TAB (§9.10, §9.20.2 — v11.2) ═══ -->
+      <div class="tab-panel" id="panel-campaigns" role="tabpanel" aria-labelledby="tab-campaigns" tabindex="0">
+        <!-- Empty State -->
+        <div class="empty-state" id="campaigns-empty-state">
+          <div>No ad campaigns yet.</div>
+          <div style="margin-top:8px;">Run <code>/grow --distribute</code> to create campaigns.</div>
+        </div>
+
+        <!-- Campaign Table (hidden until data — becomes card layout on mobile §9.15.6) -->
+        <div class="panel panel-full" id="campaigns-table-panel" style="display:none;" role="region" aria-label="Ad Campaigns">
+          <div class="panel-title">Active Campaigns</div>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;" aria-label="Ad campaign performance">
+            <thead>
+              <tr style="text-align:left;color:var(--text-dim);border-bottom:1px solid var(--border);">
+                <th scope="col" style="padding:6px 8px;">Platform</th>
+                <th scope="col" style="padding:6px 8px;">Campaign</th>
+                <th scope="col" style="padding:6px 8px;">Spend</th>
+                <th scope="col" style="padding:6px 8px;">Conv</th>
+                <th scope="col" style="padding:6px 8px;" aria-sort="none">ROAS</th>
+                <th scope="col" style="padding:6px 8px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="campaigns-tbody">
+              <tr><td colspan="6" style="padding:12px;color:var(--text-dim);text-align:center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- A/B Test Groups (§9.20.3) -->
+        <div class="panel" id="campaigns-ab-panel" style="display:none;" role="region" aria-label="A/B Test Groups">
+          <div class="panel-title">A/B Tests</div>
+          <div id="campaigns-ab-tests" style="font-size:13px;color:var(--text-dim);">No active tests</div>
+        </div>
+
+        <!-- Agent Recommendations (§9.20.6) -->
+        <div class="panel" id="campaigns-recommendations-panel" style="display:none;" role="region" aria-label="Agent Recommendations">
+          <div class="panel-title">Recommendations</div>
+          <div id="campaigns-recommendations" style="font-size:13px;color:var(--text-dim);">No recommendations</div>
+        </div>
+      </div><!-- /panel-campaigns -->
 
       <!-- ═══ TREASURY TAB (§9.10 — financial summary) ═══ -->
       <div class="tab-panel" id="panel-treasury" role="tabpanel" aria-labelledby="tab-treasury" tabindex="0">
