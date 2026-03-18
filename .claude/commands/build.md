@@ -12,9 +12,10 @@
 5. Read `/docs/LESSONS.md` — check for relevant lessons from previous projects. If any lessons match this project's tech stack (framework, database, auth, integrations), note them: "Lessons from prior builds: [list relevant ones]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+.
 6. Flag any gaps or ambiguities — list them explicitly, don't guess
 7. **Troi confirms PRD extraction:** Troi reads the PRD prose and verifies the extraction matches — catches misinterpretations before 8+ build phases propagate them.
-8. Write initial ADRs to `/docs/adrs/`
-8. Create `/logs/build-state.md` and `/logs/phase-00-orient.md` with extraction results + relevant lessons
-9. **Gate:** ADRs written, all PRD sections accounted for, skip rules documented in build-state.md
+8. **Save PRD snapshot:** Copy `/docs/PRD.md` to `/docs/PRD-snapshot-phase0.md`. This is the baseline for drift detection — the Living PRD feature compares the evolving PRD against this snapshot at phase gates and at Victory.
+9. Write initial ADRs to `/docs/adrs/`
+10. Create `/logs/build-state.md` and `/logs/phase-00-orient.md` with extraction results + relevant lessons
+11. **Gate:** ADRs written, all PRD sections accounted for, PRD snapshot saved, skip rules documented in build-state.md
 
 ## Phase 1 — Scaffold (Stark + Kusanagi)
 1. Read `/docs/methods/BACKEND_ENGINEER.md` (Step 0 — Orient section only)
@@ -43,7 +44,8 @@
 3. Follow patterns: `/docs/patterns/api-route.ts`, `/docs/patterns/service.ts`
 4. Write unit tests for core service logic, integration tests for API routes
 5. Log to `/logs/phase-04-core.md`
-6. **Gate:** Core journey works end-to-end manually AND service tests pass (>80% coverage for core service). **"Works manually" means:** execute the happy path AND at least one error path against the running server. For file uploads, fetch the returned URL and verify it serves. For forms, submit invalid data and verify the error message is specific. Verify cross-module paths (generated URLs are accepted by their consumers).
+6. **PRD alignment check (Living PRD):** Compare what was built against the PRD section for this feature. If the implementation deviates (different schema fields, different UI flow, different behavior), choose: fix the code to match the PRD, OR update the PRD to match reality. Never leave a silent contradiction. Log deviations in `/logs/phase-04-core.md`.
+7. **Gate:** Core journey works end-to-end manually AND service tests pass (>80% coverage for core service). PRD alignment verified — no unresolved deviations. **"Works manually" means:** execute the happy path AND at least one error path against the running server. For file uploads, fetch the returned URL and verify it serves. For forms, submit invalid data and verify the error message is specific. Verify cross-module paths (generated URLs are accepted by their consumers).
 
 ## Phase 5 — Supporting Features (Stark + Galadriel) [1-3 features per session]
 1. Build in dependency order: schema -> API -> UI -> verify per feature
@@ -56,7 +58,8 @@
 2. Follow `/docs/patterns/service.ts` for wrappers, `/docs/patterns/job-queue.ts` for async work
 3. Kenobi reviews each integration's security
 4. Log to `/logs/phase-06-integrations.md`
-5. **Gate:** Each integration tested in test mode, webhook handling verified. For each integration: verify the full chain works (upload → URL → fetch, payment → webhook → state change, email → delivery confirmation). Submit data that triggers integration-specific errors and verify error messages are surfaced to the user.
+5. **PRD alignment check (Living PRD):** Compare each integration against the PRD's integration section. If the implementation uses a different provider, different API, or different behavior than the PRD specifies, choose: fix the code OR update the PRD. Log deviations.
+6. **Gate:** Each integration tested in test mode, webhook handling verified. PRD alignment verified. For each integration: verify the full chain works (upload → URL → fetch, payment → webhook → state change, email → delivery confirmation). Submit data that triggers integration-specific errors and verify error messages are surfaced to the user.
 
 ## Phase 7 — Admin (Stark + Galadriel) [SKIP if `admin: no`]
 1. Dashboard, user management, analytics views, audit logging
@@ -66,7 +69,8 @@
 ## Phase 8 — Marketing (Galadriel) [SKIP if `marketing: no`]
 1. Homepage, features, pricing, legal pages, SEO meta
 2. Log to `/logs/phase-08-marketing.md`
-3. **Gate:** Pages render, SEO present, mobile responsive
+3. **PRD alignment check (Living PRD):** Compare marketing pages against the PRD's marketing section. Verify copy claims (feature counts, pricing tiers, testimonial accuracy), visual treatments, and page structure match. Fix code OR update PRD for deviations.
+4. **Gate:** Pages render, SEO present, mobile responsive, PRD alignment verified
 
 ## Phases 9-11 — Double-Pass Review Cycle (Batman + Galadriel + Kenobi)
 
