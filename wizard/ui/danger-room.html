@@ -183,6 +183,7 @@
     <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Danger Room tabs">
       <button role="tab" id="tab-ops" aria-selected="true" aria-controls="panel-ops" data-tab="ops">Ops</button>
       <button role="tab" id="tab-growth" aria-selected="false" aria-controls="panel-growth" data-tab="growth">Growth</button>
+      <button role="tab" id="tab-treasury" aria-selected="false" aria-controls="panel-treasury" data-tab="treasury">Treasury</button>
     </div>
 
     <!-- Reconnection Banner (§9.19.9) -->
@@ -293,6 +294,59 @@
           <div style="font-size:13px;color:var(--text-dim);">No conversion data</div>
         </div>
       </div><!-- /panel-growth -->
+
+      <!-- ═══ TREASURY TAB (§9.10 — financial summary) ═══ -->
+      <div class="tab-panel" id="panel-treasury" role="tabpanel" aria-labelledby="tab-treasury" tabindex="0">
+        <!-- Empty State -->
+        <div class="empty-state" id="treasury-empty-state">
+          <div>No treasury data yet.</div>
+          <div style="margin-top:8px;">Run <code>/treasury setup</code> to connect revenue sources.</div>
+        </div>
+
+        <!-- Financial Summary (hidden until data) -->
+        <div class="kpi-row" id="treasury-kpi-row" style="display:none;">
+          <div class="kpi-card">
+            <div class="kpi-value" id="treasury-revenue">$0</div>
+            <div class="kpi-label">Revenue</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" id="treasury-spend">$0</div>
+            <div class="kpi-label">Spend</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" id="treasury-net">$0</div>
+            <div class="kpi-label">Net</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" id="treasury-roas">0.0x</div>
+            <div class="kpi-label">ROAS</div>
+          </div>
+        </div>
+
+        <!-- Budget Utilization -->
+        <div class="panel panel-full" id="treasury-budget-panel" style="display:none;" role="region" aria-label="Budget Utilization">
+          <div class="panel-title">Budget</div>
+          <div style="background:var(--bg);border-radius:4px;height:24px;overflow:hidden;position:relative;">
+            <div id="treasury-budget-bar" style="height:100%;background:var(--fin-positive);width:0%;transition:width 0.5s;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="0% of budget used"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-top:4px;">
+            <span id="treasury-budget-used">$0 used</span>
+            <span id="treasury-budget-total">$0 total</span>
+          </div>
+        </div>
+
+        <!-- Platform Connections -->
+        <div class="panel" id="treasury-connections-panel" style="display:none;" role="region" aria-label="Platform Connections">
+          <div class="panel-title">Connections</div>
+          <div id="treasury-connections" style="font-size:13px;"></div>
+        </div>
+
+        <!-- Reconciliation Status -->
+        <div class="panel" id="treasury-reconciliation-panel" style="display:none;" role="region" aria-label="Reconciliation">
+          <div class="panel-title">Reconciliation</div>
+          <div id="treasury-reconciliation" style="font-size:13px;color:var(--text-dim);">No reconciliation data</div>
+        </div>
+      </div><!-- /panel-treasury -->
     </main>
 
     <!-- Sidebar -->
