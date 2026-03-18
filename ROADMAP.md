@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v10.0.1 (2026-03-17)
-**Next:** v10.1 — War Room Data Feeds + Feature Enforcement
-**Status:** v10.0.1 shipped (War Room UI + methodology specs). v10.1 connects the data feeds and adds enforcement to methodology features. See "Remaining v10.x Work" below.
+**Current:** v10.1.0 (2026-03-17)
+**Next:** v10.2 — Unbuilt Features (Natural Language Deploy, Methodology A/B Testing, Prophecy Visualizer)
+**Status:** v10.1 shipped (data feeds, confidence scoring, agent debates, Living PRD). v10.2 builds the remaining v10.x features. See "Remaining v10.x Work" below.
 
 ---
 

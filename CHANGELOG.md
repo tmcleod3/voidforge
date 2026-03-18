@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [10.1.0] - 2026-03-17
+
+### Added
+- **War Room data feeds** — `wizard/api/war-room.ts` with 6 REST endpoints parsing campaign-state.md, assemble-state.md, phase logs, deploy logs, VERSION.md. WebSocket handler at `/ws/war-room` with heartbeat, connection limits, and graceful shutdown.
+- **Confidence scoring enforcement** — mandatory `[CONFIDENCE: XX]` in finding tables across `/gauntlet`, `/qa`, `/security`, `/ux`, `/review` commands. Low-confidence (<60) escalation to different-universe agent. Cross-referenced in QA_ENGINEER.md, SECURITY_AUDITOR.md, PRODUCT_DESIGN_FRONTEND.md.
+- **Agent debates enforcement** — conflict detection in `/assemble` (Crossfire + Council) and `/review` (new Step 1.5). Structured 3-exchange debates logged as ADRs.
+- **Living PRD enforcement** — Phase 0 PRD snapshot (`PRD-snapshot-phase0.md`), PRD alignment gates at Phases 4, 6, 8 in `/build`. Two-way sync: fix code or update PRD.
+
+### Fixed
+- War Room a11y: ARIA landmarks, keyboard focus, responsive breakpoint, reduced motion, gauge progressbar role, agent ticker aria-live
+- WebSocket: exponential backoff reconnect, onerror handler, heartbeat keepalive, stale connection cleanup
+- Context gauge shows em-dash instead of misleading 0% when data unavailable
+
+---
+
 ## [10.0.1] - 2026-03-17
 
 ### Added
