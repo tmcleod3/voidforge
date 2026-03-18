@@ -1,4 +1,4 @@
-# Building Web Apps with Claude Code
+# Building Web Apps with Claude Code + VoidForge
 ## A 45-Minute Workshop
 
 > You don't need to know how to code. You need to know what you want to build.
@@ -9,8 +9,10 @@
 
 By the end of this workshop, you'll have a working web application — designed, built, reviewed, and ready to deploy. Not a toy. A real app with a database, API, and UI.
 
+We'll use **VoidForge** — a methodology framework that gives Claude Code a team of 190+ named AI agents, a structured build protocol, and quality gates. You describe what you want; the agents design, build, review, and harden it.
+
 **Prerequisites:**
-- A laptop with [Claude Code](https://claude.ai/claude-code) installed
+- A laptop with [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) installed
 - A terminal (Terminal on Mac, PowerShell on Windows)
 - An idea for something you want to build
 
@@ -21,13 +23,28 @@ By the end of this workshop, you'll have a working web application — designed,
 
 ---
 
-## Part 1 — The Idea (5 minutes)
+## Part 0 — Setup (2 minutes)
 
-Open your terminal. Launch Claude Code:
+First, create a folder for your project and install VoidForge:
+
+```bash
+mkdir my-app && cd my-app
+git clone --branch scaffold https://github.com/tmcleod3/voidforge.git .
+```
+
+This gives you VoidForge's methodology — the slash commands, build protocols, code patterns, and agent definitions. No heavy dependencies. No server. Just the playbook Claude Code follows.
+
+Now launch Claude Code inside your project:
 
 ```bash
 claude
 ```
+
+Claude Code automatically reads the `CLAUDE.md` file and picks up VoidForge's methodology. You now have access to 22 slash commands, 13 code patterns, and a team of named agents. You'll use four of them today.
+
+---
+
+## Part 1 — The Idea (5 minutes)
 
 Now tell it what you want to build. One paragraph. Be specific about WHO it's for and WHAT problem it solves. Examples:
 
@@ -43,7 +60,7 @@ Now tell it what you want to build. One paragraph. Be specific about WHO it's fo
 
 ## Part 2 — The Blueprint (10 minutes)
 
-Now you'll create a PRD (Product Requirements Document). This is the blueprint Claude Code follows to build your app.
+Now you'll create a PRD (Product Requirements Document). This is the blueprint that VoidForge's build agents follow.
 
 Type this in Claude Code:
 
@@ -51,7 +68,7 @@ Type this in Claude Code:
 /prd
 ```
 
-Claude Code will interview you in 5 acts:
+This launches **Sisko** — VoidForge's campaign commander. He'll interview you in 5 acts:
 1. **Vision** — What are you building and for whom?
 2. **Features** — What can users do? (Claude suggests, you confirm)
 3. **Tech stack** — What framework? (Claude recommends based on your app)
@@ -77,7 +94,7 @@ This is where the magic happens. Type:
 /build
 ```
 
-Claude Code reads your PRD and builds your app phase by phase:
+VoidForge's build protocol kicks in — **Picard** (architecture) designs the structure, **Stark** (backend) builds the API and database, **Galadriel** (frontend) builds the UI. The build runs 13 phases automatically:
 
 1. **Orient** — Reads the PRD, extracts the tech stack, database schema, and routes
 2. **Scaffold** — Creates the project structure (folders, config files, package.json)
@@ -119,7 +136,7 @@ Type:
 /review
 ```
 
-Claude reviews its own code — checking for bugs, security issues, and things it missed. It'll fix what it finds.
+**Picard** (architecture) and **Stark** (code quality) review the codebase — checking for bugs, security issues, pattern violations, and things the build missed. They'll fix what they find.
 
 ### Accessibility check
 
@@ -129,7 +146,7 @@ Type:
 /ux
 ```
 
-This checks that your app is usable: keyboard navigation works, colors have enough contrast, screen readers can understand it, mobile layout isn't broken.
+**Galadriel** and her team of 12 agents check that your app is usable: **Samwise** tests keyboard navigation and screen readers, **Arwen** checks visual design and contrast, **Bilbo** audits the copy, **Radagast** hunts edge cases. They fix what they find.
 
 ---
 
@@ -165,7 +182,15 @@ In 45 minutes, you:
 4. **Reviewed** it for bugs, security, and usability
 5. **Deployed** it (or prepared to)
 
-You didn't write code. You directed an AI that writes code. That's the skill: knowing what you want, being specific about it, and course-correcting when the result doesn't match.
+You didn't write code. You directed a team of AI agents that write code. That's the skill: knowing what you want, being specific about it, and course-correcting when the result doesn't match.
+
+**The VoidForge agents you used:**
+- **Sisko** designed your PRD (the blueprint)
+- **Picard** architected the structure
+- **Stark** built the backend
+- **Galadriel** built and reviewed the frontend
+- **Samwise** checked accessibility
+- **Kenobi** checked security (behind the scenes during `/build`)
 
 ---
 
@@ -177,7 +202,7 @@ You didn't write code. You directed an AI that writes code. That's the skill: kn
 Tell Claude: "I want to add [feature]"
 ```
 
-Claude reads your existing code, understands the architecture, and adds the feature in the right place.
+Claude reads your existing code, understands the architecture, and adds the feature in the right place. For bigger additions, use `/campaign --plan add [feature]` to update your PRD first, then `/build` to implement.
 
 ### Fix something
 
@@ -186,6 +211,16 @@ Tell Claude: "When I [do X], [Y happens] but it should [Z]"
 ```
 
 Be specific about what you did, what you saw, and what you expected.
+
+### Run the full pipeline
+
+For a bigger build with multiple features, use VoidForge's campaign system:
+
+```
+/campaign
+```
+
+**Sisko** reads your PRD, figures out the build order, and executes mission by mission. Each mission builds one feature, reviews it, and commits. At the end, **Thanos** runs the Gauntlet — a comprehensive review across all domains.
 
 ### Learn from what was built
 
@@ -205,6 +240,9 @@ Claude will walk you through the code in plain English. This is the fastest way 
 | Mobile app | "Make this a Progressive Web App" |
 | Custom domain | "Set up a custom domain for this" |
 | Better design | "Make the design more [modern/minimal/colorful/professional]" |
+| Full QA pass | `/qa` — Batman's comprehensive quality audit |
+| Security check | `/security` — Kenobi's OWASP security audit |
+| Version + release | `/git` — Coulson handles versioning and changelog |
 
 ---
 
@@ -258,13 +296,33 @@ If Claude mentions these, here's what they mean:
 
 ---
 
+## The VoidForge Commands You Can Explore
+
+| Command | Agent | What it does |
+|---------|-------|-------------|
+| `/prd` | Sisko | Generates a PRD from an interview |
+| `/build` | Picard + Stark + Galadriel | Builds the app phase by phase |
+| `/review` | Picard + Stark | Code review for quality and patterns |
+| `/ux` | Galadriel + 12 sub-agents | UX, accessibility, and visual review |
+| `/qa` | Batman + 7 sub-agents | Full QA: edge cases, error states, boundaries |
+| `/security` | Kenobi + 8 sub-agents | OWASP security audit |
+| `/campaign` | Sisko | Multi-mission build from PRD to ship |
+| `/gauntlet` | Thanos + 30 agents | The ultimate 5-round review |
+| `/git` | Coulson | Version bump, changelog, commit |
+| `/test` | Batman | Write missing tests |
+| `/devops` | Kusanagi | Infrastructure and deploy review |
+| `/architect` | Picard | Architecture review and ADRs |
+
+---
+
 ## Resources
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [VoidForge](https://github.com/tmcleod3/voidforge) — The methodology framework behind this workshop
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) — Anthropic's CLI for Claude
+- [VoidForge Scaffold](https://github.com/tmcleod3/voidforge/tree/scaffold) — The methodology used in this workshop
+- [VoidForge Holocron](https://github.com/tmcleod3/voidforge/blob/main/HOLOCRON.md) — The full user guide
 - [Next.js Tutorial](https://nextjs.org/learn) — If you want to understand what Claude built
 - [Vercel](https://vercel.com) — Free deployment for web apps
 
 ---
 
-*Built with VoidForge v12.4 — from nothing, everything.*
+*Built with [VoidForge](https://github.com/tmcleod3/voidforge) v12.4 — from nothing, everything.*
