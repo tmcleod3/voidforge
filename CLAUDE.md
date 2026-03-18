@@ -57,6 +57,9 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `sse-endpoint.ts` — Server-Sent Events: lifecycle, keepalive, timeout, React hook (+ FastAPI, Django)
 - `ad-platform-adapter.ts` — Split interface: AdPlatformSetup (interactive) + AdPlatformAdapter (runtime) + ReadOnlyAdapter (daemon)
 - `financial-transaction.ts` — Branded Cents type, hash-chained append log, atomic writes, number formatting
+- `daemon-process.ts` — PID management, Unix socket API, job scheduler, signal handling, sleep/wake recovery
+- `revenue-source-adapter.ts` — Read-only revenue interface with Stripe + Paddle reference implementations
+- `oauth-token-lifecycle.ts` — Refresh at 80% TTL, failure escalation, vault integration, session token rotation
 
 ## Slash Commands
 
