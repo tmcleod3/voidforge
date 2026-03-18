@@ -186,6 +186,7 @@
       <button role="tab" id="tab-campaigns" aria-selected="false" aria-controls="panel-campaigns" data-tab="campaigns">Campaigns</button>
       <button role="tab" id="tab-treasury" aria-selected="false" aria-controls="panel-treasury" data-tab="treasury">Treasury</button>
       <button role="tab" id="tab-heartbeat" aria-selected="false" aria-controls="panel-heartbeat" data-tab="heartbeat">Heartbeat</button>
+      <button role="tab" id="tab-current" aria-selected="false" aria-controls="panel-current" data-tab="current">Deep Current</button>
     </div>
 
     <!-- Reconnection Banner (§9.19.9) -->
@@ -432,6 +433,70 @@
           <div id="hb-alerts" style="font-size:13px;">No alerts</div>
         </div>
       </div><!-- /panel-heartbeat -->
+
+      <!-- ═══ DEEP CURRENT TAB (v12.1 — Tuvok's advisory) ═══ -->
+      <div class="tab-panel" id="panel-current" role="tabpanel" aria-labelledby="tab-current" tabindex="0">
+        <!-- Empty State -->
+        <div class="empty-state" id="current-empty-state">
+          <div>Deep Current not initialized.</div>
+          <div style="margin-top:8px;">Run <code>/current --scan</code> to analyze your project, or <code>/current --intake</code> for a new project.</div>
+        </div>
+
+        <!-- Situation Model (5-dimension radar display) -->
+        <div class="panel panel-full" id="current-situation-panel" style="display:none;" role="region" aria-label="Situation Model">
+          <div class="panel-title">Situation Model</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;" id="current-dimensions">
+            <div class="kpi-card" style="flex:1;min-width:120px;">
+              <div class="kpi-value" id="dim-feature">—</div>
+              <div class="kpi-label">Feature</div>
+            </div>
+            <div class="kpi-card" style="flex:1;min-width:120px;">
+              <div class="kpi-value" id="dim-quality">—</div>
+              <div class="kpi-label">Quality</div>
+            </div>
+            <div class="kpi-card" style="flex:1;min-width:120px;">
+              <div class="kpi-value" id="dim-performance">—</div>
+              <div class="kpi-label">Performance</div>
+            </div>
+            <div class="kpi-card" style="flex:1;min-width:120px;">
+              <div class="kpi-value" id="dim-growth">—</div>
+              <div class="kpi-label">Growth</div>
+            </div>
+            <div class="kpi-card" style="flex:1;min-width:120px;">
+              <div class="kpi-value" id="dim-revenue">—</div>
+              <div class="kpi-label">Revenue</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Proposal -->
+        <div class="panel panel-full" id="current-proposal-panel" style="display:none;" role="region" aria-label="Campaign Recommendation">
+          <div class="panel-title">Tuvok Recommends</div>
+          <div id="current-proposal-name" style="font-size:16px;font-weight:700;margin-bottom:8px;"></div>
+          <div id="current-proposal-case" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;"></div>
+          <div id="current-proposal-impact" style="font-size:13px;color:var(--fin-positive);margin-bottom:12px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button style="padding:6px 16px;background:var(--accent);color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;" aria-label="Launch recommended campaign">Launch Campaign</button>
+            <button style="padding:6px 16px;background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;font-size:12px;" aria-label="Dismiss recommendation">Dismiss</button>
+          </div>
+        </div>
+
+        <!-- Prediction History -->
+        <div class="panel" id="current-predictions-panel" style="display:none;" role="region" aria-label="Prediction Accuracy">
+          <div class="panel-title">Prediction Accuracy</div>
+          <div id="current-predictions" style="font-size:13px;color:var(--text-dim);">No campaigns with tracked predictions yet.</div>
+        </div>
+
+        <!-- Autonomy Status -->
+        <div class="panel" id="current-autonomy-panel" style="display:none;" role="region" aria-label="Autonomy Status">
+          <div class="panel-title">Autonomy</div>
+          <div style="font-size:13px;">
+            <span style="color:var(--text-dim);">Tier:</span> <span id="current-tier">1 (Advisor)</span><br>
+            <span style="color:var(--text-dim);">Campaigns run:</span> <span id="current-campaign-count">0</span><br>
+            <span style="color:var(--text-dim);">Last scan:</span> <span id="current-last-scan">Never</span>
+          </div>
+        </div>
+      </div><!-- /panel-current -->
     </main>
 
     <!-- Sidebar -->
