@@ -125,7 +125,9 @@ Present them with severity and recommendation. The user decides whether to ship 
 - Update `/logs/gauntlet-state.md` after EVERY round
 - The Gauntlet does NOT build code — it reviews and hardens existing code
 - Fixes happen BETWEEN rounds, not batched at the end
-- Every finding must have: ID, severity, file, description, fix recommendation
+- **Confidence scoring is mandatory.** Every finding must include: ID, severity, confidence score (0-100), file, description, fix recommendation. Format: `[ID] [SEVERITY] [CONFIDENCE: XX] [FILE] [DESCRIPTION]`. See GAUNTLET.md "Agent Confidence Scoring" for ranges.
+- **Low-confidence escalation:** Findings below 60 confidence MUST be escalated to a second agent from a different universe before inclusion. If the second agent disagrees, drop the finding. If the second agent agrees, upgrade to medium confidence.
+- **High-confidence fast-track:** Findings at 90+ confidence skip re-verification in Pass 2.
 - If context pressure symptoms appear, ask user to run `/context`. Only checkpoint at >70%. NEVER reduce Gauntlet rounds, skip agents, or "run efficiently" based on self-assessed context pressure. See CAMPAIGN.md "Quality Reduction Anti-Pattern" — this is a hard rule.
 - The Gauntlet is the final test before shipping. Treat it with appropriate gravity.
 

@@ -50,6 +50,7 @@ OWASP Top 10 evaluation. Find misconfigurations, missing protections, insecure d
 6. Secrets are never safe. Design for rotation.
 7. Log security events.
 8. Don't roll your own crypto.
+9. **Confidence scoring:** Every finding includes a confidence score (0-100). Low confidence (<60) → escalate to a second agent from a different universe. High confidence (90+) → skip re-verification in Phase 4. See GAUNTLET.md "Agent Confidence Scoring" for ranges.
 
 ## Audit Sequence
 
@@ -57,7 +58,7 @@ OWASP Top 10 evaluation. Find misconfigurations, missing protections, insecure d
 
 These are independent, read-only scans. Run in parallel using the Agent tool:
 
-**Leia — Secrets:** No secrets in source code. No secrets in git history. .env in .gitignore. Different secrets dev/prod. Rotation plan documented.
+**Leia — Secrets:** No secrets in source code. No secrets in git history. .env in .gitignore. Different secrets dev/prod. Rotation plan documented. **Fail-closed verification:** When a new feature depends on a security primitive (encrypt, hash, sign, verify), check the primitive's failure mode. If it fails open (returns data instead of raising on misconfiguration), flag as Critical. Security functions must raise on misconfiguration, never silently degrade. (Field report #99: encrypt() silently returned plaintext when ENCRYPTION_KEY was unset — OAuth tokens stored unencrypted for an entire campaign.)
 
 ### Crypto Randomness
 
@@ -224,6 +225,10 @@ Fix critical and high findings immediately. Medium findings get tracked. For eac
 3. Check it didn't break anything (`npm test`)
 4. **Critical path smoke test:** After applying security fixes, verify the primary user flow still works. Security hardening that breaks core functionality is a regression, not an improvement. Common traps: stripping environment variables that the main tool needs (e.g., API keys), tightening auth that blocks legitimate users, restricting paths that the app needs to access, **removing `unsafe-inline` from CSP when framework-generated inline scripts exist in build output** (Next.js, Nuxt, SvelteKit all inject `<script>` tags at build time — invisible in source, fatal if blocked). If the fix breaks the happy path, the fix is wrong — find a way to secure without breaking.
 5. Update the finding status
+
+### Remediation Caller Tracing Rule
+
+When fixing an auth, authorization, or validation check: trace ALL callers of the modified function AND find all code paths that implement the same check independently (inline duplicates). Don't fix only the helper — find the routes that duplicated the logic. When the fix changes a permission check in a shared function, grep for every endpoint that performs the same check with inline logic. (Field report #102: `checkMonthlyLimit()` was fixed to check BYOK tier, but the chat route had a separate inline BYOK resolution that wasn't updated.)
 
 ### Phase 4 — Re-Verify Remediations
 

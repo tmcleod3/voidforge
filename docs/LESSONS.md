@@ -50,7 +50,7 @@
 **Context:** VoidForge v7.1.0 Gauntlet — concurrent provisioning race condition
 **Lesson:** The provisioning endpoint checked `if (activeProvisionRun)` then did async work (JSON parsing, credential loading) before setting `activeProvisionRun = runId`. Two requests arriving in the same event loop tick could both pass the check. Fix: set the lock IMMEDIATELY (synchronously) after the check, before any `await`.
 **Action:** For single-process mutex patterns in Node.js, always check-and-set in the same synchronous block. Never put async work between the check and the set.
-**Promoted to:** Not yet
+**Promoted to:** `docs/methods/BACKEND_ENGINEER.md` (Node.js Single-Process Mutex gotcha)
 
 ### CSS animation replay requires reflow between class removal and re-addition
 **Agent:** Constantine (DC) | **Category:** gotcha
@@ -65,3 +65,10 @@
 **Lesson:** Filtering environment variables from a PTY's initial env only controls what's explicitly passed. If the PTY spawns a login shell that sources `.zshrc`/`.bashrc`, any `export` statements in the profile will re-inject variables. This is an accepted design tradeoff — you can't control user shell configuration without breaking their environment.
 **Action:** Document this limitation. For true isolation, use containerized environments or non-login shells with `--noprofile --norc`.
 **Promoted to:** Not yet
+
+### Iframe stacking context defeats z-index
+**Agent:** Galadriel (UX) | **Category:** gotcha
+**Context:** Dialog Travel map overlay (field report #79)
+**Lesson:** Iframes with `allow-same-origin` create impenetrable stacking contexts. z-index has no effect across stacking context boundaries — a `z-index: 9999` overlay inside the main document cannot appear above an iframe's stacking context.
+**Action:** Use `createPortal(element, document.body)` for any overlay that coexists with iframes. See `docs/patterns/component.tsx` Portal Pattern.
+**Promoted to:** docs/patterns/component.tsx (Portal Pattern)

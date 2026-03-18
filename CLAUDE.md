@@ -54,6 +54,12 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `game-loop.ts` — Fixed timestep game loop with interpolation, pause/resume
 - `game-state.ts` — Hierarchical state machine with history, save/load
 - `game-entity.ts` — Entity Component System with component stores and systems
+- `sse-endpoint.ts` — Server-Sent Events: lifecycle, keepalive, timeout, React hook (+ FastAPI, Django)
+- `ad-platform-adapter.ts` — Split interface: AdPlatformSetup (interactive) + AdPlatformAdapter (runtime) + ReadOnlyAdapter (daemon)
+- `financial-transaction.ts` — Branded Cents type, hash-chained append log, atomic writes, number formatting
+- `daemon-process.ts` — PID management, Unix socket API, job scheduler, signal handling, sleep/wake recovery
+- `revenue-source-adapter.ts` — Read-only revenue interface with Stripe + Paddle reference implementations
+- `oauth-token-lifecycle.ts` — Refresh at 80% TTL, failure escalation, vault integration, session token rotation
 
 ## Slash Commands
 
@@ -76,6 +82,12 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | `/campaign` | Sisko's War Room — read the PRD, pick the next mission, finish the fight, repeat until done |
 | `/imagine` | Celebrimbor's Forge — AI image generation from PRD visual descriptions |
 | `/debrief` | Bashir's Field Report — post-mortem analysis, upstream feedback via GitHub issues |
+| `/dangerroom` | The Danger Room (X-Men, Marvel) — installable operations dashboard for build/deploy/agent monitoring |
+| `/cultivation` | Cultivation (Cosmere Shard) — installable autonomous growth engine: marketing, ads, creative, A/B testing, spend optimization |
+| `/grow` | Kelsier's 6-phase growth protocol — initial setup within Cultivation, then autonomous loop |
+| `/current` | Tuvok's Deep Current — autonomous campaign intelligence: scan, analyze, propose, cold start intake |
+| `/treasury` | Dockson's financial operations — revenue ingest, budget allocation, spend execution, reconciliation |
+| `/portfolio` | Steris's cross-project financials — aggregated spend/revenue, portfolio optimization |
 
 ## Docs Reference
 
@@ -104,6 +116,10 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | **The Campaign** | `/docs/methods/CAMPAIGN.md` | Sisko — when building the whole PRD mission by mission |
 | **Forge Artist** | `/docs/methods/FORGE_ARTIST.md` | Celebrimbor — when generating images from PRD descriptions |
 | **Field Medic** | `/docs/methods/FIELD_MEDIC.md` | Bashir — when running post-mortems and submitting upstream feedback |
+| **Growth Strategist** | `/docs/methods/GROWTH_STRATEGIST.md` | Kelsier — when running growth campaigns, SEO, content, ads |
+| **Treasury** | `/docs/methods/TREASURY.md` | Dockson — when managing revenue, budgets, spend, reconciliation |
+| **Heartbeat** | `/docs/methods/HEARTBEAT.md` | Daemon operations — token refresh, spend monitoring, scheduled jobs |
+| **Deep Current** | `/docs/methods/DEEP_CURRENT.md` | Tuvok — when running autonomous campaign intelligence, site scanning, cold start intake |
 | **PRD Generator** | `/docs/methods/PRD_GENERATOR.md` | Sisko — when generating a PRD from scratch |
 | **Meta-Workflow** | `/docs/META_WORKFLOW.md` | How to use VoidForge to develop VoidForge — campaigns on self, anti-patterns, feedback loop |
 | **Patterns** | `/docs/patterns/` | When writing code (13 reference implementations) |
@@ -127,8 +143,11 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | Campaign Command | **Sisko** (Star Trek) | Reads the PRD, picks the next mission, runs the war |
 | Forge Artist | **Celebrimbor** (Tolkien) | AI image generation from PRD visual descriptions |
 | Field Medic | **Bashir** (Star Trek) | Post-mortem analysis, upstream feedback via GitHub issues |
+| Growth Strategist | **Kelsier** (Cosmere) | Growth strategy, campaign orchestration, ad platforms, SEO |
+| Deep Current | **Tuvok** (Star Trek) | Autonomous campaign intelligence — scan, analyze, propose, learn |
+| Treasury | **Dockson** (Cosmere) | Revenue ingest, budget allocation, spend execution, reconciliation |
 
-170+ sub-agent names in `/docs/NAMING_REGISTRY.md`. No duplicates across active sessions.
+185+ sub-agent names in `/docs/NAMING_REGISTRY.md`. No duplicates across active sessions.
 
 ## Release Tiers
 

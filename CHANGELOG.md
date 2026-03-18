@@ -6,6 +6,142 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [12.1.0] - 2026-03-18
+
+### Added — The Analyst (Gap Analysis + Campaign Proposals)
+- **`wizard/lib/gap-analysis.ts`** — Seven's 5-dimension scoring: feature completeness (PRD vs codebase diff), quality (tests, gauntlet history, lessons), revenue potential (treasury, payments, pricing). Feeds situation model.
+- **`wizard/lib/campaign-proposer.ts`** — Tuvok's campaign proposal generator: per-dimension templates (feature sprint, quality hardening, performance optimization, growth foundation, revenue infrastructure). Quantified predictions, risk assessments, autonomy tier recommendations.
+- **Danger Room Deep Current tab** — 7th tab with 4 panels: situation model (5-dimension KPI cards), active proposal (Tuvok's recommendation with launch/dismiss), prediction history, autonomy status.
+
+---
+
+## [12.0.0] - 2026-03-18
+
+### Added — The Scanner (Deep Current: Autonomous Campaign Intelligence)
+- **`/current` command** — Tuvok's Deep Current: scan → analyze → propose → gate → execute → learn. Cold start intake for greenfield projects. Status display with 5-dimension radar.
+- **`docs/methods/DEEP_CURRENT.md`** — Tuvok's method doc: the Loop (SENSE→ANALYZE→PROPOSE→GATE→EXECUTE→LEARN), 3-tier autonomy, cold start sequence, situation model schema, security constraints, circuit breakers
+- **`wizard/lib/site-scanner.ts`** — Torres's HTTP-based site scanner: performance (TTFB, compression, cache), SEO (meta tags, sitemap, JSON-LD), security (HTTPS, HSTS, CSP), growth (analytics detection, email capture, social meta). SSRF protection + redirect depth limit.
+- **`wizard/lib/deep-current.ts`** — Situation model: 5-dimension scoring (feature, quality, performance, growth, revenue), project state classifier (GREENFIELD → OPERATING), cold start intake with per-state recommendations, persistent JSON state
+- **5 Voyager agent roles** — Tuvok (strategic intelligence), Seven (optimization), Chakotay (cross-pipeline bridge), Paris (route planning), Torres (site scanning). Updated in naming registry.
+
+### Fixed
+- SSRF protection in site scanner (private IP blocking)
+- Redirect depth limit (max 5, was unbounded)
+- IDEA+PRD → IDEA_PRD naming consistency
+
+---
+
+## [11.3.0] - 2026-03-18
+
+### Added — The Heartbeat (Portfolio, Anomaly Detection, Service Management)
+- **`/portfolio` command** — cross-project financial dashboard with --report (tax records), --optimize (Kelsier's reallocation), project registration
+- **Mercury + Brex bank adapters** — read-only OAuth 2.0 adapters for account balance and transaction polling
+- **Anomaly detection engine** — 4 types (spend spikes, traffic drops, conversion changes, ROAS drops), 3 severity tiers (warning/alert/critical), configurable thresholds, self-contained messages
+- **Encrypted daily backup** — AES-256-GCM with scrypt key derivation, 30-day retention, automatic pruning, export function for /treasury --export
+- **Service install** — macOS LaunchAgent plists + Linux systemd user units for both heartbeat daemon and wizard server. KeepAlive, RunAtLoad, Background process type.
+- **Desktop notifications** — macOS (osascript) + Linux (notify-send), agent-voiced messages (Wax, Breeze, Dockson), non-blocking with try/catch
+- **Danger Room Heartbeat tab** — Daemon status (state/PID/uptime/last beat), token health per platform, scheduled jobs, anomaly alerts (aria-live="assertive")
+- All 5 Danger Room tabs now complete: Ops → Growth → Campaigns → Treasury → Heartbeat
+
+---
+
+## [11.2.0] - 2026-03-18
+
+### Added — The Distribution (Ad Platform Adapters + Spend Execution)
+- **6 ad platform adapters** — Meta Marketing, Google Ads, TikTok Marketing, LinkedIn Marketing, Twitter/X Ads, Reddit Ads. Each with Setup (interactive OAuth) + Adapter (daemon runtime). All use OutboundRateLimiter.
+- **`docs/patterns/outbound-rate-limiter.ts`** — Token bucket with per-platform configs, safety margin reservation, daily quota tracking, executeWithRetry with exponential backoff
+- **Campaign state machine** — 10 states with validated transitions, agent-allowed subset (active→paused only), event-sourced history with source/reason/ruleId
+- **Spend execution pipeline** — WAL intent → budget lock → platform API → spend log. Idempotency keys per ADR-3.
+- **Szeth's compliance framework** — GDPR cookie consent, CAN-SPAM unsubscribe/address, per-platform ToS checks. Critical findings block campaign launch.
+- **Danger Room Ad Campaigns tab** — Campaign performance table with semantic HTML, A/B test groups panel, agent recommendations panel
+- **Platform adapter registry** — Index with name and minimum budget per platform
+
+### Fixed
+- ARC-001: Removed dead TokenBucketLimiter re-export from adapter types
+- QA-002: Budget lock uses `>=` (not `>`) for hard stop enforcement
+
+---
+
+## [11.1.0] - 2026-03-18
+
+### Added — The Treasury (Dockson's Financial Operations)
+- **`docs/methods/TREASURY.md`** — Dockson's financial operations protocol: revenue ingest, budget allocation, reconciliation, safety controls, immutable spend log
+- **`docs/methods/HEARTBEAT.md`** — Daemon architecture: startup sequence, signal handling, sleep/wake recovery, socket API contract, vault session, service management, daemon states
+- **`/treasury` command** — first-run setup flow, financial summary, budget management, freeze/unfreeze, reconciliation trigger, data export
+- **`docs/patterns/daemon-process.ts`** — PID management with stale detection, Unix domain socket server with JSON-over-HTTP, session token auth with rotation, job scheduler with sleep/wake detection, signal handling with 10s deadline, structured JSON logger
+- **`docs/patterns/revenue-source-adapter.ts`** — Read-only revenue interface with Stripe Events API + Paddle implementations, overlapping poll windows, externalId dedup, timing-safe webhook signature verification
+- **`docs/patterns/oauth-token-lifecycle.ts`** — Per-platform TTL configs (Meta 60d, Google 1h, TikTok 24h, LinkedIn 60d, Reddit 1h), refresh at 80% TTL, 3-failure escalation to requires_reauth, session token 24h rotation with 30s grace period
+- **`wizard/lib/heartbeat.ts`** — Heartbeat daemon: single-writer for all financial state (ADR-1), Unix domain socket API with auth tiers, 10 scheduled jobs, WAL reconciliation on startup (ADR-3), vault key in memory with SIGTERM zeroing
+- **`wizard/lib/reconciliation.ts`** — Two-pass reconciliation engine: preliminary at midnight UTC, authoritative at 06:00 UTC, tiered discrepancy thresholds ($5 noise / 5% relative / $50 absolute), ADR-6 currency enforcement
+- **Danger Room Treasury tab** — KPI cards (revenue/spend/net/ROAS), budget utilization progress bar with ARIA, platform connections status, reconciliation status, empty states with CTAs
+- **5 methodology improvements from inbox triage** — GAUNTLET.md (3-dimension Sibling Verification Protocol + R1 runtime diagnostics), SECURITY_AUDITOR.md (Remediation Caller Tracing), SYSTEMS_ARCHITECT.md (Data Mutation Parity + Security Tradeoff Register)
+
+### Fixed
+- VG-001: Added creative endpoint stub (501) to heartbeat daemon socket API
+- VG-006: Stripe webhook signature now uses timing-safe comparison
+
+---
+
+## [11.0.0] - 2026-03-18
+
+### Added — The Consciousness (Cosmere Growth Universe)
+- **8th Universe: Cosmere (Brandon Sanderson)** — 18 agents led by Kelsier. Growth, marketing, analytics, and financial operations.
+- **`/grow` command** — 6-phase growth protocol: Reconnaissance → Foundation → Content → Distribution → Compliance → Measure. CLI-driven initial setup transitioning to autonomous daemon monitoring.
+- **`/cultivation install` command** — installs the heartbeat daemon, financial vault, TOTP 2FA, and adds Growth tabs to the Danger Room.
+- **`docs/methods/GROWTH_STRATEGIST.md`** — Kelsier's growth methodology with 3-tier autonomous execution model (deterministic daemon jobs, on-demand AI, opt-in scheduled AI).
+- **`docs/patterns/ad-platform-adapter.ts`** — Split interface pattern: `AdPlatformSetup` (interactive OAuth), `AdPlatformAdapter` (daemon runtime), `ReadOnlyAdapter` (Tier 1 jobs). Reference Meta Marketing API implementation. Token bucket rate limiter.
+- **`docs/patterns/financial-transaction.ts`** — Branded `Cents`/`Percentage`/`Ratio` types, hash-chained append-only log, atomic write with macOS `F_FULLFSYNC` awareness, number formatting per §9.15.4.
+- **`wizard/lib/financial-vault.ts`** — Separate encrypted vault for ad platform and bank credentials. scrypt KDF (memory-hard). AES-256-GCM. Different password from infrastructure vault.
+- **`wizard/lib/totp.ts`** — RFC 6238 TOTP for financial 2FA. macOS Keychain storage (ADR-4). Replay protection tracking all used codes within window. 5-minute session TTL.
+- **`wizard/lib/safety-tiers.ts`** — Budget authorization with half-open interval tiers ($25/$100/$500). Aggregate $100/day cap. Campaign creation rate limits. Autonomous scope enforcement.
+- **Danger Room tab navigation system** — ARIA-compliant tablist/tab/tabpanel with arrow key navigation, hash routing. Tabs shown conditionally when Cultivation is installed.
+- **Danger Room Growth tab** — KPI cards (revenue/spend/net), ROAS by Platform, Traffic Sources, Conversion Funnel panels. Read-only placeholder data for v11.0.
+- **Financial CSS color tokens** — 8 semantic tokens for financial data display (positive, negative, warning, neutral, healthy, error, inactive, frozen).
+- **Global freeze button** — Emergency spend freeze in Danger Room header (desktop) and FAB (mobile). CSP-compliant event handlers.
+- **WebSocket reconnection** — Exponential backoff (1s→30s cap), reconnection banner, full state refresh on reconnect.
+- **PRD §9.19** — 16 subsections: Cultivation architecture clarification, process model, install commands, autonomous execution model, autonomous scope, code modification policy, authentication, CLI-to-autonomous handoff, WebSocket reconnection, adapter interface update, campaign state machine events, system state type, backup scope, rate limits, token rotation, API response sanitization.
+- **PRD §9.20** — 14 subsections: Network binding fix, tab architecture, A/B test group data model, daemon authorization guard, autonomous rule thresholds, approval queue UX, agent voice in autonomous loop, freeze button spec, symlink guard, prompt injection mitigation, socket API contract, CampaignConfig schema, data propagation model, proxy token re-read.
+
+### Changed
+- **Danger Room rename complete** — War Room → Danger Room across all remaining PRD references (lines 1607-1609, component contract)
+- **PRD §9.1 Vision rewritten** — Cultivation is the engine (daemon + rules), not a separate web app
+- **PRD §9.3 /grow rewritten** — aligned with §9.19 execution model
+- **ROADMAP.md v11 deliverables expanded** — Danger Room tab system, §9.19/§9.20 references, per-version tab additions
+- **10 methodology improvements from inbox triage** — BUILD_PROTOCOL (+4 wiring checks), SECURITY_AUDITOR (+fail-closed), TESTING (+constraint smoke test), BACKEND_ENGINEER (+2 gotchas), CAMPAIGN (+consumer verification), FIELD_MEDIC (+--submit clarification)
+
+---
+
+## [10.2.0] - 2026-03-17
+
+### Added
+- **Natural Language Deploy** — `wizard/lib/natural-language-deploy.ts`. Prose description → YAML deploy frontmatter. Budget parsing, platform detection, resilience config inference. Integrated into `/prd` Act 5 as optional input.
+- **Methodology A/B Testing** — `wizard/lib/experiment.ts`. Experiment CRUD + evaluation framework at `~/.voidforge/experiments.json`. True-positive rate + context efficiency comparison. Per-agent accuracy tracking. Danger Room Experiment Dashboard panel.
+- **Prophecy Visualizer** — `wizard/ui/war-room-prophecy.js`. Interactive SVG dependency graph. Color-coded mission nodes (green/yellow/red/gray/purple). Clickable with keyboard support. Legend and detail panel. Danger Room integration.
+
+### Fixed
+- SVG focus indicators for keyboard navigation (Gauntlet G-UX-001)
+- SVG role changed to `group` for assistive technology compatibility (G-UX-002)
+- XSS defense-in-depth: escape mission status/number in prophecy detail panel (G-SEC-001)
+- Atomic write + restricted permissions (0o600) for experiments.json (G-QA-001)
+- Experiment panel aria-labelledby linked to title (G-UX-003)
+
+---
+
+## [10.1.0] - 2026-03-17
+
+### Added
+- **Danger Room data feeds** — `wizard/api/war-room.ts` with 6 REST endpoints parsing campaign-state.md, assemble-state.md, phase logs, deploy logs, VERSION.md. WebSocket handler at `/ws/war-room` with heartbeat, connection limits, and graceful shutdown.
+- **Confidence scoring enforcement** — mandatory `[CONFIDENCE: XX]` in finding tables across `/gauntlet`, `/qa`, `/security`, `/ux`, `/review` commands. Low-confidence (<60) escalation to different-universe agent. Cross-referenced in QA_ENGINEER.md, SECURITY_AUDITOR.md, PRODUCT_DESIGN_FRONTEND.md.
+- **Agent debates enforcement** — conflict detection in `/assemble` (Crossfire + Council) and `/review` (new Step 1.5). Structured 3-exchange debates logged as ADRs.
+- **Living PRD enforcement** — Phase 0 PRD snapshot (`PRD-snapshot-phase0.md`), PRD alignment gates at Phases 4, 6, 8 in `/build`. Two-way sync: fix code or update PRD.
+
+### Fixed
+- Danger Room a11y: ARIA landmarks, keyboard focus, responsive breakpoint, reduced motion, gauge progressbar role, agent ticker aria-live
+- WebSocket: exponential backoff reconnect, onerror handler, heartbeat keepalive, stale connection cleanup
+- Context gauge shows em-dash instead of misleading 0% when data unavailable
+
+---
+
 ## [10.0.1] - 2026-03-17
 
 ### Added
@@ -21,9 +157,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [10.0.0] - 2026-03-17
 
 ### Added
-- **War Room dashboard** — `war-room.html` + `war-room.js`. 5 core panels (Campaign Timeline, Phase Pipeline, Finding Scoreboard, Context Gauge, PRD Coverage), sidebar (Version, Deploy, Tests, Cost), Agent Activity Ticker. WebSocket real-time feed with auto-reconnect.
+- **Danger Room dashboard** — `war-room.html` + `war-room.js`. 5 core panels (Campaign Timeline, Phase Pipeline, Finding Scoreboard, Context Gauge, PRD Coverage), sidebar (Version, Deploy, Tests, Cost), Agent Activity Ticker. WebSocket real-time feed with auto-reconnect.
 - **`/api/war-room/*` REST endpoints** in server.ts.
-- **War Room button** in Lobby navigation.
+- **Danger Room button** in Lobby navigation.
 
 ---
 
@@ -679,7 +815,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [3.9.0] - 2026-03-14
 
 ### Added
-- **/campaign command** — Sisko's War Room: read the PRD, pick the next mission, finish the fight, repeat until done. Autonomous campaign execution with mission scoping, dependency ordering, and The Prophecy Board for tracking progress across sessions.
+- **/campaign command** — Sisko's Danger Room: read the PRD, pick the next mission, finish the fight, repeat until done. Autonomous campaign execution with mission scoping, dependency ordering, and The Prophecy Board for tracking progress across sessions.
 - **Sisko** (Benjamin Sisko, DS9) promoted to 11th lead agent. Star Trek now has two leads: Picard (architecture) and Sisko (campaign). Sub-agents: Kira (ops), Dax (strategy), Odo (prerequisites).
 - `docs/methods/CAMPAIGN.md` — full operating rules, 6-step sequence, session management, victory condition.
 - Flags: `--resume` (continue mid-campaign), `--fast` (skip Crossfire+Council in each mission), `--mission "Name"` (jump to specific PRD section).

@@ -66,10 +66,12 @@ These require full codebase context — run sequentially:
 ### Phase 3 — Remediate
 Write all findings to `/logs/phase-11-security-audit.md` (or appropriate phase log):
 
-| ID | Finding | Severity | Category | Location | Remediation | Status |
-|----|---------|----------|----------|----------|-------------|--------|
+| ID | Finding | Severity | Confidence | Category | Location | Remediation | Status |
+|----|---------|----------|------------|----------|----------|-------------|--------|
 
 Severity = exploitability x impact. Critical (auth bypass, data leak) > High (injection, IDOR) > Medium (missing headers, weak config) > Low (best practice)
+
+**Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Maul found it, escalate to Deathstroke or Constantine) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Phase 4.
 
 Fix critical and high findings immediately. Medium findings get tracked. For each fix:
 1. Apply the fix
