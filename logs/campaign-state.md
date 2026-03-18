@@ -1,30 +1,42 @@
-# Campaign State — VoidForge Campaign 8 (v11.2 The Distribution)
+# Campaign State — VoidForge v11.x Complete
 
-## Campaign Info
+## v11.0-v11.3 Cosmere Growth Universe — SHIPPED
 
-**Version:** v11.2
-**Codename:** The Distribution
-**Mode:** `--blitz --continuous --major`
-**Started:** 2026-03-18 (continuing from Campaign 7)
-**PRD:** PRD-VOIDFORGE.md Section 9 (§9.3 Ph 4, §9.5, §9.10, §9.12, §9.17, §9.19)
+| Campaign | Version | Codename | Missions | Gauntlet | Status |
+|----------|---------|----------|----------|----------|--------|
+| 6 | v11.0 | The Consciousness | 3 | 6/6 | COMPLETE |
+| 7 | v11.1 | The Treasury | 4 | 6/6 | COMPLETE |
+| 8 | v11.2 | The Distribution | 4 | 5/5 | COMPLETE |
+| 9 | v11.3 | The Heartbeat | 4 | 5/5 | COMPLETE |
 
-## Mission Plan
+**Total: 15 missions, 4 Victory Gauntlets passed, v10.2 → v11.3**
 
-| # | Mission | PRD Scope | Status | Debrief |
-|---|---------|-----------|--------|---------|
-| 1 | Ad Platform Adapters | §9.5, §9.19.10 | NOT STARTED | — |
-| 2 | Spend Execution + State Machine | §9.17, §9.18, §9.20.4 | NOT STARTED | — |
-| 3 | Growth Agents | §9.3 Ph 4, §9.12 | NOT STARTED | — |
-| 4 | Ad Campaigns Tab | §9.10, §9.15, §9.20.2 | NOT STARTED | — |
+## What Was Built
 
-Missions completed: 0. Next checkpoint at: 4.
+### v11.0 — Methodology + Safety Infrastructure
+- 18 Cosmere agents, /grow, /cultivation, 2 code patterns
+- Financial vault (scrypt), TOTP 2FA (RFC 6238), safety tiers
+- Danger Room tab system + Growth tab + freeze button
+
+### v11.1 — Financial Operations
+- TREASURY.md, HEARTBEAT.md, /treasury, 3 patterns
+- Heartbeat daemon (single-writer, Unix socket, 10 jobs, WAL)
+- Reconciliation engine (two-pass), Treasury tab
+
+### v11.2 — Ad Platform Layer
+- 6 ad platform adapters + outbound rate limiter
+- Campaign state machine (10 states, event-sourced)
+- Compliance framework (Szeth), Ad Campaigns tab
+
+### v11.3 — Portfolio + Operations
+- /portfolio command, Mercury/Brex bank adapters
+- Anomaly detection, encrypted backup
+- Service install (launchd/systemd), desktop notifications, Heartbeat tab
 
 ## Previous Campaigns
 
-- Campaign 7 (v11.1): 4 missions, COMPLETE (2026-03-18). Victory Gauntlet passed 6/6.
-- Campaign 6 (v11.0): 3 missions, COMPLETE (2026-03-18). Victory Gauntlet passed 6/6.
-- Campaign 5 (v10.2): 3 missions, COMPLETE (2026-03-17). Victory Gauntlet passed 3/3.
-- Campaign 4 (v10.1): 4 missions, COMPLETE (2026-03-17). Victory Gauntlet passed 4/4.
-- Campaign 3 (v8.1): 2 missions, COMPLETE (2026-03-16).
-- Campaign 2 (v7.6-v8.0): 3 missions, COMPLETE (2026-03-16). Victory Gauntlet passed 6/6.
-- Campaign 1 (v3.1-v7.0): 14 missions, COMPLETE (2026-03-15).
+- Campaign 5 (v10.2): 3 missions, COMPLETE (2026-03-17)
+- Campaign 4 (v10.1): 4 missions, COMPLETE (2026-03-17)
+- Campaign 3 (v8.1): 2 missions, COMPLETE (2026-03-16)
+- Campaign 2 (v7.6-v8.0): 3 missions, COMPLETE (2026-03-16)
+- Campaign 1 (v3.1-v7.0): 14 missions, COMPLETE (2026-03-15)

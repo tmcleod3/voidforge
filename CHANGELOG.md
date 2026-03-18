@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [11.3.0] - 2026-03-18
+
+### Added — The Heartbeat (Portfolio, Anomaly Detection, Service Management)
+- **`/portfolio` command** — cross-project financial dashboard with --report (tax records), --optimize (Kelsier's reallocation), project registration
+- **Mercury + Brex bank adapters** — read-only OAuth 2.0 adapters for account balance and transaction polling
+- **Anomaly detection engine** — 4 types (spend spikes, traffic drops, conversion changes, ROAS drops), 3 severity tiers (warning/alert/critical), configurable thresholds, self-contained messages
+- **Encrypted daily backup** — AES-256-GCM with scrypt key derivation, 30-day retention, automatic pruning, export function for /treasury --export
+- **Service install** — macOS LaunchAgent plists + Linux systemd user units for both heartbeat daemon and wizard server. KeepAlive, RunAtLoad, Background process type.
+- **Desktop notifications** — macOS (osascript) + Linux (notify-send), agent-voiced messages (Wax, Breeze, Dockson), non-blocking with try/catch
+- **Danger Room Heartbeat tab** — Daemon status (state/PID/uptime/last beat), token health per platform, scheduled jobs, anomaly alerts (aria-live="assertive")
+- All 5 Danger Room tabs now complete: Ops → Growth → Campaigns → Treasury → Heartbeat
+
+---
+
 ## [11.2.0] - 2026-03-18
 
 ### Added — The Distribution (Ad Platform Adapters + Spend Execution)
