@@ -75,7 +75,13 @@
     const fill = document.getElementById('gauge-fill');
     const text = document.getElementById('gauge-text');
     const gauge = document.getElementById('context-gauge');
-    const pct = usage ? Math.round(usage.percent) : 0;
+    if (!usage) {
+      text.textContent = '\u2014%';
+      fill.style.strokeDashoffset = 88;
+      if (gauge) gauge.removeAttribute('aria-valuenow');
+      return;
+    }
+    const pct = Math.round(usage.percent);
     // Circle circumference = 2 * PI * r = 2 * 3.14159 * 14 ≈ 88
     const offset = 88 - (88 * pct / 100);
     fill.style.strokeDashoffset = offset;
