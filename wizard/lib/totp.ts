@@ -12,7 +12,7 @@
  * Zero dependencies — uses Node.js built-in crypto for HMAC-SHA1 (RFC 6238).
  */
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, open, rename, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -234,7 +234,10 @@ export async function totpVerify(code: string, fallbackPassword?: string): Promi
   for (let offset = -TOTP_WINDOW; offset <= TOTP_WINDOW; offset++) {
     const step = currentStep + offset;
     const expected = generateTotpCode(secret, step);
-    if (code === expected) {
+    // SEC-003: Use constant-time comparison for TOTP codes
+    const codeMatch = code.length === expected.length &&
+      timingSafeEqual(Buffer.from(code), Buffer.from(expected));
+    if (codeMatch) {
       // VG-003: Replay protection — reject reuse of ANY code within the window period
       const codeKey = code + ':' + step;
       if (session && session.usedCodes.has(codeKey)) {

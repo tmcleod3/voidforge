@@ -120,22 +120,35 @@ function createSocketServer(
         const lines = data.split('\r\n');
         const [method, path] = (lines[0] || 'GET /').split(' ');
 
-        // Extract auth headers
+        // Extract auth headers — pass VALUES, not just presence (SEC-001 fix)
         const authHeader = lines.find(l => l.toLowerCase().startsWith('authorization:'));
         const token = authHeader ? authHeader.split(' ').pop() || '' : '';
         const hasToken = validateToken(token, sessionToken);
 
         const vaultHeader = lines.find(l => l.toLowerCase().startsWith('x-vault-password:'));
-        const hasVault = !!vaultHeader;
+        const vaultPassword = vaultHeader ? vaultHeader.substring(vaultHeader.indexOf(':') + 1).trim() : '';
 
         const totpHeader = lines.find(l => l.toLowerCase().startsWith('x-totp-code:'));
-        const hasTotp = !!totpHeader;
+        const totpCode = totpHeader ? totpHeader.substring(totpHeader.indexOf(':') + 1).trim() : '';
 
         // Parse body (after blank line)
         const bodyStart = data.indexOf('\r\n\r\n');
+
+        // SEC-012: Limit request body size to 1MB
+        const MAX_BODY_SIZE = 1024 * 1024;
+        if (data.length > MAX_BODY_SIZE) {
+          conn.write('HTTP/1.1 413 Payload Too Large\r\nContent-Type: application/json\r\n\r\n{"ok":false,"error":"Request too large"}');
+          conn.end();
+          return;
+        }
+
         const body = bodyStart >= 0 ? JSON.parse(data.substring(bodyStart + 4) || '{}') : {};
 
-        const result = await handleRequest(method, path, body, { hasToken, hasVault, hasTotp });
+        const result = await handleRequest(method, path, body, {
+          hasToken,
+          vaultPassword,  // Actual value for verification by handler
+          totpCode,       // Actual value for verification by handler
+        });
 
         conn.write(`HTTP/1.1 ${result.status} OK\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(result.body)}`);
       } catch (err) {

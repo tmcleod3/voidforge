@@ -8,7 +8,7 @@
  * PRD Reference: §9.7 (Danger Room shows warning), v11.3 deliverables
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { platform } from 'node:os';
 
 type NotificationUrgency = 'low' | 'normal' | 'critical';
@@ -37,17 +37,26 @@ export function notify(opts: NotificationOptions): void {
 }
 
 function notifyMacOS(opts: NotificationOptions): void {
-  const title = opts.title.replace(/"/g, '\\"');
-  const message = opts.message.replace(/"/g, '\\"');
-  const sound = opts.sound !== false ? 'with title "VoidForge" sound name "Submarine"' : 'with title "VoidForge"';
-  execSync(`osascript -e 'display notification "${message}" ${sound} subtitle "${title}"' 2>/dev/null`);
+  // SEC-005: Use execFileSync with args array to prevent shell injection
+  const sound = opts.sound !== false ? ' sound name "Submarine"' : '';
+  const script = `display notification "${sanitize(opts.message)}" with title "VoidForge"${sound} subtitle "${sanitize(opts.title)}"`;
+  try {
+    execFileSync('osascript', ['-e', script], { timeout: 5000, stdio: 'ignore' });
+  } catch { /* notification failure is never fatal */ }
 }
 
 function notifyLinux(opts: NotificationOptions): void {
-  const urgency = opts.urgency || 'normal';
-  const title = opts.title.replace(/'/g, "'\\''");
-  const message = opts.message.replace(/'/g, "'\\''");
-  execSync(`notify-send -u ${urgency} -a VoidForge '${title}' '${message}' 2>/dev/null`);
+  // SEC-006: Use execFileSync with args array, validate urgency enum
+  const validUrgencies = ['low', 'normal', 'critical'];
+  const urgency = validUrgencies.includes(opts.urgency || '') ? opts.urgency! : 'normal';
+  try {
+    execFileSync('notify-send', ['-u', urgency, '-a', 'VoidForge', sanitize(opts.title), sanitize(opts.message)], { timeout: 5000, stdio: 'ignore' });
+  } catch { /* notification failure is never fatal */ }
+}
+
+/** Strip characters that could be dangerous in shell/AppleScript contexts */
+function sanitize(input: string): string {
+  return input.replace(/[`$\\"\n\r]/g, '').slice(0, 200);
 }
 
 // ── Daemon Event Notifications ────────────────────────

@@ -24,7 +24,7 @@ import {
 
 import type { HeartbeatState, DaemonState } from '../../docs/patterns/daemon-process.js';
 
-import { financialVaultGet, financialVaultLock } from './financial-vault.js';
+import { financialVaultGet, financialVaultLock, financialVaultUnlock } from './financial-vault.js';
 import { totpVerify, totpSessionValid, totpSessionInvalidate } from './totp.js';
 import { classifyTier, isAutonomouslyAllowed, DEFAULT_TIERS } from './safety-tiers.js';
 import type { Cents } from './safety-tiers.js';
@@ -60,12 +60,25 @@ async function handleRequest(
   method: string,
   path: string,
   body: unknown,
-  auth: { hasToken: boolean; hasVault: boolean; hasTotp: boolean }
+  auth: { hasToken: boolean; vaultPassword: string; totpCode: string }
 ): Promise<{ status: number; body: unknown }> {
 
   // All requests require session token
   if (!auth.hasToken) {
     return { status: 401, body: { ok: false, error: 'Session token required' } };
+  }
+
+  // SEC-001: Verify vault password against actual vault (not just presence)
+  const vaultVerified = auth.vaultPassword && vaultKey
+    ? auth.vaultPassword === vaultKey  // Compare against daemon's held key
+    : false;
+
+  // SEC-001: Verify TOTP code (not just presence)
+  let totpVerified = false;
+  if (auth.totpCode) {
+    try {
+      totpVerified = await totpVerify(auth.totpCode);
+    } catch { /* TOTP not configured — treat as false */ }
   }
 
   // ── Read operations ──────────────────
@@ -91,8 +104,8 @@ async function handleRequest(
 
     // Unfreeze — requires vault + TOTP (§9.18)
     if (path === '/unfreeze') {
-      if (!auth.hasVault || !auth.hasTotp) {
-        return { status: 403, body: { ok: false, error: 'Unfreeze requires vault password + TOTP' } };
+      if (!vaultVerified || !totpVerified) {
+        return { status: 403, body: { ok: false, error: 'Unfreeze requires valid vault password + TOTP code' } };
       }
       return await handleUnfreeze();
     }
@@ -116,25 +129,25 @@ async function handleRequest(
 
     // Campaign resume — requires vault password
     if (path.match(/^\/campaigns\/[^/]+\/resume$/)) {
-      if (!auth.hasVault) {
-        return { status: 403, body: { ok: false, error: 'Resume requires vault password' } };
+      if (!vaultVerified) {
+        return { status: 403, body: { ok: false, error: 'Resume requires valid vault password' } };
       }
       const id = path.split('/')[2];
       return await handleCampaignResume(id);
     }
 
-    // Campaign launch — requires vault password
+    // Campaign launch — requires vault password + safety tier check (SEC-004)
     if (path === '/campaigns/launch') {
-      if (!auth.hasVault) {
-        return { status: 403, body: { ok: false, error: 'Campaign launch requires vault password' } };
+      if (!vaultVerified) {
+        return { status: 403, body: { ok: false, error: 'Campaign launch requires valid vault password' } };
       }
       return await handleCampaignLaunch(body);
     }
 
-    // Budget modification — requires vault password
+    // Budget modification — requires vault password + safety tier check (SEC-004)
     if (path === '/budget') {
-      if (!auth.hasVault) {
-        return { status: 403, body: { ok: false, error: 'Budget changes require vault password' } };
+      if (!vaultVerified) {
+        return { status: 403, body: { ok: false, error: 'Budget changes require valid vault password' } };
       }
       return await handleBudgetChange(body);
     }
@@ -173,6 +186,12 @@ async function handleUnfreeze(): Promise<{ status: number; body: unknown }> {
 async function handleUnlock(body: { password?: string }): Promise<{ status: number; body: unknown }> {
   if (!body.password) {
     return { status: 400, body: { ok: false, error: 'Password required' } };
+  }
+  // SEC-002: Verify the password can actually decrypt the vault before accepting
+  const valid = await financialVaultUnlock(body.password);
+  if (!valid) {
+    logger.log('Vault unlock failed — wrong password');
+    return { status: 403, body: { ok: false, error: 'Invalid vault password' } };
   }
   vaultKey = body.password;
   if (daemonState === 'degraded') daemonState = 'healthy';
@@ -426,4 +445,5 @@ export async function startHeartbeat(vaultPassword: string): Promise<void> {
   logger.log(`Heartbeat daemon running (PID ${process.pid}, state: ${daemonState})`);
 }
 
-export { daemonState, vaultKey };
+// SEC-007: vaultKey is NOT exported — vault password must not be accessible outside the daemon
+export { daemonState };
