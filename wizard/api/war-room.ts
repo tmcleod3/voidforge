@@ -154,6 +154,7 @@ export function broadcastWarRoom(data: { type: string; [key: string]: unknown })
 
 /** Close all War Room WebSocket connections and shut down the server. */
 export function closeWarRoom(): void {
+  clearInterval(heartbeat);
   for (const client of clients) {
     try { client.close(1001, 'Server shutting down'); } catch { /* ignore */ }
   }
