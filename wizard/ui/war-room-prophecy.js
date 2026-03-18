@@ -87,7 +87,7 @@
       viewBox: '0 0 ' + svgWidth + ' ' + svgHeight,
       width: '100%',
       height: Math.min(svgHeight, 400) + 'px',
-      role: 'img',
+      role: 'group',
       'aria-label': 'Campaign mission dependency graph'
     });
 
@@ -169,6 +169,10 @@
       });
       g.appendChild(statusDot);
 
+      // Focus indicator — highlight circle on keyboard focus
+      g.addEventListener('focus', function () { circle.setAttribute('stroke-width', '4'); });
+      g.addEventListener('blur', function () { circle.setAttribute('stroke-width', '2'); });
+
       // Click handler — show details in the detail panel
       g.addEventListener('click', function () { showDetail(m); });
       g.addEventListener('keydown', function (e) {
@@ -199,9 +203,9 @@
     var panel = document.getElementById('prophecy-detail');
     if (!panel) return;
     var color = STATUS_COLORS[mission.status] || STATUS_COLORS.PENDING;
-    var label = STATUS_LABELS[mission.status] || mission.status;
+    var label = STATUS_LABELS[mission.status] || escapeText(mission.status);
     panel.innerHTML =
-      '<div style="font-weight:700;color:' + color + ';">Mission ' + mission.number + '</div>' +
+      '<div style="font-weight:700;color:' + color + ';">Mission ' + escapeText(String(mission.number)) + '</div>' +
       '<div style="margin:4px 0;font-size:13px;">' + escapeText(mission.name) + '</div>' +
       '<div style="font-size:11px;color:var(--text-dim);">Status: ' + label + '</div>';
   }

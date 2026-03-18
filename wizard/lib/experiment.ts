@@ -7,7 +7,7 @@
  * Storage: ~/.voidforge/experiments.json
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -84,7 +84,10 @@ async function readStore(): Promise<ExperimentStore> {
 
 async function writeStore(store: ExperimentStore): Promise<void> {
   await ensureDir();
-  await writeFile(EXPERIMENTS_FILE, JSON.stringify(store, null, 2), 'utf-8');
+  // Atomic write: write to temp file, then rename (prevents corruption on crash)
+  const tmpFile = EXPERIMENTS_FILE + '.tmp';
+  await writeFile(tmpFile, JSON.stringify(store, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  await rename(tmpFile, EXPERIMENTS_FILE);
 }
 
 // ── API ─────────────────────────────────────────
