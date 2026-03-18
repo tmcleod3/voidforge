@@ -85,6 +85,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | `/dangerroom` | The Danger Room (X-Men, Marvel) — installable operations dashboard for build/deploy/agent monitoring |
 | `/cultivation` | Cultivation (Cosmere Shard) — installable autonomous growth engine: marketing, ads, creative, A/B testing, spend optimization |
 | `/grow` | Kelsier's 6-phase growth protocol — initial setup within Cultivation, then autonomous loop |
+| `/current` | Tuvok's Deep Current — autonomous campaign intelligence: scan, analyze, propose, cold start intake |
 | `/treasury` | Dockson's financial operations — revenue ingest, budget allocation, spend execution, reconciliation |
 | `/portfolio` | Steris's cross-project financials — aggregated spend/revenue, portfolio optimization |
 
@@ -142,6 +143,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | Forge Artist | **Celebrimbor** (Tolkien) | AI image generation from PRD visual descriptions |
 | Field Medic | **Bashir** (Star Trek) | Post-mortem analysis, upstream feedback via GitHub issues |
 | Growth Strategist | **Kelsier** (Cosmere) | Growth strategy, campaign orchestration, ad platforms, SEO |
+| Deep Current | **Tuvok** (Star Trek) | Autonomous campaign intelligence — scan, analyze, propose, learn |
 | Treasury | **Dockson** (Cosmere) | Revenue ingest, budget allocation, spend execution, reconciliation |
 
 185+ sub-agent names in `/docs/NAMING_REGISTRY.md`. No duplicates across active sessions.

@@ -211,19 +211,20 @@
 14. Bashir — **Lead: Field Medic**: post-mortem analysis, upstream feedback via GitHub issues. "I'm figuring out why the battle plan failed." Sub-agents: Ezri, O'Brien, Nog, Jake.
 15. O'Brien — Root cause investigator for /debrief. "The bloody EPS conduits again."
 16. Janeway — Navigate unknown territory, novel architectures
-17. Seven — Efficiency, precision, Borg-like optimization
-18. Tuvok — Logic, security architecture
-19. Torres — Engine room, performance engineering
-20. Pike — Bold decisions, leads into the unknown
+17. Seven — Deep Current optimization engine. Efficiency, precision, 5-dimension gap analysis. (Also: Borg-like optimization in /architect)
+18. Tuvok — **Deep Current lead** (v12.0). Strategic intelligence, autonomous campaign generation. (Also: logic, security architecture in /architect)
+19. Torres — Deep Current site scanner. Technical reconnaissance via HTTP checks. (Also: engine room, performance engineering in /architect)
+20. Pike — Bold decisions, leads into the unknown. (Also: challenges Dax's ordering in /campaign)
+20a. Paris — Deep Current route planner. Computes optimal campaign sequence. Best pilot — finds the fastest safe route.
 21. T'Pol — Disciplined analysis, Vulcan rigor
 22. Archer — Explorer, greenfield architecture
-23. Chakotay — Balance, harmonizes competing concerns
+23. Chakotay — Deep Current cross-pipeline bridge. Connects growth data to build decisions. (Also: balance, harmonizes competing concerns in /architect)
 24. Kim — Communications, API design
 25. Ezri — Session analyst for /debrief. Joined Trill — multiple lifetimes of perspective on what went wrong.
 26. Nog — Solution architect for /debrief. First Ferengi in Starfleet — creative, resourceful, thinks outside the box.
 27. Jake — Report writer for /debrief. Sisko's son, aspiring journalist. Makes post-mortems readable.
 
-**Reserved:** Picard (lead — architecture), Sisko (lead — campaign), Bashir (lead — field medic)
+**Reserved:** Picard (lead — architecture), Sisko (lead — campaign), Bashir (lead — field medic), Tuvok (lead — deep current)
 
 ---
 
