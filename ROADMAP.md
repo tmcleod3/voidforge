@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v10.0.1 (2026-03-17)
-**Next:** v10.1 — War Room Data Feeds + Feature Enforcement
-**Status:** v10.0.1 shipped (War Room UI + methodology specs). v10.1 connects the data feeds and adds enforcement to methodology features. See "Remaining v10.x Work" below.
+**Current:** v11.3.0 (2026-03-18)
+**Next:** v12.0 — The Deep Current (Autonomous Campaign Intelligence)
+**Status:** v11.x complete. v12.0 adds the 9th concept layer (Voyager crew), autonomous campaign generation, cold start intake, cross-pipeline correlation, 3-tier autonomy.
 
 ---
 
@@ -1078,11 +1078,11 @@ deploy: "web"           # web (WebGL/HTML5) | steam | itch | mobile
 
 ---
 
-## v10.0 — The War Room + The Frontier
+## v10.0 — The Danger Room + The Frontier
 
-*The War Room is the surface. The Frontier features are what it displays.*
+*The Danger Room is the surface. The Frontier features are what it displays.*
 
-**Ship order:** Build the War Room dashboard FIRST (it's the platform). Then add Frontier features one at a time — each one gets a new panel on the dashboard.
+**Ship order:** Build the Danger Room dashboard FIRST (it's the platform). Then add Frontier features one at a time — each one gets a new panel on the dashboard.
 
 ### 1. Agent Confidence Scoring
 
@@ -1100,9 +1100,9 @@ Before building, an agent argues AGAINST the PRD. "This feature will be expensiv
 
 Instead of YAML frontmatter, describe deployment in prose: "I want this running on a $20/month server with a custom domain, automatic SSL, and daily backups." The system figures out the deploy target (VPS), instance type (t3.small), DNS provider (Cloudflare), backup schedule (pg_dump daily to S3), and generates the frontmatter. `/prd` already does this for features — extend it to infrastructure.
 
-### 5. The War Room Dashboard — THE CENTERPIECE
+### 5. The Danger Room Dashboard — THE CENTERPIECE
 
-**This is not just one of ten ideas. It is the surface that makes every other idea visible.** Agent debates, confidence scores, build archaeology, the living PRD, the prophecy graph — they all need somewhere to live. The War Room is the connective tissue. Promote to its own version (v9.5 or v10.0 foundation) and build it BEFORE the other v10.0 features so they have a surface to render on.
+**This is not just one of ten ideas. It is the surface that makes every other idea visible.** Agent debates, confidence scores, build archaeology, the living PRD, the prophecy graph — they all need somewhere to live. The Danger Room is the connective tissue. Promote to its own version (v9.5 or v10.0 foundation) and build it BEFORE the other v10.0 features so they have a surface to render on.
 
 **Architecture:** New tab in Avengers Tower Lobby (`/war-room.html`). Real-time updates via WebSocket (same `ws` infrastructure as Tower terminals). Data fed by Hill (phase tracking) and Jarvis (status summaries). Vanilla JS frontend — no framework, same as the rest of the wizard UI.
 
@@ -1137,7 +1137,7 @@ Instead of YAML frontmatter, describe deployment in prose: "I want this running 
 
 **Layout:** Responsive grid. Main area shows the active context (campaign timeline during campaign, phase pipeline during assemble, finding scoreboard during gauntlet). Sidebar shows persistent panels (context gauge, version, deploy status). Bottom ticker shows agent activity feed ("Maul probing /api/auth... Nightwing running test suite... Constantine found cursed code in utils.ts").
 
-**Data Layer:** All panels read from existing files (campaign-state.md, assemble-state.md, phase logs, VERSION.md, deploy-log.json) via REST endpoints + WebSocket push for real-time updates. No new data storage — the War Room is a VIEW layer over existing state.
+**Data Layer:** All panels read from existing files (campaign-state.md, assemble-state.md, phase logs, VERSION.md, deploy-log.json) via REST endpoints + WebSocket push for real-time updates. No new data storage — the Danger Room is a VIEW layer over existing state.
 
 ### 6. Build Archaeology
 
@@ -1161,76 +1161,76 @@ The PRD is currently static — read at Phase 0, checked at the end by Troi. Mak
 
 ### Campaign Missions
 
-**Mission 1 — War Room Foundation (wizard code + methodology)**
+**Mission 1 — Danger Room Foundation (wizard code + methodology)**
 - Create `wizard/ui/war-room.html` + `wizard/ui/war-room.js` + `wizard/ui/war-room.css`
 - Core layout: responsive grid, main area + sidebar + bottom ticker
 - 5 panels from existing data: Campaign Timeline, Phase Pipeline, Finding Scoreboard, Context Gauge, Version & Branch
 - WebSocket integration for real-time updates (reuse Tower ws infrastructure)
 - REST endpoints for reading campaign-state.md, assemble-state.md, phase logs
-- Add War Room tab to Lobby navigation
-- Update `docs/ARCHITECTURE.md`: add War Room to system diagram
+- Add Danger Room tab to Lobby navigation
+- Update `docs/ARCHITECTURE.md`: add Danger Room to system diagram
 
-**Mission 2 — War Room Extended Panels**
+**Mission 2 — Danger Room Extended Panels**
 - 5 more panels: Active Agents (universe-colored avatars), PRD Coverage, Test Suite status, Deploy Status, Cost Tracker
 - Agent activity ticker (bottom bar): parse agent tool invocations into "Maul probing /api/auth..." feed
-- Hill + Jarvis data feed: phase completion timestamps, status summaries piped to War Room
+- Hill + Jarvis data feed: phase completion timestamps, status summaries piped to Danger Room
 
 **Mission 3 — Agent Confidence Scoring (#1)**
 - Update all agent protocol sections: add confidence score (0-100) to finding format
 - Update `docs/methods/GAUNTLET.md`: low-confidence findings (<60) escalated to second agent
-- Create Confidence Heat Map panel for War Room
+- Create Confidence Heat Map panel for Danger Room
 - Update finding log format across all method docs
 
 **Mission 4 — Agent Debates (#2)**
 - Update `docs/methods/SUB_AGENTS.md`: add Debate Protocol (Agent A states → Agent B responds → Agent A rebuts → Arbiter decides, 3 exchanges max)
 - Update `docs/methods/ASSEMBLER.md`: when review agents disagree, trigger debate instead of listing both
-- Create Debate Arena panel for War Room (live transcripts, verdict badges)
+- Create Debate Arena panel for Danger Room (live transcripts, verdict badges)
 - Log debates as ADRs
 
 **Mission 5 — Adversarial PRD Review (#3)**
 - Create `.claude/commands/prd-challenge.md` or add `--challenge` flag to `/prd` command
 - Update `docs/methods/CAMPAIGN.md`: optional PRD challenge before first mission
-- Create PRD Challenge Log panel for War Room
+- Create PRD Challenge Log panel for Danger Room
 - Define the adversarial agent (Boromir-PRD? "One does not simply ship this feature")
 
 **Mission 6 — Natural Language Deploy (#4)**
 - Update `/prd` command Act 5: deploy section accepts prose description
 - Create infra-resolver logic: prose → frontmatter mapping (instance type, DNS, backup schedule)
-- Create Infra Config panel for War Room (generated config, cost estimate, approve button)
+- Create Infra Config panel for Danger Room (generated config, cost estimate, approve button)
 - Update `docs/methods/DEVOPS_ENGINEER.md`: natural language deploy section
 
 **Mission 7 — Build Archaeology (#6)**
 - Create `/archaeology` command or `--trace` flag on `/debrief`
 - Data model: link production bugs → git commits → build phases → agent findings
-- Create Bug Trace Timeline panel for War Room (animated path through pipeline)
+- Create Bug Trace Timeline panel for Danger Room (animated path through pipeline)
 - Update `docs/methods/FIELD_MEDIC.md`: archaeology mode in debrief
 
 **Mission 8 — Cross-Project Memory (#7)**
 - Create `~/.voidforge/lessons-global.json` schema
 - Update Wong's promotion analysis: after each debrief, write lesson summary to global store
 - Update Phase 0 Orient: Wong loads global lessons matching current framework/domain
-- Create Global Lessons panel for War Room (frequency badges, cross-project patterns)
+- Create Global Lessons panel for Danger Room (frequency badges, cross-project patterns)
 
 **Mission 9 — Methodology A/B Testing (#8)**
 - Create experiment framework: define experiment (agent count, protocol variant), run both, compare
 - Track true-positive rates per agent per project type
-- Create Experiment Dashboard panel for War Room (side-by-side accuracy charts)
+- Create Experiment Dashboard panel for Danger Room (side-by-side accuracy charts)
 - Update `docs/methods/FIELD_MEDIC.md`: experiment analysis in debrief
 
 **Mission 10 — Prophecy Visualizer (#9)**
 - Create interactive dependency graph renderer (vanilla JS + canvas or SVG)
 - Parse campaign-state.md into node/edge graph
-- Create Prophecy Graph panel for War Room (clickable nodes, color-coded status)
+- Create Prophecy Graph panel for Danger Room (clickable nodes, color-coded status)
 - Drill-down: click node → show missions, findings, agent reviews
 
 **Mission 11 — The Living PRD (#10)**
 - Update BUILD_PROTOCOL.md: Phase 4/6/8 gates include PRD update step when implementation deviates
 - Update Troi's compliance check: two-way sync (fix code OR update PRD)
-- Create PRD Drift View panel for War Room (side-by-side diff, drift score)
+- Create PRD Drift View panel for Danger Room (side-by-side diff, drift score)
 - Store Phase 0 PRD snapshot for diff comparison
 
 ### Estimated effort
-8-12 sessions. 11 missions. The War Room foundation (Missions 1-2) ships first; frontier features (Missions 3-11) add panels incrementally.
+8-12 sessions. 11 missions. The Danger Room foundation (Missions 1-2) ships first; frontier features (Missions 3-11) add panels incrementally.
 
 ---
 
@@ -1240,9 +1240,9 @@ The PRD is currently static — read at Phase 0, checked at the end by Troi. Mak
 
 *What was claimed as shipped but needs real implementation. Field report #76.*
 
-### v10.1 — War Room Data Feeds + Feature Enforcement
+### v10.1 — Danger Room Data Feeds + Feature Enforcement
 
-**Mission 1 — War Room WebSocket handler + data feeds**
+**Mission 1 — Danger Room WebSocket handler + data feeds**
 - Add `/ws/war-room` WebSocket upgrade handler in `wizard/server.ts` (alongside existing `/ws/terminal`)
 - Connect campaign-state.md parsing to `/api/war-room/campaign` endpoint (return mission list with statuses)
 - Connect assemble-state.md to `/api/war-room/build` (return phase pipeline with statuses)
@@ -1274,7 +1274,7 @@ The PRD is currently static — read at Phase 0, checked at the end by Troi. Mak
 - Design experiment schema: `~/.voidforge/experiments.json`
 - Track per-agent true-positive rates across projects
 - Build experiment runner that runs protocol variant A and B on same code, compares results
-- Add Experiment Dashboard panel to War Room
+- Add Experiment Dashboard panel to Danger Room
 
 **Mission 7 — Prophecy Visualizer**
 - Build dependency graph renderer (SVG or canvas) in `wizard/ui/war-room-prophecy.js`
@@ -1285,6 +1285,241 @@ The PRD is currently static — read at Phase 0, checked at the end by Troi. Mak
 ### Estimated effort
 v10.1: 2-3 sessions (4 missions — data feeds + 3 enforcement missions)
 v10.2: 3-4 sessions (3 missions — all require real implementation code)
+
+---
+
+## v11.0 — The Consciousness (Cosmere Growth Universe)
+
+*"There's always another secret." — Kelsier*
+
+**The thesis:** VoidForge has the build/review/deploy pipeline. v11.0 adds the growth/marketing/money pipeline. The 8th universe (Cosmere — Brandon Sanderson) brings 18 agents led by Kelsier, the 15th Council member.
+
+**Inspired by:** Polsia (autonomous AI business operations, $2M ARR), Paperclip (open-source zero-human company orchestration).
+
+### The 8th Universe: The Cosmere
+
+| Agent | Character | Source | Role |
+|-------|-----------|--------|------|
+| **Kelsier** | The Survivor | Mistborn | **Lead** — Growth strategy, campaign orchestration |
+| **Vin** | Mistborn Ascendant | Mistborn | Analytics — attribution, metrics, pattern detection |
+| **Shallan** | Lightweaver | Stormlight | Content & creative — copy, brand, visual identity |
+| **Hoid** | Wit | Cosmere-wide | Copywriting — the storyteller with the perfect words |
+| **Kaladin** | Windrunner | Stormlight | Organic growth — community, word-of-mouth, trust |
+| **Dalinar** | The Blackthorn | Stormlight | Positioning — competitive analysis, market strategy |
+| **Navani** | Scholar-Queen | Stormlight | Technical SEO — schema, CWV, structured data |
+| **Raoden** | Prince of Elantris | Elantris | Conversion optimization — fixes broken funnels |
+| **Sarene** | Princess of Teod | Elantris | Outreach — cold email, influencer, co-marketing |
+| **Wax** | Allomantic Lawman | Mistborn Era 2 | Paid ads — targeting, campaigns, ROAS |
+| **Wayne** | Master of Disguise | Mistborn Era 2 | A/B testing — tries every variation |
+| **Steris** | The Planner | Mistborn Era 2 | Budget & forecasting — contingency plans |
+| **Dockson** | The Bookkeeper | Mistborn | Treasury — bank connections, payments, spend execution |
+| **Breeze** | The Soother | Mistborn | Platform relations — API credentials, platform ToS |
+| **Lift** | Edgedancer | Stormlight | Social media — fast, irreverent, audience voice |
+| **Szeth** | Truthless | Stormlight | Compliance — GDPR, CAN-SPAM, ad policies |
+| **Adolin** | Highprince | Stormlight | Brand ambassador — launches, PR, charm |
+| **Marsh** | The Inquisitor | Mistborn | Competitive intel — deep monitoring of competitors |
+
+### `/grow` Command — 6-Phase Growth Protocol
+
+Phase 1 — Reconnaissance (Kelsier + Vin + Marsh): Product audit, site audit, competitive analysis → Growth Brief
+Phase 2 — Foundation (Navani + Raoden): Technical SEO, conversion optimization, analytics setup
+Phase 3 — Content (Shallan + Hoid): Blog, changelog, case studies, social content, visual assets
+Phase 4 — Distribution: Organic (Kaladin, Lift, Adolin) + Paid (Wax, Wayne, Steris) + Outreach (Sarene)
+Phase 5 — Compliance (Szeth): GDPR, CAN-SPAM, platform ToS, privacy, ad creative compliance
+Phase 6 — Measure & Iterate (Vin + Kelsier): Track, identify, report, loop
+
+### The Treasury — `/treasury` Command
+
+Dockson manages real money. Revenue ingest (Stripe, Paddle, Mercury/Brex) → budget allocation → spend execution → reconciliation.
+
+Safety tiers: <$25/day auto-approve, $25-100 agent approval (Dockson + Steris), >$100 human confirm, >$500 hard stop. `/treasury --freeze` kills all automated spending. Immutable spend log.
+
+### Ad Platform Integration
+
+Meta, Google Ads, TikTok, LinkedIn, Twitter/X, Reddit (paid). Product Hunt, Hacker News (organic launches). Wax creates → Wayne A/B tests → Vin measures → optimize or kill.
+
+### Site Optimization (Navani's Pipeline)
+
+`/grow --seo`: Core Web Vitals, technical SEO (sitemap, robots, JSON-LD, OG), page speed, conversion optimization (Raoden).
+
+### Implementation Phases
+
+> **Full specification:** See `PRD-VOIDFORGE.md` Section 9 for complete user flows, schemas, integration specs, security model, and compliance framework.
+
+| Version | Codename | Focus | PRD Reference | Effort |
+|---------|----------|-------|---------------|--------|
+| v11.0 | The Consciousness | Cosmere universe (18 agents) + `/grow` Phases 1-3 + financial vault + TOTP + safety tier schema + Danger Room Growth tab (read-only) | §9.2, §9.3 (Ph 1-3), §9.11, §9.16 (ADR-2), §9.19 | 3-4 sessions |
+| v11.1 | The Treasury | `/treasury` + revenue ingest (read-only) + reconciliation + heartbeat daemon (monitoring only) + Treasury tab in Danger Room | §9.4, §9.7, §9.9, §9.16 (ADR-1/3/5), §9.19 | 2-3 sessions |
+| v11.2 | The Distribution | Ad platform adapters + spend execution (protected by v11.0/v11.1 safety) + `/grow` Phase 4 + Ad Campaigns tab in Danger Room | §9.3 (Ph 4), §9.5, §9.10, §9.17, §9.19 | 2-3 sessions |
+| v11.3 | The Heartbeat | `/portfolio` + anomaly detection + backup + cross-project financials + service install + Heartbeat tab in Danger Room | §9.7, §9.8, §9.16 (ADR-6), §9.17, §9.19 | 2-3 sessions |
+
+**Phase ordering principle (ADR-2):** Safety before agency. Observability before execution.
+
+### Required Deliverables per Phase
+
+**v11.0 deliverables:**
+- 18 agent definitions in `docs/NAMING_REGISTRY.md` ✓ (added)
+- Method doc: `docs/methods/GROWTH_STRATEGIST.md`
+- Command: `.claude/commands/grow.md`
+- Command: `.claude/commands/cultivation.md` (install command)
+- Pattern: `docs/patterns/ad-platform-adapter.ts` (split interface: AdPlatformSetup + AdPlatformAdapter per §9.19.10)
+- Pattern: `docs/patterns/financial-transaction.ts` (branded Cents type, hash-chained append log)
+- Financial vault (separate from infra vault, AES-256-GCM, Argon2id key derivation)
+- TOTP setup (secret in system keychain per ADR-4)
+- Safety tier schema + budget flags + campaign creation rate limits (§9.19.14)
+- Danger Room tab/view navigation system (prerequisite for growth tabs)
+- Danger Room Growth tab (read-only, placeholder data)
+- Financial CSS color tokens (§9.15.3)
+- Growth tab WebSocket event types
+- Danger Room WebSocket reconnection logic (§9.19.9)
+
+**v11.1 deliverables:**
+- Method doc: `docs/methods/TREASURY.md`
+- Method doc: `docs/methods/HEARTBEAT.md`
+- Command: `.claude/commands/treasury.md`
+- Pattern: `docs/patterns/daemon-process.ts` (PID, signals, sleep/wake, log rotation)
+- Pattern: `docs/patterns/revenue-source-adapter.ts`
+- Pattern: `docs/patterns/oauth-token-lifecycle.ts`
+- Stripe + Paddle revenue adapters (read-only, polling)
+- Heartbeat daemon with single-writer architecture (ADR-1, Unix domain socket)
+- Write-ahead log for pending operations (ADR-3)
+- Spend-log + revenue-log (append-only, hash-chained)
+- Reconciliation engine (two-pass: preliminary + final)
+- Treasury panel in Danger Room
+- Currency enforcement (USD-only per ADR-6)
+
+**v11.2 deliverables:**
+- Meta + Google adapters (full CRUD + reporting)
+- TikTok, LinkedIn, Twitter/X, Reddit adapters
+- Pattern: `docs/patterns/outbound-rate-limiter.ts`
+- Spend execution pipeline (budget lock, idempotency keys)
+- Campaign state machine (8 states, event-sourced transitions)
+- Ad Campaigns panel in Danger Room
+- Lift social content generation, Sarene outreach, Wayne A/B testing
+- Szeth compliance framework
+
+**v11.3 deliverables:**
+- Command: `.claude/commands/portfolio.md`
+- Mercury/Brex bank adapters
+- `/portfolio` command with cross-project financials
+- Anomaly detection (spend spikes, traffic drops, conversion changes)
+- Automatic daily backup (treasury + growth state → ~/.voidforge/backups/, encrypted per §9.19.13)
+- `launchd`/`systemd`/Task Scheduler install scripts (heartbeat + wizard server per §9.19.2)
+- Heartbeat tab in Danger Room
+- Desktop notifications (macOS/Linux)
+- Daemon session token auto-rotation (§9.19.15)
+
+---
+
+## v12.0 — The Deep Current (Autonomous Campaign Intelligence)
+
+*"Logic is the beginning of wisdom, not the end." — Tuvok*
+
+**The thesis:** VoidForge v1-v11 requires a human to decide what to build/grow next. v12 removes that requirement. The Deep Current reads the project, its history, its analytics, its competitive landscape, and autonomously designs the next campaign. The human monitors the dashboard and adjusts course — or walks away entirely.
+
+**The 9th universe expansion:** Voyager crew (Star Trek) — the ship that operated autonomously in the Delta Quadrant for 7 years without Starfleet Command. 5 new agent roles: Tuvok (strategic intelligence), Seven (optimization), Chakotay (cross-pipeline bridge), Paris (route planning), Torres (site scanning).
+
+**Inspired by:** The convergence of build pipeline (Sisko), growth pipeline (Kelsier), financial pipeline (Dockson), and learning pipeline (Bashir). Currently these are separate workflows requiring human orchestration. The Deep Current connects them into a single autonomous loop: SENSE → ANALYZE → PROPOSE → [GATE] → EXECUTE → LEARN.
+
+### Core Architecture
+
+**The Deep Current Loop:**
+1. **SENSE** — Torres scans the deployed site (Lighthouse, meta tags, health). Vin reads analytics. Marsh scans competitors. Dockson reads revenue. Wong reads lessons. Kira reads operational state.
+2. **ANALYZE** — Seven runs gap analysis across 5 dimensions: feature completeness, quality, performance, growth readiness, revenue potential. Scores each 0-100.
+3. **PROPOSE** — Tuvok generates a campaign proposal: missions, expected impact, risk assessment, alternatives considered, autonomy recommendation.
+4. **[GATE]** — Tier 1: human approves. Tier 2: auto-execute after 24h delay (human can veto). Tier 3: immediate execution.
+5. **EXECUTE** — Sisko runs the campaign. Fury assembles. Coulson commits. Thanos reviews.
+6. **LEARN** — Bashir debriefs. Tuvok scores predictions against actual outcomes. Chakotay updates the correlation model (which product changes drive which growth outcomes).
+
+**The Cold Start Problem (solved):**
+- User provides one paragraph: "What problem are you solving? For whom?"
+- Seven researches the competitive landscape (Marsh scans)
+- Tuvok generates a draft PRD (using /prd internally)
+- User reviews and approves
+- Paris computes the first campaign
+
+**Autonomy Tiers:**
+- **Tier 1 (Advisor):** System proposes campaigns. Human decides. Default.
+- **Tier 2 (Supervised):** System executes after 24h delay. Human can veto. Max 5 missions per campaign.
+- **Tier 3 (Full Autonomy):** System executes immediately. Circuit breakers for safety. 30-day mandatory human sync.
+
+**New command:** `/current` — Tuvok's Deep Current command (scan, analyze, propose, set tier, intake, history, stop, status).
+
+### Security Architecture (Worf + Tuvok)
+
+**Hard limits (non-negotiable):**
+- PRD modification requires human approval (hash checkpoint)
+- Campaign creation requires vault password (no programmatic bypass)
+- Methodology changes require human approval
+- Production deployment requires human promotion (autonomous → staging only)
+- Budget ceiling modifiable only with vault + TOTP
+- 30-day mandatory strategic sync (system pauses if overdue)
+
+**Strategic drift defense:**
+- Strategic intent document (read-only to system): "This product is X, NOT Y"
+- Drift score after every 5 autonomous actions (Troi compares current state to intent)
+- Drift > 30% → pause and escalate
+
+**Feedback loop circuit breakers:**
+- Lesson decay: 50% weight at 90 days, 25% at 180 days
+- 10-15% exploration budget (prevents collapsing into local optimum)
+- Minimum sample enforcement (500 impressions, 3 days, 95% confidence)
+- Circular dependency detection in Kelsier's recommendations
+
+**Aggregate spend controls:**
+- Single hard ceiling on total daily autonomous spend (set by human, immutable by system)
+- Monotonically increasing spend lockout (7 consecutive days → human review)
+- Minimum ROAS enforcement (< 1.0x for 7 days → freeze all autonomous campaigns)
+
+### Implementation Phases
+
+| Version | Codename | Focus | Effort |
+|---------|----------|-------|--------|
+| v12.0 | The Scanner | Cold start intake, site scan (Torres), situation model, `/current --scan`, `/current --intake` | 2-3 sessions |
+| v12.1 | The Analyst | Gap analysis (Seven), campaign proposal generation, `/current` full loop, Tier 1 advisory mode | 2-3 sessions |
+| v12.2 | The Bridge | Chakotay's correlation engine, cross-pipeline data flow, prediction tracking, LEARN step | 2-3 sessions |
+| v12.3 | The Navigator | Paris's route optimization, Tier 2 supervised autonomy, auto-execute with delay, Danger Room Deep Current tab | 2-3 sessions |
+| v12.4 | The Autonomy | Tier 3 full autonomy, circuit breakers, kill switch, deploy freeze windows, 30-day human checkpoint | 2-3 sessions |
+
+**Ordering principle:** Same as v11.0 — safety before agency. Tier 1 ships first (prove good recommendations). Tier 3 ships last (earn the right to act independently).
+
+### Danger Room Integration
+
+New tab: **Deep Current** — situation model (5-dimension radar), active proposal with launch/modify/reject, campaign history with prediction accuracy, signal feed, correlation map, autonomy status with emergency stop.
+
+### Deliverables per Phase
+
+**v12.0:**
+- `/current` command (scan, intake modes)
+- `docs/methods/DEEP_CURRENT.md` (Tuvok's method doc)
+- Torres's site scanner (Lighthouse-lite via HTTP checks)
+- Situation model (`/logs/deep-current/situation.json`)
+- 5 agent definitions in naming registry (Tuvok, Seven, Chakotay, Paris, Torres — Voyager pool)
+
+**v12.1:**
+- Seven's gap analysis engine (5-dimension scoring)
+- Campaign proposal generator
+- `/current` full loop (scan → analyze → propose)
+- Tier 1 advisory mode in Danger Room
+
+**v12.2:**
+- Chakotay's correlation engine (event log + before/after comparison)
+- Cross-pipeline data flow (Vin → Chakotay, Bashir → Chakotay)
+- Prediction tracking (proposed vs actual impact)
+
+**v12.3:**
+- Paris's route optimization (ROI-weighted campaign ordering)
+- Tier 2 supervised autonomy (24h delay, veto mechanism)
+- Danger Room Deep Current tab (6 panels)
+
+**v12.4:**
+- Tier 3 full autonomy
+- Circuit breakers (drift scoring, feedback loop detection, spend lockout)
+- Kill switch (`/current --stop`)
+- Deploy freeze windows
+- 30-day mandatory strategic sync enforcement
+
+---
 
 ### Deferred Indefinitely
 

@@ -57,10 +57,12 @@ Run `npm test`. Analyze failures. Cross-reference with findings from Step 3. **H
 ## Step 4 — Bug Tracker
 Log all findings in this format in the phase log:
 
-| ID | Title | Severity | Area | Repro Steps | Root Cause | Fix | Verified | Risk |
-|----|-------|----------|------|-------------|-----------|-----|----------|------|
+| ID | Title | Severity | Confidence | Area | Repro Steps | Root Cause | Fix | Verified | Risk |
+|----|-------|----------|------------|------|-------------|-----------|-----|----------|------|
 
 Severity: Critical (security/data loss) > High (broken flow) > Medium (degraded) > Low (cosmetic)
+
+**Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, launch a second agent from a different universe (e.g., if Oracle found it, escalate to Spock or Kenobi) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 6.5.
 
 ## Step 5 — Fix (small batches — **Green Arrow** pinpoints exact lines)
 One batch = fixes for one area or severity level. **Green Arrow** narrows vague findings to exact lines and conditions. After each batch:

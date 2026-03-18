@@ -44,6 +44,7 @@ Transform session failures into structured, actionable field reports that improv
 
 1. **Privacy first.** Reports contain timeline, root causes, and proposed fixes. NEVER source code, credentials, file contents, or personal data.
 2. **User reviews everything.** The user sees and approves every word before submission. No silent uploads.
+   **`--submit` flag:** When `--submit` is specified manually, present the full report, then proceed directly to GitHub submission without re-asking "shall I submit?" The flag signals intent — showing the report fulfills the review obligation, and the user can interrupt with `[edit]` if they spot an issue. Do NOT skip the report presentation — the user must always see the full report before it goes out. The `--submit` flag enables auto-proceed to Step 5, not auto-skip of Step 4.
    **Exception — `/campaign --blitz`:** When the user explicitly opts into autonomous mode via `--blitz`, `/debrief --submit` runs without user review. The user chose autonomous operation — the debrief is auto-filed as a GitHub field report. The user can review all filed reports later via `/debrief --inbox`. This exception only applies to blitz-initiated debriefs, not to manual `/debrief --submit` calls.
 3. **Propose within the system.** Solutions must reference existing VoidForge concepts — agents, phases, commands, patterns. Don't propose reimagining the system.
 4. **Categorize root causes.** Every failure is one of: methodology gap, tooling limitation, communication failure, scope issue, framework-specific bug, or external dependency.
@@ -166,6 +167,14 @@ After writing the report (Step 3), Wong checks if the findings should promote in
 
 **Why 3+ threshold:** A single lesson could be project-specific. Two could be coincidence. Three is a pattern worth encoding into the methodology. The user always has final say.
 
+### Experiment Analysis
+
+If `~/.voidforge/experiments.json` has completed experiments, Wong includes a summary in the debrief:
+1. List experiments completed since last debrief
+2. For each: variant names, winner, win reason, true-positive rates
+3. If an experiment shows a clear winner with >20% accuracy improvement, recommend adopting the winning variant as the new default
+4. Track per-agent accuracy across experiments — flag agents with consistently low true-positive rates for review
+
 ### Pattern Evolution Check
 
 If `docs/pattern-usage.json` exists (logged by BUILD_PROTOCOL Phase 12.5), Wong checks for recurring pattern variations:
@@ -194,7 +203,7 @@ When debugging a production issue, trace it back through the build protocol:
 5. Identify the methodology gap: "This bug escaped because Constantine's checklist doesn't cover this pattern"
 6. Propose a fix to the methodology — a new checklist item, a new agent role, or a new review step
 
-**Output:** Bug Trace Timeline — animated path from bug → commit → phase → agent → methodology gap. The War Room's Build Archaeology panel visualizes this.
+**Output:** Bug Trace Timeline — animated path from bug → commit → phase → agent → methodology gap. The Danger Room's Build Archaeology panel visualizes this.
 
 ## Deliverables
 

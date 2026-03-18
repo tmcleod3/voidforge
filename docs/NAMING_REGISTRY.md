@@ -7,7 +7,7 @@
 
 ## Rules
 
-1. **Lead agents have fixed names** — Galadriel, Stark, Batman, Kenobi, Picard, Kusanagi, Coulson, Bombadil, Chani, Fury, Thanos, Sisko, Celebrimbor, Bashir. These never change.
+1. **Lead agents have fixed names** — Galadriel, Stark, Batman, Kenobi, Picard, Kusanagi, Coulson, Bombadil, Chani, Fury, Thanos, Sisko, Celebrimbor, Bashir, Kelsier. These never change.
 2. **Sub-agents pick from their universe's Available Pool** in order of relevance to their role.
 3. **No name may be used twice across ANY active session.** If Vegeta is taken, pick the next character.
 4. **When spinning up additional agents of the same type**, pick the next unused name from the pool.
@@ -36,6 +36,7 @@
 | **Star Trek** | Field Reports & Feedback | Bashir |
 | **Anime** (from Tom's list) | DevOps & Infrastructure | Kusanagi |
 | **Anime** (from Tom's list) | Deploy Wizard | Haku |
+| **Cosmere** (Brandon Sanderson) | Growth & Marketing | Kelsier |
 
 ---
 
@@ -210,19 +211,20 @@
 14. Bashir — **Lead: Field Medic**: post-mortem analysis, upstream feedback via GitHub issues. "I'm figuring out why the battle plan failed." Sub-agents: Ezri, O'Brien, Nog, Jake.
 15. O'Brien — Root cause investigator for /debrief. "The bloody EPS conduits again."
 16. Janeway — Navigate unknown territory, novel architectures
-17. Seven — Efficiency, precision, Borg-like optimization
-18. Tuvok — Logic, security architecture
-19. Torres — Engine room, performance engineering
-20. Pike — Bold decisions, leads into the unknown
+17. Seven — Deep Current optimization engine. Efficiency, precision, 5-dimension gap analysis. (Also: Borg-like optimization in /architect)
+18. Tuvok — **Deep Current lead** (v12.0). Strategic intelligence, autonomous campaign generation. (Also: logic, security architecture in /architect)
+19. Torres — Deep Current site scanner. Technical reconnaissance via HTTP checks. (Also: engine room, performance engineering in /architect)
+20. Pike — Bold decisions, leads into the unknown. (Also: challenges Dax's ordering in /campaign)
+20a. Paris — Deep Current route planner. Computes optimal campaign sequence. Best pilot — finds the fastest safe route.
 21. T'Pol — Disciplined analysis, Vulcan rigor
 22. Archer — Explorer, greenfield architecture
-23. Chakotay — Balance, harmonizes competing concerns
+23. Chakotay — Deep Current cross-pipeline bridge. Connects growth data to build decisions. (Also: balance, harmonizes competing concerns in /architect)
 24. Kim — Communications, API design
 25. Ezri — Session analyst for /debrief. Joined Trill — multiple lifetimes of perspective on what went wrong.
 26. Nog — Solution architect for /debrief. First Ferengi in Starfleet — creative, resourceful, thinks outside the box.
 27. Jake — Report writer for /debrief. Sisko's son, aspiring journalist. Makes post-mortems readable.
 
-**Reserved:** Picard (lead — architecture), Sisko (lead — campaign), Bashir (lead — field medic)
+**Reserved:** Picard (lead — architecture), Sisko (lead — campaign), Bashir (lead — field medic), Tuvok (lead — deep current)
 
 ---
 
@@ -376,6 +378,35 @@
 20. Sheeana — Worm riding, transport expertise
 
 **Reserved:** Chani (lead — worm rider)
+
+---
+
+## 📖 COSMERE (Brandon Sanderson) — Growth & Marketing
+
+**Lead:** Kelsier (The Survivor, Mistborn) — Growth Strategy & Campaign Orchestration
+
+*"There's always another secret."*
+
+**Available Pool (use in order, skip if taken):**
+1. Vin — Analytics, attribution, metrics, pattern detection (Mistborn Ascendant)
+2. Shallan — Content & creative, copy, brand, visual identity (Lightweaver, Stormlight)
+3. Hoid — Copywriting, the storyteller with the perfect words (Wit, Cosmere-wide)
+4. Kaladin — Organic growth, community, word-of-mouth, trust (Windrunner, Stormlight)
+5. Dalinar — Positioning, competitive analysis, market strategy (The Blackthorn, Stormlight)
+6. Navani — Technical SEO, schema, CWV, structured data (Scholar-Queen, Stormlight)
+7. Raoden — Conversion optimization, fixes broken funnels (Prince of Elantris)
+8. Sarene — Outreach, cold email, influencer, co-marketing (Princess of Teod, Elantris)
+9. Wax — Paid ads, targeting, campaigns, ROAS optimization (Allomantic Lawman, Mistborn Era 2)
+10. Wayne — A/B testing, tries every variation (Master of Disguise, Mistborn Era 2)
+11. Steris — Budget & forecasting, contingency plans (The Planner, Mistborn Era 2)
+12. Dockson — Treasury, bank connections, payments, spend execution (The Bookkeeper, Mistborn)
+13. Breeze — Platform relations, API credentials, platform ToS (The Soother, Mistborn)
+14. Lift — Social media, fast, irreverent, audience voice (Edgedancer, Stormlight)
+15. Szeth — Compliance, GDPR, CAN-SPAM, ad policies (Truthless, Stormlight)
+16. Adolin — Brand ambassador, launches, PR, charm (Highprince, Stormlight)
+17. Marsh — Competitive intel, deep monitoring of competitors (The Inquisitor, Mistborn)
+
+**Reserved:** Kelsier (lead — growth strategy)
 
 ---
 
