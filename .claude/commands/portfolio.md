@@ -4,6 +4,9 @@
 
 Read `/docs/methods/TREASURY.md` for financial operating rules.
 
+## Prerequisites
+This command requires VoidForge Full (main branch). If `wizard/` does not exist, stop: "Portfolio requires the wizard server (main branch). You're on scaffold/core. To get the full version: `npx voidforge init` or `git checkout main`."
+
 ## Context Setup
 1. Read `~/.voidforge/projects.json` for registered projects
 2. For each project: read treasury data from `~/.voidforge/treasury/`

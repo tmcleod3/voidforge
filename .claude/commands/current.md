@@ -4,6 +4,9 @@
 
 Read `/docs/methods/DEEP_CURRENT.md` for operating rules.
 
+## Prerequisites
+This command requires VoidForge Full (main branch) for site scanning and daemon integration. If `wizard/` does not exist, stop: "Deep Current's full capabilities require the wizard server (main branch). You're on scaffold/core. The `/current --intake` cold start interview works on all tiers, but `--scan` and daemon integration require main. To get the full version: `npx voidforge init` or `git checkout main`."
+
 ## Context Setup
 1. Read `/logs/deep-current/situation.json` — if exists, we have a situation model
 2. Read `/logs/campaign-state.md` — campaign history
