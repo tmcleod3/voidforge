@@ -1,0 +1,31 @@
+name: Feature Request
+description: Suggest a new command, agent, pattern, or capability
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the gap in the current methodology
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How should this work? Which agent, command, or pattern?
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New command
+        - New pattern
+        - New agent
+        - Method doc update
+        - Existing command improvement
+        - Other
+    validations:
+      required: true
