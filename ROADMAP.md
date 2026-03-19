@@ -1521,6 +1521,46 @@ New tab: **Deep Current** — situation model (5-dimension radar), active propos
 
 ---
 
+## v12.5 — The Full Roster (Agent Utilization Overhaul)
+
+*"190+ agents on the bench, 6 on the field."*
+
+**The problem:** Command files name only lead agents. The method docs have deep rosters (12+ agents per domain), but the command files — which is what Claude Code actually reads at runtime — often only mention the lead by name. Result: Claude deploys 3-6 perspectives per command when 20-30 are available. The remaining 200+ agents are defined but never invoked.
+
+**Evidence from field reports:** The recurring pattern across #99, #103, #104, #108, #111, #114, #115 is that issues are caught late (by Gauntlet or user) that should have been caught earlier by a named agent who was never called. Auth flow bugs (#115) would have been caught if Nightwing's auth flow end-to-end test was in the `/build` command, not just the method doc.
+
+**The fix:** Update every command file to explicitly name the sub-agents it should deploy, matching the roster defined in the method doc.
+
+### Audit Results
+
+| Command | Current Agents | Should Have | Gap |
+|---------|---------------|-------------|-----|
+| `/campaign` | 6 | 6 + Kira, Dax, Odo per mission | Add recon agents |
+| `/build` | ~35 (best) | ~35 | OK — already comprehensive |
+| `/assemble` | ~21 | ~35 (should match /build + reviews) | Add missing review agents |
+| `/review` | ~12 | ~20 (Stark's full team) | Add Rogers, Banner, Strange, Barton, Thor, Wanda |
+| `/ux` | ~18 | ~20 (Galadriel's full team) | Add Faramir, Pippin, Boromir, Merry |
+| `/qa` | ~16 | ~20 (Batman's full team) | Add Cyborg, Raven, Wonder Woman, Flash, Green Lantern |
+| `/security` | ~18 | ~22 (Kenobi's full team) | Add Sabine, Cassian, Qui-Gon, Bo-Katan |
+| `/devops` | ~12 | ~20 (Kusanagi's full team) | Add Senku, Levi, Spike, L, Bulma, Holo, Valkyrie, Vegeta |
+| `/debrief` | ~3 | ~6 (Bashir's team) | Add Ezri, O'Brien, Nog, Jake, Wong |
+| `/campaign` | ~6 | ~10 | Add Kira, Dax, Odo, Pike recon per mission |
+| `/treasury` | ~3 | ~6 | Add Steris, Vin, Szeth, Breeze |
+| `/grow` | ~17 (best) | ~17 | OK — already has full Cosmere roster |
+| `/current` | ~8 | ~8 | OK — has all 5 Voyager agents |
+
+### Deliverables
+
+- Update 10 command files to name their full agent rosters
+- Add "Agent Deployment Manifest" to each command file — explicit list of who runs when
+- Add agent count to CLAUDE.md command table: "23 commands | 190+ agents deployed"
+- Verify every named agent in every command has a matching entry in NAMING_REGISTRY.md
+
+### Effort
+1-2 sessions. Methodology-only changes (no runtime code).
+
+---
+
 ### Deferred Indefinitely
 
 | Proposal | Reason |
