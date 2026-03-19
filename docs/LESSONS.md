@@ -66,6 +66,13 @@
 **Action:** Document this limitation. For true isolation, use containerized environments or non-login shells with `--noprofile --norc`.
 **Promoted to:** Not yet
 
+### CLAUDE.md is a contract — every claim must have a backing file
+**Agent:** Troi (Star Trek) + Coulson (Marvel) | **Category:** antipattern
+**Context:** VoidForge v10.0-v12.4.0 — /dangerroom listed in CLAUDE.md but no command file existed (field report #108)
+**Lesson:** CLAUDE.md's slash command table, agent table, and docs reference table are contracts with the user. Every entry must have a corresponding file. The /dangerroom command was listed in the table for 30 versions and survived 3 Infinity Gauntlets undetected because no audit step verified table entries against actual files.
+**Action:** (1) /git Step 5.5 now includes a CLAUDE.md command table integrity check. (2) Gauntlet Council Troi now verifies CLAUDE.md claims (commands, agents, docs) against the filesystem.
+**Promoted to:** RELEASE_MANAGER.md (command table integrity check), GAUNTLET.md (Troi CLAUDE.md verification)
+
 ### Infrastructure credentials must survive .env edits
 **Agent:** Kusanagi (DevOps) + Kira (Campaign) | **Category:** antipattern
 **Context:** Dialog Travel Campaign 9 deploy failure (field report #103)

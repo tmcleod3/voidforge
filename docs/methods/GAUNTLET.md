@@ -82,7 +82,9 @@ This catches what static analysis misses: IPv6 binding, native module ABI compat
 - Nightwing (DC) — full regression
 - Samwise (Tolkien) — final a11y
 - Padmé (Star Wars) — critical path functional verification
-- Troi (Star Trek) — PRD compliance (prose-level)
+- Troi (Star Trek) — PRD compliance (prose-level) + **CLAUDE.md verification**: every slash command in the table has a `.claude/commands/*.md` file, every agent in the team table has a naming registry entry, every doc in the reference table exists at the stated path. (Field report #108: `/dangerroom` listed but no command file existed for 30 versions.)
+
+**Pattern auth completeness check (Kenobi, during Rounds 2-3):** When a pattern file defines an authentication flow, verify the auth checks perform actual value verification (compare against expected, call verify functions) — not just presence checks (`!!header`, `Boolean()`). Flag `!!` or truthiness checks on auth-related headers as suspicious. (Field report #109: daemon socket auth used `!!vaultHeader` which passed for any non-empty string.)
 
 **Total: 30+ unique agent deployments across 5 rounds.**
 

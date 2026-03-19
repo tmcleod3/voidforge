@@ -343,6 +343,7 @@ Specifically, you MUST NOT:
 All PRD requirements are COMPLETE or explicitly BLOCKED:
 
 1. **Run `/gauntlet` (full 5 rounds)** — mandatory final Gauntlet. Non-negotiable, even with `--fast`. Five rounds: Discovery → First Strike (full domain audits) → Second Strike (re-verification) → Crossfire (adversarial) → Council (convergence). The Gauntlet tests the combined system across all domains simultaneously. This is the "would I ship this" gate.
+1a. **Cross-campaign integration check:** If this campaign built modules that should be consumed by an existing daemon, orchestrator, or service, the Victory Gauntlet MUST verify the integration — not just the standalone module. Check: are the new modules imported by their consumer? Are the scheduled jobs wired? Does the data flow from producer to consumer? Per-campaign Victory Gauntlets review deliverables in isolation — this step catches the gaps between campaigns. (Field report #109: v11.2-v11.3 modules existed but were never imported by heartbeat.ts.)
 2. **Fix all Critical and High findings** from the Gauntlet.
 3. **Troi reads the PRD section-by-section** (runs as part of the Gauntlet's Council round) and verifies every prose claim against the implementation:
    - Does the component render what the PRD describes? (not just "does the route exist?")
