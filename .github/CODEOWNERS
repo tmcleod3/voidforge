@@ -1,0 +1,18 @@
+# VoidForge Code Owners
+# These owners are automatically requested for review on PRs
+
+# Everything
+* @tmcleod3
+
+# Methodology (shared across all branches)
+/docs/methods/ @tmcleod3
+/docs/patterns/ @tmcleod3
+/.claude/commands/ @tmcleod3
+/CLAUDE.md @tmcleod3
+
+# Security-sensitive files
+/wizard/lib/financial-vault.ts @tmcleod3
+/wizard/lib/totp.ts @tmcleod3
+/wizard/lib/safety-tiers.ts @tmcleod3
+/wizard/lib/heartbeat.ts @tmcleod3
+/SECURITY.md @tmcleod3

@@ -1,0 +1,40 @@
+name: Bug Report
+description: Report a bug in VoidForge runtime code (wizard, provisioners, etc.)
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: VoidForge version
+      placeholder: v12.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Which branch?
+      options:
+        - main
+        - scaffold
+        - core
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: What happened? Include error messages if any.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
