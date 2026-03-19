@@ -1,0 +1,53 @@
+name: Field Report
+description: Report a methodology gap, bug, or improvement from a real project
+labels: ["field-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to report findings from real-world VoidForge usage.
+        For auto-generated reports, use `/debrief --submit` instead.
+  - type: input
+    id: command
+    attributes:
+      label: Which command or protocol?
+      description: e.g., /build, /campaign, /gauntlet, /grow
+      placeholder: /build Phase 4
+    validations:
+      required: true
+  - type: dropdown
+    id: root-cause
+    attributes:
+      label: Root cause category
+      options:
+        - Methodology gap
+        - Tooling limitation
+        - Communication failure
+        - Scope issue
+        - Framework-specific
+        - External dependency
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue — what you did, what went wrong, what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-fix
+    attributes:
+      label: Proposed fix
+      description: Which file should change, what should be added/modified, which agent is responsible
+    validations:
+      required: false
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Affects all users (methodology flaw)
+        - Project-specific (edge case)
+    validations:
+      required: true
