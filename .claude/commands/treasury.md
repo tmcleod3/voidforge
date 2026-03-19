@@ -5,6 +5,9 @@
 Read `/docs/methods/TREASURY.md` for operating rules.
 Read `/docs/methods/HEARTBEAT.md` for daemon architecture.
 
+## Prerequisites
+This command requires VoidForge Full (main branch). If `wizard/` does not exist, stop: "Treasury requires the wizard server (main branch). You're on scaffold/core. To get the full version: `npx voidforge init` or `git checkout main`."
+
 ## Context Setup
 1. Check if financial vault exists (`~/.voidforge/treasury/vault.enc`)
 2. Check if heartbeat daemon is running (`~/.voidforge/heartbeat.json`)
