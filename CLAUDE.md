@@ -63,31 +63,33 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 
 ## Slash Commands
 
-| Command | What It Does |
-|---------|-------------|
-| `/prd` | Sisko's PRD generator — 5-act structured interview producing a complete PRD with valid YAML frontmatter |
-| `/build` | Execute full build protocol — self-contained with inline steps per phase |
-| `/qa` | Batman's full QA pass with double-pass verification and regression checklist |
-| `/test` | Batman's test-writing mode — coverage analysis, test architecture, write missing tests |
-| `/security` | Kenobi's OWASP audit with parallel + sequential phases and red-team verification |
-| `/ux` | Galadriel's adversarial UX/UI review with a11y audit and verification pass |
-| `/review` | Picard's code review — pattern compliance, quality, maintainability |
-| `/devops` | Kusanagi's infrastructure — adapts based on deploy target |
-| `/architect` | Picard's architecture review with parallel analysis and conflict resolution |
-| `/git` | Coulson's version bump, changelog, commit — full release management |
-| `/void` | Bombadil's forge sync — update VoidForge methodology from upstream |
-| `/thumper` | Chani's worm rider — Telegram bridge with Gom Jabbar authentication |
-| `/assemble` | Fury's Initiative — full pipeline: architect → build → 3x review → UX → 2x security → devops → QA → test → crossfire → council |
-| `/gauntlet` | Thanos's Comprehensive Review — 5 rounds, 30+ agents, 6 universes. Review-only (no build). 4x QA, 4x UX, 4x security, crossfire, council. The ultimate test. |
-| `/campaign` | Sisko's War Room — read the PRD, pick the next mission, finish the fight, repeat until done |
-| `/imagine` | Celebrimbor's Forge — AI image generation from PRD visual descriptions |
-| `/debrief` | Bashir's Field Report — post-mortem analysis, upstream feedback via GitHub issues |
-| `/dangerroom` | The Danger Room (X-Men, Marvel) — installable operations dashboard for build/deploy/agent monitoring |
-| `/cultivation` | Cultivation (Cosmere Shard) — installable autonomous growth engine: marketing, ads, creative, A/B testing, spend optimization |
-| `/grow` | Kelsier's 6-phase growth protocol — initial setup within Cultivation, then autonomous loop |
-| `/current` | Tuvok's Deep Current — autonomous campaign intelligence: scan, analyze, propose, cold start intake |
-| `/treasury` | Dockson's financial operations — revenue ingest, budget allocation, spend execution, reconciliation |
-| `/portfolio` | Steris's cross-project financials — aggregated spend/revenue, portfolio optimization |
+| Command | What It Does | Tier |
+|---------|-------------|------|
+| `/prd` | Sisko's PRD generator — 5-act structured interview producing a complete PRD with valid YAML frontmatter | All |
+| `/build` | Execute full build protocol — self-contained with inline steps per phase | All |
+| `/qa` | Batman's full QA pass with double-pass verification and regression checklist | All |
+| `/test` | Batman's test-writing mode — coverage analysis, test architecture, write missing tests | All |
+| `/security` | Kenobi's OWASP audit with parallel + sequential phases and red-team verification | All |
+| `/ux` | Galadriel's adversarial UX/UI review with a11y audit and verification pass | All |
+| `/review` | Picard's code review — pattern compliance, quality, maintainability | All |
+| `/devops` | Kusanagi's infrastructure — adapts based on deploy target | All |
+| `/architect` | Picard's architecture review with parallel analysis and conflict resolution | All |
+| `/git` | Coulson's version bump, changelog, commit — full release management | All |
+| `/void` | Bombadil's forge sync — update VoidForge methodology from upstream | All |
+| `/thumper` | Chani's worm rider — Telegram bridge with Gom Jabbar authentication | Full |
+| `/assemble` | Fury's Initiative — full pipeline: architect → build → 3x review → UX → 2x security → devops → QA → test → crossfire → council | All |
+| `/gauntlet` | Thanos's Comprehensive Review — 5 rounds, 30+ agents, 6 universes. Review-only (no build). 4x QA, 4x UX, 4x security, crossfire, council. The ultimate test. | All |
+| `/campaign` | Sisko's War Room — read the PRD, pick the next mission, finish the fight, repeat until done | All |
+| `/imagine` | Celebrimbor's Forge — AI image generation from PRD visual descriptions | All |
+| `/debrief` | Bashir's Field Report — post-mortem analysis, upstream feedback via GitHub issues | All |
+| `/dangerroom` | The Danger Room (X-Men, Marvel) — installable operations dashboard for build/deploy/agent monitoring | Full |
+| `/cultivation` | Cultivation (Cosmere Shard) — installable autonomous growth engine: marketing, ads, creative, A/B testing, spend optimization | Full |
+| `/grow` | Kelsier's 6-phase growth protocol — initial setup within Cultivation, then autonomous loop | Full |
+| `/current` | Tuvok's Deep Current — autonomous campaign intelligence: scan, analyze, propose, cold start intake | Full |
+| `/treasury` | Dockson's financial operations — revenue ingest, budget allocation, spend execution, reconciliation | Full |
+| `/portfolio` | Steris's cross-project financials — aggregated spend/revenue, portfolio optimization | Full |
+
+**Tier key:** `All` = works on main, scaffold, and core. `Full` = requires `wizard/` directory (main branch only). Full-tier commands will warn scaffold/core users to switch branches.
 
 ## Docs Reference
 

@@ -2,6 +2,9 @@
 
 Read `/docs/methods/GROWTH_STRATEGIST.md` for operating rules.
 
+## Prerequisites
+This command requires VoidForge Full (main branch). If `wizard/` does not exist, stop: "The growth engine requires the wizard server (main branch). You're on scaffold/core. To get the full version: `npx voidforge init` or `git checkout main`."
+
 ## Context Setup
 1. Read `/logs/growth-state.md` — if it exists, resume from current phase
 2. Read `/logs/growth-brief.md` — if it exists, reconnaissance is complete

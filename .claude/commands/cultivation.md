@@ -5,6 +5,9 @@
 Read `/docs/methods/GROWTH_STRATEGIST.md` for operating rules.
 Read PRD-VOIDFORGE.md §9.19 for the Cultivation architecture.
 
+## Prerequisites
+This command requires VoidForge Full (main branch). If `wizard/` does not exist, stop: "Cultivation requires the wizard server (main branch). You're on scaffold/core. To get the full version: `npx voidforge init` or `git checkout main`."
+
 ## What Cultivation IS
 
 Cultivation is VoidForge's autonomous growth engine — the ensemble of:
