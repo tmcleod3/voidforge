@@ -354,9 +354,11 @@ All PRD requirements are COMPLETE or explicitly BLOCKED:
 4. If Troi finds discrepancies → fix code requirements, flag asset requirements as BLOCKED
 5. Present final report: COMPLETE items, BLOCKED items (with reasons), deviations from PRD
 6. **Run `/debrief --submit`** — mandatory end-of-campaign post-mortem covering all missions together. Captures cross-cutting learnings that per-mission debriefs miss. This runs BEFORE the sign-off so learnings are captured while context is fresh. (Field reports #31, #53)
-7. **Victory Checklist** — ALL must be true before sign-off:
+7. **PRD sync check:** Before declaring victory, compare PRD numeric claims (agent counts, feature counts, route counts, component counts) against the actual codebase for this campaign's domain. Stale PRD claims erode trust and compound across campaigns. (Field report #119)
+8. **Victory Checklist** — ALL must be true before sign-off:
    - [ ] Gauntlet Council signed off (6/6 or all domains pass)
    - [ ] All BLOCKED items acknowledged by user
+   - [ ] PRD claims verified against codebase
    - [ ] `/debrief --submit` filed (issue number recorded)
    - [ ] Campaign-state.md updated with final status
 

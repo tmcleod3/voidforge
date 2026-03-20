@@ -30,8 +30,8 @@ Fury calls ALL of them. That's the point.
 |-------|-----------|----------|
 | Architecture | Picard | Star Trek |
 | Build | Stark + Galadriel + Kusanagi | Marvel + Tolkien + Anime |
-| Review (3x) | Picard (Spock, Seven, Data) | Star Trek |
-| UX | Galadriel | Tolkien |
+| Review (3x) | Picard (Spock, Seven, Data + Rogers, Banner, Strange, Barton, Romanoff, Thor, Wanda, T'Challa + Nightwing, Bilbo, Troi, Constantine, Samwise) | Star Trek + Marvel + cross-domain |
+| UX | Galadriel (full Tolkien roster) | Tolkien |
 | Security (2x) | Kenobi | Star Wars |
 | DevOps | Kusanagi | Anime |
 | QA | Batman | DC Comics |

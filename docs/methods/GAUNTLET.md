@@ -126,7 +126,11 @@ Fix batches happen between rounds:
 
 **Encoding variant check:** For every security filter that operates on tool names, function names, or identifiers, verify it handles all encoding variants (`:`, `__`, URL-encoded, dot-notation, etc.). MCP tool names, API paths, and permission identifiers may use different encodings across layers.
 
-**Build-output verification:** After every fix batch, if the project has a build step, run the build and verify the output. Framework-generated code (inline scripts, hydration markers, SSR output) is invisible to source-level analysis but can be broken by security hardening. Check: `npm run build && grep -c '<script>' dist/**/*.html`. If the build fails or output changes unexpectedly, the fix is wrong.
+**Build-output verification:** After every fix batch, if the project has a build step, run BOTH `npm test` AND the build command (`npm run build`). Tests passing does NOT mean the build succeeds — variable scoping, import resolution, and TypeScript strict mode can fail at build time while tests pass. Check output for inline scripts broken by CSP changes: `grep -c '<script>' dist/**/*.html`. If the build fails, the fix is wrong — fix the fix before proceeding. (Field report #119: fix agent passed `npm test` but broke the build with a variable scoping error.)
+
+**Auth flag security check (Victory Gauntlet):** Grep the codebase for known dangerous auth configuration flags: `allowDangerousEmailAccountLinking`, `trustHost` without proxy validation, `debug: true` in auth config, `session: { strategy: "jwt" }` without token validation. These flags are often set during development and survive into production across multiple campaigns. (Field report #119: `allowDangerousEmailAccountLinking` survived 4 campaigns and 3 Gauntlets undetected.)
+
+**Crossfire false-positive verification:** When adversarial agents add blocklist/filter patterns during Crossfire, test the pattern against 5 samples of legitimate output before applying. A pattern that catches an attack but also matches normal content creates a worse problem than the one it solves. (Field report #119: isSafeForVM pattern risked matching legitimate user-generated content.)
 
 **Commit per fix batch:** After each fix batch, create a separate commit. This enables surgical revert if a fix introduces a regression — one 43-file commit is impossible to partially revert.
 

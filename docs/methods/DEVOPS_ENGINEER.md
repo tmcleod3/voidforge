@@ -141,6 +141,15 @@ Add project-specific exclusions for any directory that receives runtime-generate
 
 **Post-deploy asset verification:** After deploying, verify specifically the files that *changed* in this deploy — not pre-existing assets. Check: (a) correct content-type header (text/html on a static asset means the file is missing from the deployment), (b) correct content-length (not the index.html fallback size), (c) deployment list shows the correct environment. Do NOT verify only pre-existing assets — they prove the host is up, not that the deploy succeeded. (Field report #114)
 
+## Subdomain Routing (Cloudflare Pages / Vercel / Netlify)
+
+Platform-hosted static sites serve the entire project from root. Subdomain-to-subdirectory routing (e.g., `labs.example.com` → `/labs/`) requires platform-specific configuration:
+- **Cloudflare Pages:** `_redirects` file with host-based rules OR a Pages Function. Custom domains serve the full project — no automatic subdirectory isolation.
+- **Vercel:** `vercel.json` rewrites with host conditions OR separate project per subdomain.
+- **Netlify:** `_redirects` with host conditions.
+
+**Always test routing before announcing a subdomain.** Curl the subdomain and verify it serves the expected content, not the root index.html. (Field report #118: subdomain announced but routing not configured — served the main site instead of the labs page.)
+
 ## Deliverables
 
 1. /scripts/provision.sh, deploy.sh, rollback.sh, backup-db.sh
