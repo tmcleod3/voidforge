@@ -1531,33 +1531,68 @@ New tab: **Deep Current** — situation model (5-dimension radar), active propos
 
 **The fix:** Update every command file to explicitly name the sub-agents it should deploy, matching the roster defined in the method doc.
 
-### Audit Results
+### Verified Audit (deep scan of command files vs method docs + registry)
 
-| Command | Current Agents | Should Have | Gap |
-|---------|---------------|-------------|-----|
-| `/campaign` | 6 | 6 + Kira, Dax, Odo per mission | Add recon agents |
-| `/build` | ~35 (best) | ~35 | OK — already comprehensive |
-| `/assemble` | ~21 | ~35 (should match /build + reviews) | Add missing review agents |
-| `/review` | ~12 | ~20 (Stark's full team) | Add Rogers, Banner, Strange, Barton, Thor, Wanda |
-| `/ux` | ~18 | ~20 (Galadriel's full team) | Add Faramir, Pippin, Boromir, Merry |
-| `/qa` | ~16 | ~20 (Batman's full team) | Add Cyborg, Raven, Wonder Woman, Flash, Green Lantern |
-| `/security` | ~18 | ~22 (Kenobi's full team) | Add Sabine, Cassian, Qui-Gon, Bo-Katan |
-| `/devops` | ~12 | ~20 (Kusanagi's full team) | Add Senku, Levi, Spike, L, Bulma, Holo, Valkyrie, Vegeta |
-| `/debrief` | ~3 | ~6 (Bashir's team) | Add Ezri, O'Brien, Nog, Jake, Wong |
-| `/campaign` | ~6 | ~10 | Add Kira, Dax, Odo, Pike recon per mission |
-| `/treasury` | ~3 | ~6 | Add Steris, Vin, Szeth, Breeze |
-| `/grow` | ~17 (best) | ~17 | OK — already has full Cosmere roster |
-| `/current` | ~8 | ~8 | OK — has all 5 Voyager agents |
+**247 agents in the naming registry. Here's where they actually get called:**
 
-### Deliverables
+| Command | In Command File | In Method Doc | Gap | Priority |
+|---------|----------------|---------------|-----|----------|
+| `/architect` | 15 (Picard + full ST bridge) | 16 (adds Pike) | Pike missing from command | Low — already strong |
+| `/ux` | 17 (Galadriel + full Tolkien) | 17 | **NONE — fully wired** | N/A |
+| `/qa` | 15 (Batman + full DC) | 15 | **NONE — fully wired** | N/A |
+| `/security` | 17 (Kenobi + full SW) | 17 | **NONE — fully wired** | N/A |
+| `/build` | ~35 (multi-universe) | ~35 | **NONE — fully wired** | N/A |
+| `/gauntlet` | 41 (largest roster) | ~60 (Infinity mode) | 19 agents in Infinity but not standard | Medium |
+| `/debrief` | 7 (Bashir + DS9 + Wong) | 7 | **NONE — fully wired** | N/A |
+| `/grow` | 17 (full Cosmere) | 17 | **NONE — fully wired** | N/A |
+| `/current` | 8 (Voyager + Vin + Marsh) | 8 | **NONE — fully wired** | N/A |
+| `/campaign` | 9 (Sisko + DS9 + Fury + Thanos + Troi + Pike) | 9 | **NONE — actually well-wired** | N/A |
+| `/review` | 12 | 20+ (Stark's full team) | **8 missing:** Rogers, Banner, Strange, Barton, Thor, Romanoff, Wanda, T'Challa | **HIGH** |
+| `/assemble` | 21 | 35+ (should invoke all review teams) | **14 missing** from review/QA/UX sub-teams | **HIGH** |
+| `/devops` | 6 | 16 (Kusanagi's full anime team) | **10 missing:** L, Valkyrie, Vegeta, Trunks, Mikasa, Erwin, Mustang, Olivier, Hughes, Calcifer, Duo | **HIGH** |
+| `/treasury` | 3 | 6+ (Dockson + Steris, Vin, Szeth, Breeze) | **3 missing** | Medium |
 
-- Update 10 command files to name their full agent rosters
-- Add "Agent Deployment Manifest" to each command file — explicit list of who runs when
-- Add agent count to CLAUDE.md command table: "23 commands | 190+ agents deployed"
-- Verify every named agent in every command has a matching entry in NAMING_REGISTRY.md
+### The Real Gaps (corrected from initial estimate)
+
+The initial estimate was wrong on several commands. `/ux`, `/qa`, `/security`, `/debrief`, `/grow`, `/current`, and `/campaign` are actually **fully wired** — the command files already name their complete rosters. The problem is concentrated in **3 commands**:
+
+1. **`/review`** — 12 agents instead of 20+. Stark flies with Picard, Spock, Seven, Oracle, Batman but NOT his own Marvel team (Rogers, Banner, Strange, Barton, Thor, Romanoff, Wanda, T'Challa). This is the biggest gap — code review misses backend service patterns (Strange), API design (Rogers), security implications (Romanoff), and performance (Thor).
+
+2. **`/assemble`** — 21 agents but doesn't name the full sub-teams it invokes. When `/assemble` calls `/review`, it should get Stark's full team. When it calls `/ux`, it should get Galadriel's full team. Currently it names the leads but not the sub-agents.
+
+3. **`/devops`** — 6 agents named (Kusanagi, Senku, Levi, Spike, Bulma, Holo) but 10+ more in the method doc (L, Valkyrie, Vegeta, Trunks, Mikasa, Erwin, Mustang, Olivier, Hughes, Calcifer, Duo). The extended anime roster handles monitoring (L), disaster recovery (Valkyrie), scaling (Vegeta), migration (Trunks), and more.
+
+### Cross-Domain Agents (the hidden roster)
+
+**The question you're really asking:** Do agents cross domain boundaries? Should Bilbo (copy) show up in `/review` when API error messages are wrong? Should Éowyn (enchantment) appear in `/build` to add delight during construction?
+
+**Current cross-domain assignments:**
+- Bilbo shows up in `/ux` (copy audit) and `/build` (copy review) — already cross-domain
+- Éowyn shows up in `/ux` (enchantment) and `/gauntlet` (final enchantment pass) — already cross-domain
+- Samwise shows up in `/ux` (a11y), `/gauntlet` (final a11y), and `/assemble` — 3 commands
+- Nightwing shows up in `/qa`, `/gauntlet`, `/assemble`, `/build` — 4 commands
+- Seven shows up in `/review`, `/assemble`, `/current` — 3 commands
+
+**Missing cross-domain that would catch field report bugs:**
+- **Nightwing** should be in `/review` — auth flow end-to-end testing (#115) is a review concern, not just QA
+- **Bilbo** should be in `/review` — error message copy is caught by Bilbo but he's only in `/ux`
+- **Éowyn** should be in `/build` Phase 10 (polish) — enchantment during construction, not just review
+- **Samwise** should be in `/build` Phase 10 — a11y during construction, not deferred to `/ux`
+- **Troi** should be in `/review` — PRD compliance is often a review-time catch
+- **Constantine** should be in `/review` — cursed code is a code review concern, not just QA
+
+### Updated Deliverables
+
+1. **`/review` command** — Add Stark's full Marvel team + cross-domain agents (Nightwing, Bilbo, Troi, Constantine). Goes from 12 → ~20 agents.
+2. **`/assemble` command** — When invoking sub-commands, explicitly name the full rosters. Goes from 21 → ~35 agents named.
+3. **`/devops` command** — Add the full anime extended roster. Goes from 6 → ~16 agents.
+4. **`/treasury` command** — Add Steris, Vin, Szeth, Breeze. Goes from 3 → ~7 agents.
+5. **`/architect` command** — Add Pike (already in method doc, missing from command). Minor fix.
+6. **`/gauntlet` Infinity mode** — Verify all 60+ agents in the Infinity roster are named in the command file, not just the method doc.
+7. **Cross-domain manifest** — Document which agents appear in multiple commands and why (a "who helps where" reference).
 
 ### Effort
-1-2 sessions. Methodology-only changes (no runtime code).
+1-2 sessions. Methodology-only. The actual edits are small — adding agent names to existing command file sections. The audit above is the hard part (done).
 
 ---
 
