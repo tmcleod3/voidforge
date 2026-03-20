@@ -144,11 +144,14 @@ Add project-specific exclusions for any directory that receives runtime-generate
 ## Subdomain Routing (Cloudflare Pages / Vercel / Netlify)
 
 Platform-hosted static sites serve the entire project from root. Subdomain-to-subdirectory routing (e.g., `labs.example.com` → `/labs/`) requires platform-specific configuration:
-- **Cloudflare Pages:** `_redirects` file with host-based rules OR a Pages Function. Custom domains serve the full project — no automatic subdirectory isolation.
-- **Vercel:** `vercel.json` rewrites with host conditions OR separate project per subdomain.
-- **Netlify:** `_redirects` with host conditions.
 
-**Always test routing before announcing a subdomain.** Curl the subdomain and verify it serves the expected content, not the root index.html. (Field report #118: subdomain announced but routing not configured — served the main site instead of the labs page.)
+- **Cloudflare Pages:** `_redirects` does NOT support host-based rules (unlike Netlify). Use a **Pages Function middleware** that: (a) checks `url.hostname`, (b) rewrites ONLY the root path to the subdirectory index using `context.env.ASSETS.fetch()` for transparent rewrite, (c) passes all other requests through unchanged. The subdirectory HTML MUST use **absolute paths** — relative paths like `./style.css` break because the browser resolves them relative to the rewritten URL (`/`), not the filesystem path (`/labs/`). (Field report #120: 5 commits to get this right.)
+- **Vercel:** `vercel.json` rewrites with host conditions OR separate project per subdomain.
+- **Netlify:** `_redirects` with host conditions (Netlify DOES support `https://hostname/*` syntax, unlike CF Pages).
+
+**Subdomain cross-navigation rule:** When two sites share a codebase but serve on different domains (e.g., `example.com` and `labs.example.com`), ALL cross-navigation links must use full absolute URLs (`https://example.com/page`). Relative paths and bare `/` paths resolve to whichever domain the browser is currently on — `<a href="/">` on `labs.example.com` goes to `labs.example.com/`, not `example.com/`. (Field report #120)
+
+**Always test routing before announcing a subdomain.** Curl the subdomain and verify it serves the expected content, not the root index.html.
 
 ## Deliverables
 
