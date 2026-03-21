@@ -1,7 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, stat, readdir } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { route } from './router.js';
+
+// Node 20 LTS compatibility — import.meta.dirname requires Node 21.2+ (field report #122)
+// @ts-ignore — polyfill for environments where import.meta.dirname is undefined
+if (!import.meta.dirname) (import.meta as Record<string, unknown>).dirname = fileURLToPath(new URL('.', import.meta.url));
 
 import './api/credentials.js';
 import './api/cloud-providers.js';
@@ -9,15 +14,19 @@ import './api/prd.js';
 import './api/project.js';
 import './api/provision.js';
 import './api/deploy.js';
-import './api/terminal.js';
+// Lazy terminal import — node-pty is a native C++ module that may not be installed (field report #122)
+try { await import('./api/terminal.js'); } catch { console.warn('Terminal module not available (node-pty not installed). PTY features disabled.'); }
 import './api/projects.js';
 import './api/auth.js';
 import './api/users.js';
 import './api/danger-room.js';
 
-import { handleTerminalUpgrade } from './api/terminal.js';
+// Lazy import — may not exist if node-pty is not installed
+let handleTerminalUpgrade: ((req: IncomingMessage, socket: import('node:stream').Duplex, head: Buffer, session?: unknown) => void) | null = null;
+try { handleTerminalUpgrade = (await import('./api/terminal.js')).handleTerminalUpgrade; } catch { /* node-pty not available */ }
 import { handleDangerRoomUpgrade, closeDangerRoom } from './api/danger-room.js';
-import { killAllSessions } from './lib/pty-manager.js';
+let killAllSessions: (() => void) | null = null;
+try { killAllSessions = (await import('./lib/pty-manager.js')).killAllSessions; } catch { /* node-pty not available */ }
 import { startHealthPoller, stopHealthPoller } from './lib/health-poller.js';
 import { isRemoteMode, setRemoteMode, validateSession, parseSessionCookie, isAuthExempt, getClientIp, type SessionInfo, type UserRole } from './lib/tower-auth.js';
 import { initAuditLog, audit } from './lib/audit-log.js';

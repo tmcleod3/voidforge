@@ -134,7 +134,9 @@ Fix batches happen between rounds:
 
 **Commit per fix batch:** After each fix batch, create a separate commit. This enables surgical revert if a fix introduces a regression — one 43-file commit is impossible to partially revert.
 
-**Real data smoke test:** For fixes that modify data transformation, sanitization, or rendering, test against actual project data (not just unit tests). If the project has AI-generated content, test with real LLM output. Unit tests pass ≠ production works.
+**Real data smoke test:** For fixes that modify data transformation, sanitization, or rendering, test against actual project data (not just unit tests). If the project has AI-generated content, test with real LLM output. Unit tests pass ≠ production works. **Security scanner mandatory:** When modifying security filters (isSafeForVM, sanitizeJsx, content validators), MUST compile 3+ real AI-generated files through the full pipeline and verify the output is correct. Security scanner false positives silently break production. This is not optional. (Field report #121: broad regex in isSafeForVM matched legitimate content, silently degrading all sites to client-side Babel fallback.)
+
+**Pass 2 false-positive severity:** When Pass 2 identifies a potential false-positive in a security pattern added during Pass 1, classify as **Must Fix**, not Medium. A false positive in a security scanner is functionally a regression — it degrades working features. Do not defer with "monitor in production" unless a monitoring mechanism actually exists and is configured. (Field report #121)
 
 ## Finding Format
 
