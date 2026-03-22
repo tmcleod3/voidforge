@@ -149,6 +149,22 @@ Then paste your idea below the prompt.
 
 ---
 
+## PRD Evolution Log
+
+For complex projects that go through iterative `/architect --plan` refinement, add a PRD Evolution Log section at the bottom of the PRD:
+
+```markdown
+## PRD Evolution Log
+
+| Date | Change | Reason |
+|------|--------|--------|
+| YYYY-MM-DD | Initial PRD generated | Sisko's interview |
+| YYYY-MM-DD | Restructured phases: auth before payments | Dependency analysis (Picard) |
+| YYYY-MM-DD | Added historical validation phase | Strategy requires data proof before infra |
+```
+
+This section is optional for simple PRDs but recommended for any PRD that undergoes 3+ revision commits before building begins. The log captures *why* the PRD evolved — the git diff shows *what* changed but not the architectural reasoning. (Field report #126)
+
 ## After Generating
 
 1. Review the PRD — fix anything that feels wrong

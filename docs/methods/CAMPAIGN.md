@@ -165,6 +165,8 @@ When a mission reads data written by a previous mission (or a pre-existing modul
 
 Cross-module data contracts are invisible to single-mission review. A field that "should exist" because the schema defines it may never be populated if the write path skips it. (Field report #77: Dialog Travel trip page read `placeContext` but the place creation flow never set it.)
 
+**Regression-test-as-validation:** For data-dependent systems (trading, financial, analytics), if Phase 0 produced regression tests against historical data, include those tests in the mission's verification step. Each mission that modifies strategy logic must re-run the regression suite — if tests fail, the mission is not complete until the strategy is re-validated or the test expectations are updated with justification. (Field report #126)
+
 **Priority cascade for mission ordering:**
 1. Section 16 (Launch Sequence) — if the user defined phases, follow them
 2. Dependency graph — Auth before gated features, Schema before API, API before UI
@@ -272,7 +274,18 @@ After every 4th completed mission (missions 4, 8, 12, etc.), Thanos runs a Gaunt
 2. **Run `/gauntlet --quick`** (3 rounds: Discovery → First Strike → Second Strike). Individual `/assemble` runs review one mission's changeset. The Gauntlet reviews the **combined system** — catching cross-module integration bugs: missing imports between modules built in different missions, inconsistent auth enforcement across endpoints, CORS/CSP gaps for new connection patterns.
 3. **Fix all Critical and High findings** before the next mission.
 4. **Commit fixes** via `/git`: `Gauntlet checkpoint after mission N: X fixes`
-5. `--fast` mode skips checkpoint gauntlets (but NOT the mandatory final Gauntlet in Step 6).
+5. **Extract Learned Rules.** After fixing, classify each finding by root cause. If the same root cause appears 2+ times across checkpoints (or 2+ times within the same checkpoint), append a Learned Rule to `campaign-state.md`:
+   ```
+   ## Learned Rules
+   - [Rule]: [one-line description] (source: checkpoint after mission N)
+   ```
+   All subsequent `/assemble` runs read the Learned Rules section of `campaign-state.md` and enforce them as pre-flight checks before committing. Rules are cumulative — they persist across sessions because they live in the file, not in context.
+6. **Escalation triggers:**
+   - If a checkpoint produces >5 HIGH findings → auto-insert a "Hardening Sprint" mission as the next mission. The sprint's sole objective is cross-cutting hardening (auth consistency, error handling, data contract verification) — no new features.
+   - If a finding reveals a missing capability (e.g., "no rate limiting middleware exists") → auto-add a mission to the current phase backlog in `campaign-state.md`.
+7. `--fast` mode skips checkpoint gauntlets (but NOT the mandatory final Gauntlet in Step 6).
+
+**Why Learned Rules matter:** In a long campaign (20+ missions), pattern-level bugs like "forgot auth on new endpoints" get rediscovered at every checkpoint, fixed, and forgotten. The campaign makes the same class of mistake repeatedly because it doesn't learn from its own quality gates. Learned Rules break this cycle — the campaign gets smarter as it runs. (Field report #126)
 
 **Why every 4 missions:** Each `/assemble` catches ~95% of issues within its scope. The remaining ~5% are cross-cutting — a bug introduced in mission 2 that affects mission 6. Catching these periodically prevents compounding. The cost is one context window per checkpoint; the ROI is real (the v6.0-v6.5 Gauntlet found a build-breaking missing import that two full `/assemble` pipelines missed).
 
@@ -327,6 +340,7 @@ Specifically, you MUST NOT:
 ### Step 5 — Debrief and Commit
 
 1. **Security gate (before commit):** Check if this mission added new TypeScript/JavaScript files that handle network I/O (HTTP endpoints, WebSocket handlers), user input (form parsing, body parsing), or credential storage (vault writes, env file generation). If yes, flag: **"This mission added network-facing code. Run `/security` before committing."** Even in `--fast` mode, security is non-negotiable for new attack surface. This prevents shipping Critical vulnerabilities that only get caught in a post-hoc hardening pass.
+1a. **Data source verification (when debugging data flow):** When a mission involves tracing a data pipeline (CSS inheritance, design system propagation, content rendering), verify the *source data* is current — not just the format. Saved snapshots (designSystem, companyBrief) may be stale if the underlying JSX/HTML was modified by chat edits. Always prefer extracting from the current source of truth over reading cached state. (Field report #111: chat edits changed CSS vars but designSystem snapshot was stale.)
 2. Coulson commits the mission (`/git`)
 3. Update `/logs/campaign-state.md` — mark mission complete, log any deviations from PRD. Include the debrief issue number: "Debrief: #XX" or "Debrief: SKIPPED (not blitz)" or "Debrief: N/A (normal mode)".
 4. **Route BLOCKED items to the right place:**
@@ -344,6 +358,7 @@ Specifically, you MUST NOT:
 All PRD requirements are COMPLETE or explicitly BLOCKED:
 
 1. **Run `/gauntlet` (full 5 rounds)** — mandatory final Gauntlet. Non-negotiable, even with `--fast`. Five rounds: Discovery → First Strike (full domain audits) → Second Strike (re-verification) → Crossfire (adversarial) → Council (convergence). The Gauntlet tests the combined system across all domains simultaneously. This is the "would I ship this" gate.
+1a. **Cross-campaign integration check:** If this campaign built modules that should be consumed by an existing daemon, orchestrator, or service, the Victory Gauntlet MUST verify the integration — not just the standalone module. Check: are the new modules imported by their consumer? Are the scheduled jobs wired? Does the data flow from producer to consumer? Per-campaign Victory Gauntlets review deliverables in isolation — this step catches the gaps between campaigns. (Field report #109: v11.2-v11.3 modules existed but were never imported by heartbeat.ts.)
 2. **Fix all Critical and High findings** from the Gauntlet.
 3. **Troi reads the PRD section-by-section** (runs as part of the Gauntlet's Council round) and verifies every prose claim against the implementation:
    - Does the component render what the PRD describes? (not just "does the route exist?")
@@ -353,9 +368,11 @@ All PRD requirements are COMPLETE or explicitly BLOCKED:
 4. If Troi finds discrepancies → fix code requirements, flag asset requirements as BLOCKED
 5. Present final report: COMPLETE items, BLOCKED items (with reasons), deviations from PRD
 6. **Run `/debrief --submit`** — mandatory end-of-campaign post-mortem covering all missions together. Captures cross-cutting learnings that per-mission debriefs miss. This runs BEFORE the sign-off so learnings are captured while context is fresh. (Field reports #31, #53)
-7. **Victory Checklist** — ALL must be true before sign-off:
+7. **PRD sync check:** Before declaring victory, compare PRD numeric claims (agent counts, feature counts, route counts, component counts) against the actual codebase for this campaign's domain. Stale PRD claims erode trust and compound across campaigns. (Field report #119)
+8. **Victory Checklist** — ALL must be true before sign-off:
    - [ ] Gauntlet Council signed off (6/6 or all domains pass)
    - [ ] All BLOCKED items acknowledged by user
+   - [ ] PRD claims verified against codebase
    - [ ] `/debrief --submit` filed (issue number recorded)
    - [ ] Campaign-state.md updated with final status
 
