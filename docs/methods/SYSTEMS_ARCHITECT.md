@@ -106,6 +106,16 @@ When `/architect` produces a plan that will be executed via `/campaign`, offer t
 
 **Detecting campaign intent:** If the user invokes `/architect --plan` but their request describes a new product/feature (not a review of existing architecture), suggest `/campaign --plan` instead. Signs: "create a new page," "build a feature," "add a subdomain."
 
+## Iterative PRD Evolution via `/architect --plan`
+
+`/architect --plan` supports iterative PRD evolution — multiple rounds of architectural planning where the PRD itself is the deliverable being refined. This is a recognized workflow, not a workaround.
+
+**How it works:** Each `/architect --plan` iteration analyzes the current PRD state, proposes structural improvements (phase ordering, dependency resolution, missing infrastructure, strategy validation), and produces a commit. The PRD evolves across 5-15+ commits before any code is written.
+
+**When to use:** When the project domain is complex enough that a single PRD generation pass can't capture all architectural constraints — trading systems, multi-tenant platforms, real-time collaboration tools, systems with complex data pipelines.
+
+**Commit discipline:** Each iteration commits the PRD changes separately with a descriptive message. The git history becomes the PRD evolution record — `git log docs/PRD.md` shows the reasoning arc. (Field report #126)
+
 ## Data Mutation Parity Check
 
 When reviewing architecture, identify all endpoints/services that mutate the same data (same table, same store, same file). Verify they use identical safety mechanisms: locking strategy, transaction boundaries, version sync, validation rules. Drift between parallel mutation paths is the #1 source of data corruption in multi-endpoint applications. (Field report #102: inline-edit route was missing optimistic locking, default version sync, and atomic transactions that the chat service had — three rounds found three separate gaps in the same file.)

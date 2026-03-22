@@ -119,9 +119,10 @@ Every phase produces a log file in `/logs/`. See `/docs/methods/BUILD_JOURNAL.md
 5. Check for VoidForge vault (`~/.voidforge/vault.enc`). If present, cross-reference env vars from the PRD against vault contents and provisioning state (`~/.voidforge/runs/*.json`). Distinguish "missing credential" (truly BLOCKED) from "vault-available credential" (resolvable via `voidforge deploy`). (Field report #40)
 6. **Wong loads lessons:** Read `/docs/LESSONS.md`. For each entry matching the current project's framework, database, auth pattern, or integration stack, note it: "Lesson from prior build: [summary]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+. Log matched lessons in phase-00-orient.md.
 7. **Troi confirms PRD extraction:** Troi reads the PRD prose and verifies that Picard's extraction (routes, schema, features, integrations) matches what the PRD actually says. Catches misinterpretations before they propagate through 8+ build phases. Log discrepancies in phase-00-orient.md.
-8. Produce initial ADRs in `/docs/adrs/`
-9. Create `/logs/build-state.md` and `/logs/phase-00-orient.md`
-10. If PRD has critical gaps (no schema, no stack, no features defined): **STOP. Flag to user. Do not proceed.**
+8. **Historical validation for data-dependent systems.** If the project involves trading, financial analysis, pricing, or any domain where the business case depends on real-world data patterns: validate the strategy against historical data BEFORE building infrastructure. Pull trailing 3+ weeks of data from venue/provider APIs, run the analysis, and produce regression tests against historical data points. These regression tests become the ongoing validation suite — re-run weekly (or per-campaign) to detect edge decay. If regression tests start failing mid-campaign, flag dependent strategies for re-evaluation. Do NOT default to "monitor live data for N weeks" when historical data is available — that blocks the entire campaign unnecessarily. (Field report #126)
+9. Produce initial ADRs in `/docs/adrs/`
+10. Create `/logs/build-state.md` and `/logs/phase-00-orient.md`
+11. If PRD has critical gaps (no schema, no stack, no features defined): **STOP. Flag to user. Do not proceed.**
 
 **Phase 0.5 — Picard's Conflict Scan.**
 

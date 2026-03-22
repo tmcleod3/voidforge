@@ -165,6 +165,8 @@ When a mission reads data written by a previous mission (or a pre-existing modul
 
 Cross-module data contracts are invisible to single-mission review. A field that "should exist" because the schema defines it may never be populated if the write path skips it. (Field report #77: Dialog Travel trip page read `placeContext` but the place creation flow never set it.)
 
+**Regression-test-as-validation:** For data-dependent systems (trading, financial, analytics), if Phase 0 produced regression tests against historical data, include those tests in the mission's verification step. Each mission that modifies strategy logic must re-run the regression suite — if tests fail, the mission is not complete until the strategy is re-validated or the test expectations are updated with justification. (Field report #126)
+
 **Priority cascade for mission ordering:**
 1. Section 16 (Launch Sequence) — if the user defined phases, follow them
 2. Dependency graph — Auth before gated features, Schema before API, API before UI
@@ -272,7 +274,18 @@ After every 4th completed mission (missions 4, 8, 12, etc.), Thanos runs a Gaunt
 2. **Run `/gauntlet --quick`** (3 rounds: Discovery → First Strike → Second Strike). Individual `/assemble` runs review one mission's changeset. The Gauntlet reviews the **combined system** — catching cross-module integration bugs: missing imports between modules built in different missions, inconsistent auth enforcement across endpoints, CORS/CSP gaps for new connection patterns.
 3. **Fix all Critical and High findings** before the next mission.
 4. **Commit fixes** via `/git`: `Gauntlet checkpoint after mission N: X fixes`
-5. `--fast` mode skips checkpoint gauntlets (but NOT the mandatory final Gauntlet in Step 6).
+5. **Extract Learned Rules.** After fixing, classify each finding by root cause. If the same root cause appears 2+ times across checkpoints (or 2+ times within the same checkpoint), append a Learned Rule to `campaign-state.md`:
+   ```
+   ## Learned Rules
+   - [Rule]: [one-line description] (source: checkpoint after mission N)
+   ```
+   All subsequent `/assemble` runs read the Learned Rules section of `campaign-state.md` and enforce them as pre-flight checks before committing. Rules are cumulative — they persist across sessions because they live in the file, not in context.
+6. **Escalation triggers:**
+   - If a checkpoint produces >5 HIGH findings → auto-insert a "Hardening Sprint" mission as the next mission. The sprint's sole objective is cross-cutting hardening (auth consistency, error handling, data contract verification) — no new features.
+   - If a finding reveals a missing capability (e.g., "no rate limiting middleware exists") → auto-add a mission to the current phase backlog in `campaign-state.md`.
+7. `--fast` mode skips checkpoint gauntlets (but NOT the mandatory final Gauntlet in Step 6).
+
+**Why Learned Rules matter:** In a long campaign (20+ missions), pattern-level bugs like "forgot auth on new endpoints" get rediscovered at every checkpoint, fixed, and forgotten. The campaign makes the same class of mistake repeatedly because it doesn't learn from its own quality gates. Learned Rules break this cycle — the campaign gets smarter as it runs. (Field report #126)
 
 **Why every 4 missions:** Each `/assemble` catches ~95% of issues within its scope. The remaining ~5% are cross-cutting — a bug introduced in mission 2 that affects mission 6. Catching these periodically prevents compounding. The cost is one context window per checkpoint; the ROI is real (the v6.0-v6.5 Gauntlet found a build-breaking missing import that two full `/assemble` pipelines missed).
 
