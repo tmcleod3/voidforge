@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [12.6.1] - 2026-03-22
+
+### Changed
+- Campaign Gauntlet checkpoints now extract **Learned Rules** — recurring root causes become pre-flight checks for subsequent missions, with escalation triggers (hardening sprints for >5 HIGH findings, auto-add missions for missing capabilities)
+- Build Protocol Phase 0 validates data-dependent business cases against **historical data** before building infrastructure — no more blocking campaigns on live monitoring
+- Campaign missions for data-dependent systems must re-run **regression test suites** when modifying strategy logic
+
+### Added
+- Iterative PRD evolution workflow documented for `/architect --plan` — multi-commit PRD refinement as a recognized pattern
+- PRD Evolution Log section in PRD template for tracking architectural reasoning across iterations
+
+### Fixed
+- Field report #126 triaged — 3 root causes accepted, 5 file changes applied, issue closed
+
+---
+
 ## [12.6.0] - 2026-03-22
 
 ### Added
