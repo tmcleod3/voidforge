@@ -12,7 +12,10 @@
   "scripts": {
     "wizard": "npx tsx scripts/voidforge.ts init",
     "deploy": "npx tsx scripts/voidforge.ts deploy",
-    "typecheck": "npx tsc --noEmit"
+    "typecheck": "npx tsc --noEmit",
+    "test": "vitest run --pool forks",
+    "test:watch": "vitest --pool forks",
+    "test:coverage": "vitest run --pool forks --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.700.0",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^3.1.0"
   }
 }
