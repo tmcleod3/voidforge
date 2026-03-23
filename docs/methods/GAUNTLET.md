@@ -114,6 +114,8 @@ Fix batches happen between rounds:
 
 **Dimension 3 — Mutation parity:** Identify all routes/endpoints that mutate the same data. When fixing a safety mechanism (locking, transactions, version sync) in one mutation path, verify ALL other paths that write to the same table/store use identical mechanisms. (Field report #102: inline-edit route was missing optimistic locking, default version sync, and transactions that the chat service had — three rounds found three separate gaps in the same file.)
 
+**Dimension 4 — Output verification:** After modifying any function that produces output sent to clients or external APIs, verify the fix against 3+ samples of real output data. A pattern that passes logic review may fail on actual output keys. Specifically: if adding keyword filters (blocklists, sanitizers), test against the known output schema to check for false positives before applying. (Field report #148: secret stripping `_url`/`_uri` wildcards deleted `DEPLOY_URL`, `S3_WEBSITE_URL`, `CF_PROJECT_URL` from SSE output — caught by Council but cost an extra round.)
+
 **Concrete examples of sibling patterns to grep:**
 - Same ARIA attribute value in the same file (e.g., `role="option"` → grep for `"option"` in that file)
 - Same endpoint pattern in sibling router files (e.g., fixed `/api/trips/:id` → check `/api/places/:id`, `/api/bookings/:id`)

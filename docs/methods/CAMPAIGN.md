@@ -44,7 +44,7 @@ Autonomous campaign execution: read the PRD, figure out what's next, build it, v
 7. **One mission at a time.** Don't plan three missions ahead. Plan one, execute one, reassess.
 8. **Mission scoping follows PRD Section 16** (Launch Sequence) when available.
 9. **After each mission, commit.** Coulson handles versioning.
-10. **Victory condition: all PRD requirements COMPLETE or explicitly BLOCKED with user acknowledgment.** No requirement may be silently skipped. Then one final /assemble --skip-build with Troi compliance check.
+10. **Victory condition: all PRD requirements COMPLETE or explicitly BLOCKED with user acknowledgment.** No requirement may be silently skipped. Then one final /assemble --skip-build with Troi compliance check. **Deploy path verification (field report #147):** If the project has a deploy target (Docker, VPS, etc.), verify the deploy entrypoint (Dockerfile CMD, docker-compose command, PM2 ecosystem) imports from the built architecture, not a legacy file. A campaign that builds new code but deploys old code is not complete.
 11. **Classify requirements.** Code, assets, copy, and infrastructure follow different workflows. Don't mix unbuildable items into code missions.
 12. **Log deviations.** When the build deviates from PRD architecture, update the PRD or log it in campaign-state.md. Never leave a silent contradiction.
 
