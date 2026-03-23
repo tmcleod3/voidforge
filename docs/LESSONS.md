@@ -94,6 +94,27 @@
 **Action:** (1) Write deploy credentials to BOTH `.env` AND `~/.voidforge/projects.json`. (2) Validate SSH_HOST, SSH_KEY before any deploy. (3) NEVER `rsync --delete` without excluding VPS-only directories. (4) Before any destructive DB operation, check if the data can be restored from backup first.
 **Promoted to:** CAMPAIGN.md (Step 0 credential check), DEVOPS_ENGINEER.md (rsync exclusion + credential pre-flight), TROUBLESHOOTING.md (destructive DB recovery checklist)
 
+### Read the source before re-exporting from it
+**Agent:** Spock (Star Trek) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — proxy module creation for pattern extraction (field report #148)
+**Lesson:** When creating proxy/barrel re-export files, 4 phantom type names were exported that didn't exist in the source module (FinancialRecord, SpendRecord, refreshOAuthToken, checkTokenHealth). The re-exports were written from assumptions about what the pattern files exported, not from reading the actual export statements. TypeScript caught them, but they created noise in the Victory Gauntlet.
+**Action:** ALWAYS `grep '^export' <source-file>` before writing re-export lines. Do not assume what a module exports based on its usage in consumers — consumers may import a subset, and type names may differ.
+**Promoted to:** Not yet
+
+### Read the function before testing it
+**Agent:** Batman (DC) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — test suite creation (field report #148)
+**Lesson:** ~30% of test cases failed on first run when expectations were based on assumed behavior. parseFrontmatter() returns {frontmatter, body} not a flat object. classifyTier threshold is 10000 not 2500. isPrivateIp doesn't cover link-local. Tests written after reading the implementation had <5% first-run failure rate.
+**Action:** Every test case MUST be written after reading the function's implementation. Read signature, return type, and boundary conditions before the first expect().
+**Promoted to:** Not yet
+
+### Numeric context checks — cite the actual percentage
+**Agent:** Sisko (Star Trek) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — blitz mode checkpoint at 27% (field report #148)
+**Lesson:** At 267k/1000k (27%), suggested stopping the blitz. The CAMPAIGN.md rule says only checkpoint above 70%. Self-imposed caution overrode the protocol, costing the user time until they corrected it. The 1M context window allows ~40 agent launches before reaching 70%.
+**Action:** Context checkpoint decisions MUST cite the actual percentage from /context. "Context is heavy" without a number is not valid justification.
+**Promoted to:** Not yet
+
 ### Iframe stacking context defeats z-index
 **Agent:** Galadriel (UX) | **Category:** gotcha
 **Context:** Dialog Travel map overlay (field report #79)
