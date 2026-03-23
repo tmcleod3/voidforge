@@ -112,9 +112,10 @@ When context is genuinely running low, checkpoint to disk so the next session ca
 - Responses are getting slower or less coherent
 
 **When symptoms appear:**
-1. Ask the user to run `/context` to check actual usage
-2. If usage is **below 70%** — symptoms may be from other causes. Continue working.
-3. If usage is **above 70%** — checkpoint and suggest a new session.
+1. If the Danger Room is running with the Status Line bridge configured, check the context gauge — it shows live usage percentage. No need to ask the user to run `/context`.
+2. If no Danger Room is available, ask the user to run `/context` to check actual usage.
+3. If usage is **below 70%** — symptoms may be from other causes. Continue working.
+4. If usage is **above 70%** — checkpoint and suggest a new session.
 
 **What is NOT a sign of context pressure:**
 - High file read count or tool call count alone — these are normal for ambitious sessions
