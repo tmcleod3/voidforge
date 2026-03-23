@@ -13,7 +13,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
+
+// SEC-R2-108: Per-boot random HMAC key — decoupled from vault password to prevent offline brute-force
+const TERMINAL_HMAC_KEY = randomBytes(32);
 import { WebSocketServer, WebSocket } from 'ws';
 import { access, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -140,7 +143,7 @@ addRoute('POST', '/api/terminal/sessions', async (req: IncomingMessage, res: Ser
       sessionUsername,
     );
     // SEC-001/SEC-002: Generate per-session auth token for WebSocket upgrade
-    const authToken = createHmac('sha256', password).update(session.id).digest('hex');
+    const authToken = createHmac('sha256', TERMINAL_HMAC_KEY).update(session.id).digest('hex');
     sendJson(res, 200, { session, authToken });
   } catch (err) {
     sendJson(res, 400, { error: (err as Error).message });
@@ -225,7 +228,7 @@ export function handleTerminalUpgrade(req: IncomingMessage, socket: Duplex, head
 
   // SEC-002: Validate per-session auth token
   const token = url.searchParams.get('token');
-  const expectedToken = createHmac('sha256', password).update(sessionId).digest('hex');
+  const expectedToken = createHmac('sha256', TERMINAL_HMAC_KEY).update(sessionId).digest('hex');
   if (!token || token.length !== expectedToken.length || !timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken))) {
     socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
     socket.destroy();
