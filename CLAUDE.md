@@ -72,6 +72,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | `/security` | Kenobi's OWASP audit with parallel + sequential phases and red-team verification | All |
 | `/ux` | Galadriel's adversarial UX/UI review with a11y audit and verification pass | All |
 | `/review` | Picard's code review — pattern compliance, quality, maintainability | All |
+| `/deploy` | Kusanagi's deploy agent — target detection, health check, rollback, campaign auto-deploy | All |
 | `/devops` | Kusanagi's infrastructure — adapts based on deploy target | All |
 | `/assess` | Picard's pre-build assessment — architecture + assessment gauntlet + PRD gap analysis for existing codebases | All |
 | `/architect` | Picard's architecture review with parallel analysis and conflict resolution | All |
