@@ -538,6 +538,37 @@ dnf install -y git curl`;
       // Non-fatal
     }
 
+    // DEVOPS-R2-001: Restrict SSH from 0.0.0.0/0 to deployer's IP after provisioning
+    try {
+      const { EC2Client, RevokeSecurityGroupIngressCommand, AuthorizeSecurityGroupIngressCommand } = await import('@aws-sdk/client-ec2');
+      const ec2Restrict = new EC2Client(awsConfig);
+
+      // Detect deployer's public IP via checkip.amazonaws.com
+      let deployerIp: string | null = null;
+      try {
+        const ipRes = await fetch('https://checkip.amazonaws.com', { signal: AbortSignal.timeout(5000) });
+        if (ipRes.ok) deployerIp = (await ipRes.text()).trim();
+      } catch { /* non-fatal — keep 0.0.0.0/0 if detection fails */ }
+
+      if (deployerIp && /^\d+\.\d+\.\d+\.\d+$/.test(deployerIp)) {
+        // Revoke the wide-open SSH rule
+        await ec2Restrict.send(new RevokeSecurityGroupIngressCommand({
+          GroupId: sgId,
+          IpPermissions: [{ IpProtocol: 'tcp', FromPort: 22, ToPort: 22, IpRanges: [{ CidrIp: '0.0.0.0/0' }] }],
+        }));
+        // Add restricted SSH rule for deployer's IP only
+        await ec2Restrict.send(new AuthorizeSecurityGroupIngressCommand({
+          GroupId: sgId,
+          IpPermissions: [{ IpProtocol: 'tcp', FromPort: 22, ToPort: 22, IpRanges: [{ CidrIp: `${deployerIp}/32`, Description: 'SSH (deployer IP)' }] }],
+        }));
+        emit({ step: 'ssh-restrict', status: 'done', message: `SSH restricted to ${deployerIp}/32 (was 0.0.0.0/0)` });
+      } else {
+        emit({ step: 'ssh-restrict', status: 'warning', message: 'Could not detect public IP — SSH remains open to 0.0.0.0/0. Restrict manually in AWS Console.' });
+      }
+    } catch (err) {
+      emit({ step: 'ssh-restrict', status: 'warning', message: 'SSH restriction failed (non-fatal). Restrict port 22 manually.', detail: (err as Error).message });
+    }
+
     return { success: true, resources, outputs, files };
   },
 
