@@ -8,7 +8,7 @@
  * - parseFindings: reads Known Issues from build-state.md first, falls back to regex
  */
 
-import { readdir } from 'node:fs/promises';
+import { readdir, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { readFileOrNull } from './http-helpers.js';
@@ -220,8 +220,7 @@ const STALENESS_THRESHOLD_MS = 60000; // 60 seconds
  */
 export async function readContextStats(): Promise<ContextStats | null> {
   try {
-    const { readdir: listDir } = await import('node:fs/promises');
-    const files = await listDir(VOIDFORGE_DIR);
+    const files = await readdir(VOIDFORGE_DIR);
     const statsFiles = files.filter(f => f.startsWith('context-stats-') && f.endsWith('.json'));
     if (statsFiles.length === 0) return null;
 
@@ -239,7 +238,7 @@ export async function readContextStats(): Promise<ContextStats | null> {
         if (!data.updated_at) continue;
         // Clean up files older than 5 minutes (orphaned sessions — Gauntlet Picard DR-13)
         if (now - data.updated_at > CLEANUP_AGE_S) {
-          try { const { unlink } = await import('node:fs/promises'); await unlink(filePath); } catch { /* ignore */ }
+          try { await unlink(filePath); } catch { /* ignore */ }
           continue;
         }
         // Check staleness — skip files older than 60 seconds (still show —% gauge)

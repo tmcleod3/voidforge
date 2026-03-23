@@ -76,7 +76,7 @@
     .tier-label::before { content: ''; width: 8px; height: 8px; flex-shrink: 0; }
     .tier-live .tier-label::before { background: #34d399; border-radius: 50%; animation: pulse 2s infinite; }
     .tier-campaign .tier-label::before { background: #fbbf24; border-radius: 2px; } /* square = campaign */
-    .tier-system .tier-label::before { background: var(--text-dim); opacity: 0.5; border-radius: 50%; border: 1px solid var(--text-dim); background: none; } /* hollow circle = system */
+    .tier-system .tier-label::before { opacity: 0.5; border-radius: 50%; border: 1px solid var(--text-dim); background: none; } /* hollow circle = system */
     .tier-live .tier-content { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
     .tier-campaign .tier-content { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .tier-system .tier-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }

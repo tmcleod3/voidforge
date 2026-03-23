@@ -79,8 +79,6 @@ const UI_DIR = join(import.meta.dirname, 'ui');
 // Server config shared via wizard/lib/server-config.ts (breaks circular import — Gauntlet DR-02)
 import { getServerPort, getServerHost, setServerPort, setServerHost } from './lib/server-config.js';
 export { getServerPort, getServerHost }; // re-export for backwards compat
-let serverPort = 0;
-let serverHost = '';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -114,9 +112,9 @@ async function serveStatic(res: ServerResponse, filePath: string): Promise<void>
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // CORS — scoped to the wizard's own origin (expanded for remote mode)
   const origin = req.headers.origin ?? '';
-  const allowedOrigins = [`http://127.0.0.1:${serverPort}`, `http://localhost:${serverPort}`];
-  if (isRemoteMode() && serverHost) {
-    allowedOrigins.push(`https://${serverHost}`);
+  const allowedOrigins = [`http://127.0.0.1:${getServerPort()}`, `http://localhost:${getServerPort()}`];
+  if (isRemoteMode() && getServerHost()) {
+    allowedOrigins.push(`https://${getServerHost()}`);
   }
   // LAN mode: accept any private IP origin (Gauntlet Picard DR-04)
   const { isPrivateOrigin } = await import('./lib/network.js');
@@ -134,11 +132,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
   // LAN mode: allow WebSocket from any private IP (Gauntlet Kenobi DR-10)
-  const connectSrc = isRemoteMode() && serverHost
-    ? `'self' ws://localhost:${serverPort} ws://127.0.0.1:${serverPort} wss://${serverHost}`
+  const connectSrc = isRemoteMode() && getServerHost()
+    ? `'self' ws://localhost:${getServerPort()} ws://127.0.0.1:${getServerPort()} wss://${getServerHost()}`
     : isLanMode()
-    ? `'self' ws://localhost:${serverPort} ws://127.0.0.1:${serverPort} ws://*:${serverPort}`
-    : `'self' ws://localhost:${serverPort} ws://127.0.0.1:${serverPort}`;
+    ? `'self' ws://localhost:${getServerPort()} ws://127.0.0.1:${getServerPort()} ws://*:${getServerPort()}`
+    : `'self' ws://localhost:${getServerPort()} ws://127.0.0.1:${getServerPort()}`;
   res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src ${connectSrc} https://cdn.jsdelivr.net; frame-ancestors 'none'`);
 
   if (req.method === 'OPTIONS') {
@@ -286,12 +284,10 @@ export async function checkNativeModulesChanged(): Promise<boolean> {
 }
 
 export function startServer(port: number, options?: { remote?: boolean; lan?: boolean; host?: string }): Promise<void> {
-  serverPort = port;
   setServerPort(port);
   if (options?.remote) {
     setRemoteMode(true);
-    serverHost = options.host ?? '';
-    setServerHost(serverHost);
+    setServerHost(options.host ?? '');
   }
   if (options?.lan) {
     setLanMode(true);
@@ -338,6 +334,11 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
             return;
           }
           wsSession = session;
+        }
+        if (!handleTerminalUpgrade) {
+          socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
+          socket.destroy();
+          return;
         }
         handleTerminalUpgrade(req, socket, head, wsSession);
       } else if (url.pathname === '/ws/danger-room') {
@@ -393,7 +394,7 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
       stopHealthPoller();
       closeDangerRoom();
       closeWarRoom();
-      killAllSessions();
+      killAllSessions?.();
       server.close(() => process.exit(0));
       setTimeout(() => process.exit(0), 2000);
     };
