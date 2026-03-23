@@ -19,6 +19,7 @@ import {
   parseFindings,
   readDeployLog,
   readVersion,
+  readContextStats,
   PROJECT_ROOT,
 } from '../lib/dashboard-data.js';
 import { createDashboardWs } from '../lib/dashboard-ws.js';
@@ -60,8 +61,8 @@ addRoute('GET', '/api/danger-room/deploy', async (_req: IncomingMessage, res: Se
 });
 
 addRoute('GET', '/api/danger-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
-  // TODO(v13.0): Wire to Status Line bridge — read ~/.voidforge/context-stats-*.json
-  sendJson(res, 200, null);
+  const stats = await readContextStats();
+  sendJson(res, 200, stats);
 });
 
 addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {

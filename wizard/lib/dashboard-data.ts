@@ -198,5 +198,56 @@ export async function readVersion(): Promise<{ version: string; branch: string }
   return { version: match ? match[1] : 'unknown', branch: 'main' };
 }
 
+// ── Context Stats (Status Line Bridge) ──────
+
+export interface ContextStats {
+  percent: number | null;
+  tokens: number | null;
+  output_tokens: number | null;
+  window_size: number | null;
+  model: string | null;
+  cost: number | null;
+  session_id: string | null;
+  updated_at: number | null;
+}
+
+const STALENESS_THRESHOLD_MS = 60000; // 60 seconds
+
+/**
+ * Read context stats from the Status Line bridge.
+ * Reads per-session files (~/.voidforge/context-stats-*.json) and returns the most recent.
+ * Returns null if no data exists or all data is stale (>60s old).
+ */
+export async function readContextStats(): Promise<ContextStats | null> {
+  try {
+    const { readdir: listDir } = await import('node:fs/promises');
+    const files = await listDir(VOIDFORGE_DIR);
+    const statsFiles = files.filter(f => f.startsWith('context-stats-') && f.endsWith('.json'));
+    if (statsFiles.length === 0) return null;
+
+    let mostRecent: ContextStats | null = null;
+    let latestTime = 0;
+    const now = Date.now() / 1000; // jq's `now` outputs Unix seconds
+
+    for (const file of statsFiles) {
+      const content = await readFileOrNull(join(VOIDFORGE_DIR, file));
+      if (!content) continue;
+      try {
+        const data = JSON.parse(content) as ContextStats;
+        if (data.updated_at && data.updated_at > latestTime) {
+          // Check staleness — skip files older than 60 seconds
+          if (now - data.updated_at > STALENESS_THRESHOLD_MS / 1000) continue;
+          latestTime = data.updated_at;
+          mostRecent = data;
+        }
+      } catch { continue; }
+    }
+
+    return mostRecent;
+  } catch {
+    return null;
+  }
+}
+
 /** Export paths for modules that need direct access. */
 export { PROJECT_ROOT, LOGS_DIR, VOIDFORGE_DIR };

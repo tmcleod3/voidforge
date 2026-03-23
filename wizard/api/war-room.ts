@@ -15,6 +15,7 @@ import {
   parseFindings,
   readDeployLog,
   readVersion,
+  readContextStats,
 } from '../lib/dashboard-data.js';
 import { createDashboardWs } from '../lib/dashboard-ws.js';
 
@@ -50,8 +51,8 @@ addRoute('GET', '/api/war-room/deploy', async (_req: IncomingMessage, res: Serve
 });
 
 addRoute('GET', '/api/war-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
-  // TODO(v13.0): Wire to Status Line bridge — read ~/.voidforge/context-stats-*.json
-  sendJson(res, 200, null);
+  const stats = await readContextStats();
+  sendJson(res, 200, stats);
 });
 
 addRoute('GET', '/api/war-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
