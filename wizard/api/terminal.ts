@@ -19,7 +19,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { addRoute } from '../router.js';
 import { getSessionPassword } from './credentials.js';
-import { getServerPort, getServerHost } from '../server.js';
+import { getServerPort, getServerHost } from '../lib/server-config.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import {
   createSession, writeToSession, onSessionData, resizeSession,

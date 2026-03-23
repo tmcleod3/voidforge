@@ -8,10 +8,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, stat, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { watch } from 'node:fs';
+import { watch, existsSync } from 'node:fs';
 import { addRoute } from '../router.js';
 import { sendJson, readFileOrNull } from '../lib/http-helpers.js';
 import {
@@ -35,8 +35,14 @@ const ws = createDashboardWs('Danger Room');
 /** Broadcast a message to all connected Danger Room clients. */
 export const broadcastDangerRoom = ws.broadcast;
 
-/** Close all Danger Room WebSocket connections and shut down the server. */
-export const closeDangerRoom = ws.close;
+/** Close all Danger Room WebSocket connections, activity watcher, and shut down. */
+export function closeDangerRoom(): void {
+  ws.close();
+  // Clean up activity watcher resources (Infinity Gauntlet ARCH-002)
+  if (activityPollInterval) clearInterval(activityPollInterval);
+  if (activityWatcher) { try { activityWatcher.close(); } catch { /* ignore */ } activityWatcher = null; }
+  if (activityDebounce) clearTimeout(activityDebounce);
+}
 
 /** Handle WebSocket upgrade for /ws/danger-room. */
 export const handleDangerRoomUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer) =>
@@ -62,7 +68,7 @@ async function _checkAgentActivity(): Promise<void> {
     if (st.size <= lastActivitySize) return;
 
     // Read only the new bytes appended since last check (Gauntlet DR-05: no line estimation)
-    const fd = await import('node:fs/promises').then(m => m.open(ACTIVITY_FILE, 'r'));
+    const fd = await open(ACTIVITY_FILE, 'r');
     const buf = Buffer.alloc(st.size - lastActivitySize);
     await fd.read(buf, 0, buf.length, lastActivitySize);
     await fd.close();
@@ -101,7 +107,7 @@ function setupActivityWatch(): void {
 setupActivityWatch();
 
 // Poll fallback — catches events fs.watch misses AND re-establishes watch if file appeared (DR-06)
-setInterval(() => {
+const activityPollInterval = setInterval(() => {
   if (!activityWatcher) setupActivityWatch();
   checkAgentActivity();
 }, 3000);
@@ -164,7 +170,7 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
   let heartbeatData = null;
 
   try {
-    const { existsSync } = await import('node:fs');
+    // existsSync imported statically at top (Infinity Gauntlet ARCH-009)
     cultivationInstalled = existsSync(treasuryVaultPath);
     const raw = await readFileOrNull(heartbeatJsonPath);
     if (raw) heartbeatData = JSON.parse(raw);
@@ -191,7 +197,7 @@ addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: S
     const proposalsDir = join(PROJECT_ROOT, 'logs', 'deep-current', 'proposals');
     let latestProposal = null;
     try {
-      const { existsSync } = await import('node:fs');
+      // existsSync imported statically at top (Infinity Gauntlet ARCH-009)
       if (existsSync(proposalsDir)) {
         const files = await readdir(proposalsDir);
         const mdFiles = files.filter(f => f.endsWith('.md')).sort().reverse();

@@ -30,6 +30,7 @@ import { handleWarRoomUpgrade, closeWarRoom } from './api/war-room.js';
 let killAllSessions: (() => void) | null = null;
 try { killAllSessions = (await import('./lib/pty-manager.js')).killAllSessions; } catch { /* node-pty not available */ }
 import { startHealthPoller, stopHealthPoller } from './lib/health-poller.js';
+import { isPrivateOrigin } from './lib/network.js';
 import { isRemoteMode, setRemoteMode, isLanMode, setLanMode, validateSession, parseSessionCookie, isAuthExempt, getClientIp, type SessionInfo, type UserRole } from './lib/tower-auth.js';
 import { initAuditLog, audit } from './lib/audit-log.js';
 import { hasRole } from './lib/user-manager.js';
@@ -78,7 +79,6 @@ const UI_DIR = join(import.meta.dirname, 'ui');
 /** Set by startServer so handleRequest can scope CORS to the actual origin. */
 // Server config shared via wizard/lib/server-config.ts (breaks circular import — Gauntlet DR-02)
 import { getServerPort, getServerHost, setServerPort, setServerHost } from './lib/server-config.js';
-export { getServerPort, getServerHost }; // re-export for backwards compat
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -117,7 +117,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     allowedOrigins.push(`https://${getServerHost()}`);
   }
   // LAN mode: accept any private IP origin (Gauntlet Picard DR-04)
-  const { isPrivateOrigin } = await import('./lib/network.js');
   if (allowedOrigins.includes(origin) || (isLanMode() && isPrivateOrigin(origin))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }

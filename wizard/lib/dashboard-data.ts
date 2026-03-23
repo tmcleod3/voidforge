@@ -46,6 +46,7 @@ export interface FindingCounts {
 
 export interface DeployData {
   url: string;
+  commit?: string;
   healthy: boolean;
   target: string;
   timestamp: string;
@@ -203,7 +204,7 @@ export async function readDeployLog(): Promise<DeployData | null> {
         target: '',
         timestamp: timestampMatch ? timestampMatch[1].trim() : '',
         commit: commitMatch ? commitMatch[1].trim() : undefined,
-      } as DeployData & { commit?: string };
+      };
     }
   }
 

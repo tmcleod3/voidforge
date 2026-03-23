@@ -241,7 +241,8 @@
     var ws = new WebSocket(wsProtocol + '//' + location.host + '/ws/war-room');
 
     ws.onopen = function () {
-      wsRetryDelay = 1000; // Reset backoff on successful connection
+      wsRetryDelay = 1000;
+      refresh(); // Full refresh on reconnect — data may be stale (Infinity Gauntlet B-002)
     };
 
     ws.onmessage = function (event) {
@@ -263,7 +264,8 @@
     };
 
     ws.onclose = function () {
-      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
+      // Retry with ceiling — stop after 2 minutes of failure (Infinity Gauntlet B-001)
+      if (wsRetryDelay >= WS_MAX_RETRY_DELAY * 4) return; // permanent failure — stop retrying
       setTimeout(connectWebSocket, wsRetryDelay);
       wsRetryDelay = Math.min(wsRetryDelay * 2, WS_MAX_RETRY_DELAY);
     };
