@@ -3,7 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { readFile, access } from 'node:fs/promises';
+import { readFile, access, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { addRoute } from '../router.js';
 import { parseJsonBody } from '../lib/body-parser.js';
@@ -30,11 +30,12 @@ addRoute('POST', '/api/deploy/scan', async (req: IncomingMessage, res: ServerRes
     return;
   }
 
-  const dir = body.directory;
+  let dir = body.directory;
 
-  // Check directory exists
+  // Check directory exists and resolve symlinks (IG-R4: use real path for all operations)
   try {
     await access(dir);
+    dir = await realpath(dir);
   } catch {
     sendJson(res, 400, { error: `Directory not found: ${dir}` });
     return;

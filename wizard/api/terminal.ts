@@ -15,7 +15,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { access } from 'node:fs/promises';
+import { access, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { addRoute } from '../router.js';
 import { getSessionPassword } from './credentials.js';
@@ -85,6 +85,14 @@ addRoute('POST', '/api/terminal/sessions', async (req: IncomingMessage, res: Ser
   // SEC-003/QA-002: Validate projectDir — absolute path, no traversal
   if (!body.projectDir.startsWith('/') || body.projectDir.includes('..')) {
     sendJson(res, 400, { error: 'projectDir must be an absolute path with no ".." segments' });
+    return;
+  }
+
+  // IG-R4: Resolve symlinks and use real path for all operations
+  try {
+    body.projectDir = await realpath(body.projectDir);
+  } catch {
+    sendJson(res, 400, { error: 'Could not resolve project directory path' });
     return;
   }
 
@@ -249,7 +257,9 @@ export function handleTerminalUpgrade(req: IncomingMessage, socket: Duplex, head
       if (msg.startsWith('{')) {
         try {
           const parsed = JSON.parse(msg) as { type: string; cols?: number; rows?: number };
-          if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
+          // IG-R2: Validate numeric types to prevent NaN propagation to node-pty
+          if (parsed.type === 'resize' && typeof parsed.cols === 'number' && typeof parsed.rows === 'number'
+              && Number.isFinite(parsed.cols) && Number.isFinite(parsed.rows)) {
             resizeSession(sessionId, parsed.cols, parsed.rows);
             return;
           }

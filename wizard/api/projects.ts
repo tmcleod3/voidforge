@@ -234,7 +234,7 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
     sendJson(res, 400, { success: false, error: 'directory must not contain ".." segments' });
     return;
   }
-  const dir = resolve(directory);
+  let dir = resolve(directory);
   if (!dir.startsWith('/')) {
     sendJson(res, 400, { success: false, error: 'directory must be an absolute path' });
     return;
@@ -247,13 +247,10 @@ addRoute('POST', '/api/projects/import', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  // CROSS-R4-005: Resolve symlinks and verify the real path is still valid
+  // CROSS-R4-005 + IG-R4: Resolve symlinks and use the real path for all subsequent operations.
+  // This handles macOS /tmp → /private/tmp while ensuring we operate on the true filesystem location.
   try {
-    const realDir = await realpath(dir);
-    if (realDir !== dir) {
-      // Symlink detected — use the real path for all subsequent operations
-      // This prevents symlink attacks pointing to sensitive directories
-    }
+    dir = await realpath(dir);
   } catch {
     sendJson(res, 400, { success: false, error: 'Could not resolve directory path' });
     return;
