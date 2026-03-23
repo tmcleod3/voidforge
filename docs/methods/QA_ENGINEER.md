@@ -153,6 +153,16 @@ Oracle scans for methods that return success without side effects — the most d
 
 Flag as **High severity**. In financial systems (trading, payments, billing), flag as **Critical**. (Field report #125: `ProtectionService._place_stop_loss()` returned `True` after logging but never called the exchange. `OrderService.cancel_order()` returned `True` without cancelling.)
 
+### Safety-Critical Return Value Verification
+
+For systems with safety-critical operations (stop-loss placement, circuit breakers, rollback triggers, payment captures, credential revocations): verify the return value of the safety operation BEFORE transitioning state. The pattern: `call safety operation → check return → only then transition`.
+
+**Anti-pattern:** `place_stop_loss(params); self.state = IN_POSITION` — the stop-loss might fail silently (API timeout, insufficient margin, wrong symbol), and the system enters IN_POSITION without protection.
+
+**Correct pattern:** `result = place_stop_loss(params); if not result.success: abort_entry(); return; self.state = IN_POSITION`
+
+**Where to check:** Any state machine transition that follows a safety-critical call. Grep for state assignments (`self.state =`, `setState(`, `status =`) and trace backwards — is the preceding safety call's return value checked? (Field report #139: funding_capture strategy opened positions without verifying stop-loss succeeded. Could hold $2K unprotected.)
+
 ## Step 2 — Baseline Repro Harness
 
 Get the project running. Create repeatable manual validation: app starts, primary flow works, auth works, data persists, error states display, mobile works. Document exact commands.
