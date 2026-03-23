@@ -31,11 +31,7 @@ import { addLesson, getLessons, getLessonCount, type LessonInput } from '../lib/
 import { audit } from '../lib/audit-log.js';
 import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
 import { isValidRole, hasRole, type SessionInfo } from '../lib/user-manager.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 /** Extract session from request. Returns null if not authenticated (local mode returns synthetic admin). */
 function getSession(req: IncomingMessage): SessionInfo | null {

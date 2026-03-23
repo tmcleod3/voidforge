@@ -4,11 +4,7 @@ import { addRoute } from '../router.js';
 import { vaultSet, vaultGet, vaultKeys } from '../lib/vault.js';
 import { getSessionPassword } from './credentials.js';
 import { parseJsonBody } from '../lib/body-parser.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 function requirePassword(res: ServerResponse): string | null {
   const password = getSessionPassword();

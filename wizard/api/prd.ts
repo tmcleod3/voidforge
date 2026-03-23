@@ -9,6 +9,7 @@ import { resolveModelWithLimits } from '../lib/anthropic.js';
 import { parseFrontmatter, validateFrontmatter } from '../lib/frontmatter.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { listTemplates, getTemplate } from '../lib/templates.js';
+import { sendJson } from '../lib/http-helpers.js';
 
 /**
  * Extract the prompt from inside the outer ``` fence after "## The Prompt".
@@ -49,11 +50,6 @@ function extractFencedPrompt(markdown: string): string {
   }
 
   return resultLines.join('\n').trim();
-}
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
 }
 
 // POST /api/prd/validate — validate PRD content

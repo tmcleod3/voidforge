@@ -7,8 +7,13 @@ import type { ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 
 /** Send a JSON response with the given status code. */
-export function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+export function sendJson(res: ServerResponse, status: number, data: unknown, noCache = false): void {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
+  if (noCache) {
+    headers['Cache-Control'] = 'no-store';
+    headers['Pragma'] = 'no-cache';
+  }
+  res.writeHead(status, headers);
   res.end(JSON.stringify(data));
 }
 

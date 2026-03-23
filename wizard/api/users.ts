@@ -26,16 +26,7 @@ import {
 } from '../lib/user-manager.js';
 import { audit } from '../lib/audit-log.js';
 import { removeUserFromAllProjects } from '../lib/project-registry.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown, noCache = false): void {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (noCache) {
-    headers['Cache-Control'] = 'no-store';
-    headers['Pragma'] = 'no-cache';
-  }
-  res.writeHead(status, headers);
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 /** Extract and validate session from request. Returns null if not authenticated. */
 function getSession(req: IncomingMessage) {

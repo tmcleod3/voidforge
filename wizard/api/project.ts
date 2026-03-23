@@ -7,13 +7,9 @@ import { addRoute } from '../router.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { addProject } from '../lib/project-registry.js';
 import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
+import { sendJson } from '../lib/http-helpers.js';
 
 const execFileAsync = promisify(execFile);
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
 
 const SCAFFOLD_DIR = resolve(import.meta.dirname, '..', '..');
 

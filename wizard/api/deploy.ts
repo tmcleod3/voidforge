@@ -9,11 +9,7 @@ import { addRoute } from '../router.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { parseFrontmatter } from '../lib/frontmatter.js';
 import { recommendInstanceType } from '../lib/instance-sizing.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 // POST /api/deploy/scan — scan a project directory for deploy info
 addRoute('POST', '/api/deploy/scan', async (req: IncomingMessage, res: ServerResponse) => {

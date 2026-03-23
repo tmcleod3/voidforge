@@ -32,16 +32,12 @@ import { emitCostEstimate } from '../lib/cost-estimator.js';
 import { logDeploy, listDeploys } from '../lib/deploy-log.js';
 import { setupHealthMonitoring } from '../lib/health-monitor.js';
 import { generateSentryInit } from '../lib/sentry-generator.js';
+import { sendJson } from '../lib/http-helpers.js';
 
 /** Deploy targets that benefit from GitHub repo linking (ADR-015). */
 const GITHUB_LINKED_TARGETS = ['vercel', 'cloudflare', 'railway'];
 /** Deploy targets where GitHub push is optional (deploy via SSH/SDK instead). */
 const GITHUB_OPTIONAL_TARGETS = ['vps', 'static'];
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
 
 const provisioners: Record<string, Provisioner> = {
   docker: dockerProvisioner,

@@ -4,11 +4,7 @@ import { addRoute } from '../router.js';
 import { vaultSet, vaultGet, vaultExists, vaultUnlock, vaultKeys, vaultPath, vaultLock } from '../lib/vault.js';
 import { parseJsonBody } from '../lib/body-parser.js';
 import { clearModelCache } from '../lib/anthropic.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 /** Session password — held in memory only, never written to disk */
 let sessionPassword: string | null = null;

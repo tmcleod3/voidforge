@@ -22,16 +22,7 @@ import {
   isValidUsername,
 } from '../lib/tower-auth.js';
 import { audit } from '../lib/audit-log.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown, noCache = false): void {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (noCache) {
-    headers['Cache-Control'] = 'no-store';
-    headers['Pragma'] = 'no-cache';
-  }
-  res.writeHead(status, headers);
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 // POST /api/auth/setup — Create initial admin user (only when no users exist)
 addRoute('POST', '/api/auth/setup', async (req: IncomingMessage, res: ServerResponse) => {

@@ -31,11 +31,7 @@ import {
 import { validateSession, parseSessionCookie, getClientIp, isRemoteMode } from '../lib/tower-auth.js';
 import { hasProjectAccess, type SessionInfo } from '../lib/user-manager.js';
 import { findByDirectory } from '../lib/project-registry.js';
-
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
-}
+import { sendJson } from '../lib/http-helpers.js';
 
 // ── REST endpoints for session management ──────────────
 
