@@ -11,22 +11,25 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 
-function mockResponse(): ServerResponse & { _status: number; _headers: Record<string, string>; _body: string } {
-  const res = new Writable({
-    write(chunk, _enc, cb) { (res as unknown as { _body: string })._body += chunk.toString(); cb(); },
-  }) as unknown as ServerResponse & { _status: number; _headers: Record<string, string>; _body: string };
-  res._status = 0;
-  res._headers = {};
-  res._body = '';
-  res.writeHead = function (status: number, headers?: Record<string, string>) {
-    res._status = status;
-    if (headers) Object.assign(res._headers, headers);
-    return res;
-  } as unknown as ServerResponse['writeHead'];
-  res.end = function (data?: string) {
-    if (data) res._body += data;
-  } as unknown as ServerResponse['end'];
-  return res;
+interface MockRes { _status: number; _headers: Record<string, string>; _body: string }
+
+function mockResponse(): ServerResponse & MockRes {
+  const state: MockRes = { _status: 0, _headers: {}, _body: '' };
+  const res = {
+    ...state,
+    writeHead(status: number, headers?: Record<string, string>) {
+      state._status = status;
+      if (headers) Object.assign(state._headers, headers);
+      return res;
+    },
+    end(data?: string) {
+      if (data) state._body += data;
+    },
+    get _status() { return state._status; },
+    get _headers() { return state._headers; },
+    get _body() { return state._body; },
+  };
+  return res as unknown as ServerResponse & MockRes;
 }
 
 describe('sendJson', () => {

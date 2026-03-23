@@ -6,6 +6,5 @@ export {
   needsRefresh, handleRefreshFailure, getTokenHealth,
   tokenVaultKey, deserializeTokens,
   shouldRotateSessionToken, rotateSessionToken, validateSessionToken,
-  refreshOAuthToken, checkTokenHealth,
 } from '../../docs/patterns/oauth-token-lifecycle.js';
 export type { SessionTokenState } from '../../docs/patterns/oauth-token-lifecycle.js';
