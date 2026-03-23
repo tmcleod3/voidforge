@@ -141,7 +141,7 @@ export const awsVpsProvisioner: Provisioner = {
       await recordResourceCreated(ctx.runId, 'security-group', sgId, region);
 
       // Authorize inbound: SSH (22), HTTP (80), HTTPS (443)
-      // TODO: Restrict SSH to user's IP post-provisioning. 0.0.0.0/0 is for initial setup only.
+      // SSH initially open to 0.0.0.0/0 for provisioning — restricted to deployer IP at end (DEVOPS-R2-001).
       const ingressRules: IpPermission[] = [
         { IpProtocol: 'tcp', FromPort: 22, ToPort: 22, IpRanges: [{ CidrIp: '0.0.0.0/0', Description: 'SSH' }] },
         { IpProtocol: 'tcp', FromPort: 80, ToPort: 80, IpRanges: [{ CidrIp: '0.0.0.0/0', Description: 'HTTP' }] },

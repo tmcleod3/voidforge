@@ -18,7 +18,7 @@ export interface ProvisionContext {
 
 export interface ProvisionEvent {
   step: string;
-  status: 'started' | 'done' | 'error' | 'skipped';
+  status: 'started' | 'done' | 'error' | 'skipped' | 'warning';
   message: string;
   detail?: string;
 }
