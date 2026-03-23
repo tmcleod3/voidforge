@@ -21,6 +21,8 @@ import {
   readDeployLog,
   readVersion,
   readContextStats,
+  readTestResults,
+  readGitStatus,
   PROJECT_ROOT,
 } from '../lib/dashboard-data.js';
 import { createDashboardWs } from '../lib/dashboard-ws.js';
@@ -119,6 +121,14 @@ addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, re
   } catch {
     sendJson(res, 200, { experiments: [], total: 0 });
   }
+});
+
+addRoute('GET', '/api/danger-room/tests', async (_req: IncomingMessage, res: ServerResponse) => {
+  sendJson(res, 200, await readTestResults());
+});
+
+addRoute('GET', '/api/danger-room/git-status', async (_req: IncomingMessage, res: ServerResponse) => {
+  sendJson(res, 200, await readGitStatus());
 });
 
 // ── Danger Room-specific endpoints ───────────────

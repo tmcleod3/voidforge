@@ -15,10 +15,10 @@
 | 2 | Information Architecture + UX Review | Data classification, layout redesign, a11y audit, empty states | **DONE** | #133 |
 | 3 | LAN Mode | --lan flag, private IP validation, optional password auth | **DONE** | #134 |
 | 4 | Status Line Bridge | Atomic writes, per-session files, context gauge + cost display | **DONE** | #135 |
-| 5 | Agent Ticker | Methodology-driven JSONL logging, hybrid watch+poll, rotation | NOT STARTED | — |
+| 5 | Agent Ticker | Methodology-driven JSONL logging, hybrid watch+poll, rotation | **DONE** | #136 |
 | 6 | New Panels + Config | Tests, health, infra, git, deploy drift via panel registry | NOT STARTED | — |
 
-Missions completed: 4. Next checkpoint at: 8.
+Missions completed: 5. Next checkpoint at: 8.
 
 ## Previous Campaigns
 

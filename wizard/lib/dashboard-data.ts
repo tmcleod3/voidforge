@@ -249,5 +249,102 @@ export async function readContextStats(): Promise<ContextStats | null> {
   }
 }
 
+// ── Tests Panel ──────────────────────────
+
+export interface TestResults {
+  passed: number;
+  failed: number;
+  total: number;
+  duration_ms?: number;
+  last_run?: string;
+  failures?: Array<{ name: string; message: string }>;
+}
+
+/**
+ * Read test results from test-results.json (written by test runner or hook).
+ */
+export async function readTestResults(): Promise<TestResults | null> {
+  const paths = [
+    join(PROJECT_ROOT, 'test-results.json'),
+    join(LOGS_DIR, 'test-results.json'),
+  ];
+  for (const p of paths) {
+    const content = await readFileOrNull(p);
+    if (!content) continue;
+    try {
+      const data = JSON.parse(content) as TestResults;
+      if (typeof data.total === 'number') return data;
+    } catch { continue; }
+  }
+  return null;
+}
+
+// ── Project-Specific Panels (config-driven) ──
+
+export interface DangerRoomConfig {
+  health_endpoint?: string;
+  pm2_process?: string;
+  panels?: string[];
+}
+
+/**
+ * Read danger-room.config.json for project-specific panel settings.
+ */
+export async function readDashboardConfig(): Promise<DangerRoomConfig> {
+  const paths = [
+    join(PROJECT_ROOT, 'wizard', 'danger-room.config.json'),
+    join(PROJECT_ROOT, 'danger-room.config.json'),
+  ];
+  for (const p of paths) {
+    const content = await readFileOrNull(p);
+    if (!content) continue;
+    try { return JSON.parse(content) as DangerRoomConfig; } catch { continue; }
+  }
+  return {};
+}
+
+/**
+ * Read git status for the Git Status panel.
+ */
+export async function readGitStatus(): Promise<{
+  branch: string;
+  uncommitted: number;
+  ahead: number;
+  behind: number;
+  lastCommit: string;
+} | null> {
+  try {
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const exec = promisify(execFile);
+
+    const [branchResult, statusResult, logResult] = await Promise.all([
+      exec('git', ['branch', '--show-current'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: 'unknown' })),
+      exec('git', ['status', '--porcelain'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: '' })),
+      exec('git', ['log', '--oneline', '-1'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: '—' })),
+    ]);
+
+    const branch = branchResult.stdout.trim() || 'unknown';
+    const uncommitted = statusResult.stdout.trim().split('\n').filter(Boolean).length;
+    const lastCommit = logResult.stdout.trim();
+
+    // Ahead/behind — may fail if no upstream is set
+    let ahead = 0;
+    let behind = 0;
+    try {
+      const abResult = await exec('git', ['rev-list', '--count', '--left-right', `origin/${branch}...HEAD`], { cwd: PROJECT_ROOT, timeout: 5000 });
+      const parts = abResult.stdout.trim().split('\t');
+      if (parts.length === 2) {
+        behind = parseInt(parts[0]) || 0;
+        ahead = parseInt(parts[1]) || 0;
+      }
+    } catch { /* no upstream — normal for some branches */ }
+
+    return { branch, uncommitted, ahead, behind, lastCommit };
+  } catch {
+    return null;
+  }
+}
+
 /** Export paths for modules that need direct access. */
 export { PROJECT_ROOT, LOGS_DIR, VOIDFORGE_DIR };
