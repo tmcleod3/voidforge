@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v12.6.1 (2026-03-22)
-**Next:** v13.0 — The Private Network (LAN Mode)
-**Status:** v12.x complete. v13.0 adds `--lan` mode for private network access (ZeroTier/Tailscale/WireGuard) — the middle ground between localhost and public HTTPS.
+**Current:** v12.6.4 (2026-03-22)
+**Next:** v13.0 — The Living Dashboard
+**Status:** v12.x complete. v13.0 transforms the Danger Room from static file parsing into a live operations center — consolidation, information architecture, LAN mode, Status Line bridge, agent ticker, new panels, full UX review.
 
 ---
 
@@ -1596,15 +1596,116 @@ The initial estimate was wrong on several commands. `/ux`, `/qa`, `/security`, `
 
 ---
 
-## v13.0 — The Private Network (LAN Mode)
+## v13.0 — The Living Dashboard
 
-*"Not localhost. Not the public internet. The space in between."*
+*"Not localhost. Not the public internet. Not static. Not guessing. A dashboard that sees what you see."*
 
-**The problem:** The Danger Room has two access modes: local (`::`, no auth) and remote (`0.0.0.0` + Caddy HTTPS + TOTP 2FA + 5-layer security). There's no middle ground for private network overlays like ZeroTier, Tailscale, or WireGuard — where network membership IS the authentication and the full remote ceremony is overkill. Users default to SSH tunnels, which work but add friction (must maintain session, reconnect after sleep, remember the port forwarding command).
+**The vision:** Transform the Danger Room from a static file-parsing dashboard into a live, real-time operations center — with proper information architecture, private network access, and a UX that serves solo developers, team leads, and remote operators equally well.
 
-**Evidence:** Field-tested on ZeroTier — Danger Room accessible at `http://10.226.118.41:3141/danger-room.html` with a single firewall rule. No Caddy, no domain, no TOTP, no SSL certificates. ZeroTier handles encryption (Salsa20/Poly1305) and authentication (approved members only).
+**Source:** Field reports #126-131, architectural review (Spock + La Forge + Data), first real-world usage on ZeroTier.
 
-### Three-Tier Access Model
+### Campaign Missions
+
+Build in this order — each phase is one `/campaign` mission. Dependencies are strict.
+
+---
+
+#### Phase 0: Consolidation (prerequisite — unlocks everything else)
+
+**Problem:** `danger-room.ts` and `war-room.ts` are near-identical (800+ lines duplicated across 4 files). Every subsequent change must be applied 4 times. This must be resolved before any feature work.
+
+**Deliverables:**
+1. Extract `wizard/lib/dashboard-data.ts` — shared parsers (`parseCampaignState`, `parseBuildState`, `parseFindings`, `readDeployLog`, `readVersion`)
+2. Extract `wizard/lib/dashboard-ws.ts` — WebSocket infrastructure factory (WSS setup, heartbeat, broadcast, upgrade, close)
+3. Extract `wizard/lib/http-helpers.ts` — `sendJson()` (duplicated 13 times) + `readFileOrNull()`
+4. Extract `wizard/ui/dashboard-shared.js` — shared render functions (`renderGauge`, `renderTimeline`, etc.)
+5. Slim `danger-room.ts` and `war-room.ts` to thin wrappers importing shared code
+6. **Fix all 3 broken parsers during consolidation:**
+   - `parseCampaignState()` — rewrite regex for actual format. Cross-reference CAMPAIGN.md's Prophecy Board template against real campaign-state.md files to determine canonical format. Normalize status vocabulary (`**DONE**` → `COMPLETE`). Extend return type to include `blockedBy` and `debrief` fields.
+   - `parseBuildState()` — add trim/clean step to remove capture artifacts
+   - `parseFindings()` — read `build-state.md` "Known Issues" first, fall back to regex. Add defensive logging: warn if no missions found in non-empty file.
+7. **Implement panel registry pattern:**
+   ```typescript
+   interface DashboardPanel {
+     id: string;
+     endpoint: string;
+     fetch: () => Promise<unknown>;
+     pollTier: 'fast' | 'slow';
+   }
+   ```
+   New panels become single object declarations. Route registration, poll orchestration, and WebSocket broadcast are generic over the panel list.
+8. **Implement tiered polling:**
+   - Fast (5s): context, agent activity, tests (during active runs)
+   - Slow (60s): version, deploy, campaign, build, findings
+
+**Acceptance criteria:**
+- [ ] Zero duplicated parser/render code between danger-room and war-room
+- [ ] `sendJson` and `readFileOrNull` exist in exactly one place
+- [ ] All 3 parsers produce correct output against real log files
+- [ ] Adding a new panel requires touching exactly 1 file (panel declaration)
+
+---
+
+#### Phase 1: Information Architecture + UX Review (Galadriel — full bridge)
+
+**Problem:** The Danger Room was built feature-by-feature from field reports. No holistic information architecture was designed. Data types are mixed — system metrics, campaign progress, live agent activity, and historical findings all share the same flat grid with no hierarchy. For diverse users (solo dev, team lead, remote operator), the dashboard must communicate what matters NOW vs what's historical context.
+
+**Deliverables — Full `/ux` review with all agents:**
+
+1. **Data classification** — every panel classified into one of three tiers:
+   - **Tier 1: Live Feed** (real-time, changes per-second) — context gauge, agent ticker, cost tracker. These demand immediate attention. Visual treatment: prominent position, animated indicators, distinct background.
+   - **Tier 2: Campaign State** (changes per-mission, ~30min cycles) — mission timeline, phase pipeline, findings scoreboard, PRD coverage. These track progress. Visual treatment: structured cards with progress indicators.
+   - **Tier 3: System Status** (changes rarely, background monitoring) — version, deploy status, git status, infrastructure, health. These are reference data. Visual treatment: compact status bar or collapsible section.
+
+2. **Layout redesign for the Ops tab:**
+   ```
+   ┌─────────────────────────────────────────────────────────┐
+   │ HEADER: Project name, version, model badge, cost        │
+   ├────────────────────┬────────────────────────────────────┤
+   │ CONTEXT GAUGE      │ AGENT ACTIVITY TICKER (live feed)  │
+   │ (circular, large)  │ Scrolling: "Picard scanning..."   │
+   │                    │ "Batman probing edge cases..."     │
+   ├────────────────────┴────────────────────────────────────┤
+   │ CAMPAIGN PROGRESS                                       │
+   │ Mission timeline (horizontal) + Phase pipeline (vertical)│
+   │ Findings scoreboard (severity badges, open count only)  │
+   ├─────────────────────────┬──────────────────────────────┤
+   │ SYSTEM STATUS (compact)  │ DEPLOY / DRIFT DETECTOR     │
+   │ Git: main ✓ 2 ahead     │ Build: abc123 = HEAD ✓      │
+   │ Disk: 45% | Mem: 2.1GB  │ Health: 200 OK (12ms)       │
+   │ PM2: online (3 procs)   │ Last deploy: 2h ago         │
+   └─────────────────────────┴──────────────────────────────┘
+   ```
+
+3. **Responsive considerations** — the dashboard will be used on:
+   - Full desktop (primary) — full grid layout
+   - iPad/tablet on desk while coding — two-column layout, larger touch targets
+   - Phone glance via ZeroTier — single column, most critical info only (context %, active agent, findings count)
+
+4. **Accessibility audit** — keyboard navigation between panels, ARIA labels on all gauges and status indicators, color-blind-safe severity indicators (not just red/yellow/green — add icons/patterns), screen reader announcements for agent ticker updates.
+
+5. **Cultivation tab review** — same information hierarchy principles applied to Growth, Treasury, Campaigns, Heartbeat, and Deep Current tabs. Ensure the day-0 onboarding flow (v14.0) has a clear visual home.
+
+6. **Empty states and onboarding** — every panel needs a meaningful empty state that guides the user toward activation:
+   - Context gauge "—%" → "Set up Status Line to see live context" (with link to docs)
+   - Agent ticker "Sisko standing by..." → "Run /assemble or /campaign to see live agent activity"
+   - Tests panel "No test data" → "Run tests to see results here"
+   - Each empty state is an onboarding moment, not a dead end.
+
+**Acceptance criteria:**
+- [ ] Every panel classified into Live Feed / Campaign State / System Status
+- [ ] Layout wireframes for desktop, tablet, and phone
+- [ ] Accessibility audit covers keyboard nav, ARIA, color-blind safety
+- [ ] Cultivation tabs have consistent hierarchy with Ops tabs
+- [ ] All empty states have actionable guidance
+
+---
+
+#### Phase 2: LAN Mode
+
+**Problem:** Two access modes (local/remote) with nothing in between.
+
+**Three-Tier Access Model:**
 
 | Tier | Flag | Bind | Auth | Use Case |
 |------|------|------|------|----------|
@@ -1612,107 +1713,110 @@ The initial estimate was wrong on several commands. `/ux`, `/qa`, `/security`, `
 | Private | `--lan` | `0.0.0.0` | Optional password | ZeroTier / Tailscale / WireGuard / LAN |
 | Public | `--remote` | `0.0.0.0` | 5-layer (Caddy+TOTP+vault) | VPS/EC2 with public domain |
 
-### `--lan` Mode Behavior
+**`--lan` mode behavior:** Binds `0.0.0.0`, optional password (no TOTP/Caddy/vault), light audit trail, 24h session TTL, soft rate limiting (20/min).
 
-- Binds `0.0.0.0` (all interfaces)
-- WebSocket origin validation relaxed for private IP ranges (`10.*`, `172.16-31.*`, `192.168.*`)
-- Optional password gate (for shared networks)
-- No TOTP, no Caddy, no vault auto-lock
-- Light audit trail (connections logged)
-- 24h session TTL (vs 8h remote)
-- Soft rate limiting (20/min vs 5/min + lockout)
+**Private IP validation (from architectural review):** Use numeric octet parsing (not string prefix matching — SECURITY_AUDITOR.md explicitly warns against this). Include:
+- RFC 1918: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
+- CGNAT/Tailscale: `100.64.0.0/10` (RFC 6598)
+- IPv6 ULA: `fd00::/8` (ZeroTier, WireGuard)
+Extract into shared `wizard/lib/network.ts` → `isPrivateOrigin()` (consolidates existing duplicate implementations in `health-poller.ts` and `site-scanner.ts`).
 
-### Files to Change
+**Acceptance criteria:**
+- [ ] `--lan` flag binds `0.0.0.0` with optional password
+- [ ] WebSocket origin validation accepts RFC 1918 + CGNAT + IPv6 ULA
+- [ ] `/dangerroom` command displays correct URL for all three modes
+- [ ] `isPrivateOrigin()` passes tests for Tailscale (100.x), ZeroTier (10.x + fd00::), WireGuard (10.x)
 
-| File | Change |
-|------|--------|
-| `scripts/voidforge.ts` | Add `--lan` flag, mode detection |
-| `wizard/server.ts` | Bind `0.0.0.0` for lan mode, skip Caddy |
-| `wizard/api/danger-room.ts` | Relax WebSocket origins for private IPs |
-| `wizard/lib/tower-auth.ts` | Optional password-only auth (no TOTP) |
-| `.claude/commands/dangerroom.md` | Document `--lan` + ZeroTier/Tailscale setup |
-| `docs/methods/DEVOPS_ENGINEER.md` | Private network access pattern |
-| `docs/adrs/ADR-0XX-private-network-access.md` | Decision record |
+---
 
-### Context Gauge Wiring (Status Line Bridge)
+#### Phase 3: Status Line Bridge
 
-The Danger Room's context gauge shows "—%" because the wizard server has no visibility into Claude Code's context window. The frontend is already built (`renderGauge()` expects `{ percent: <0-100> }`), and the backend endpoint exists but returns `null`.
-
-**The bridge:** Claude Code's Status Line API sends session JSON (including `context_window.used_percentage`) via stdin to a configured shell script after every assistant message. The script writes to `~/.voidforge/context-stats.json`, the wizard reads it on the existing 10-second poll.
-
+**Architecture:**
 ```
-Claude Code → Status Line script (stdin) → ~/.voidforge/context-stats.json → wizard server → gauge
+Claude Code → Status Line script (stdin JSON) → ~/.voidforge/context-stats-{session}.json → wizard server → gauge + cost
 ```
 
-**Additional fields beyond percent:** tokens used, model name, session cost — displayed as tooltip/badge/footer stat.
+**Key design decisions (from architectural review):**
+- **Atomic writes:** Write to `.tmp`, fsync, rename — same pattern as `tower-auth.ts` (lines 257-269). Prevents corrupt JSON from partial writes.
+- **Per-session files:** Write to `context-stats-{session_id}.json`, not a shared file. Prevents concurrent write corruption from multiple Claude Code sessions. Wizard reads all matching files, displays the most recently updated one.
+- **Staleness:** Backend returns `null` if `updated_at` > 60 seconds old. Gauge reverts to "—%".
+- **Shared data source:** Context gauge AND cost display both read from the same file. Status Line JSON includes `context_window.used_percentage` + `cost.total_cost_usd` + `model.display_name`. One bridge, two consumers.
+- **Cost display needs `renderCost()` function** — this is a new function + fetch target + refresh wiring, not just "wire to context-stats" (deeper gap than originally noted).
 
-**Staleness handling:** Script writes `updated_at` timestamp. Backend returns `null` if older than 60 seconds (gauge reverts to "—%").
+**Methodology update:** `docs/methods/CONTEXT_MANAGEMENT.md` — once gauge is wired, agents should check the dashboard instead of asking users to run `/context`.
 
-| File | Change |
-|------|--------|
-| `wizard/api/danger-room.ts` | Read `~/.voidforge/context-stats.json` instead of null |
-| `wizard/ui/danger-room.js` | Extend `renderGauge()` for tokens/cost/model |
-| `wizard/ui/war-room.js` | Same gauge extension |
-| `scripts/danger-room-feed.sh` | New — Status Line bridge script |
-| `.claude/commands/dangerroom.md` | Document status line setup |
+**Acceptance criteria:**
+- [ ] Context gauge shows live percentage during active session
+- [ ] Gauge reverts to "—%" within 60s of session ending
+- [ ] Cost display shows cumulative session cost
+- [ ] Two concurrent Claude Code sessions don't corrupt each other's data
+- [ ] `CONTEXT_MANAGEMENT.md` references passive gauge monitoring
 
-### Danger Room Bug Fixes (Field Reports #127, #128)
+---
 
-First real-world Danger Room usage surfaced 3 bugs and 3 unwired features.
+#### Phase 4: Agent Ticker (methodology-driven, not hook-driven)
 
-#### Bugs (fix in wizard/api/danger-room.ts)
+**Approach change (from architectural review):** The original plan used a PostToolUse hook, but hooks can't extract agent identity from tool input — they only receive tool name and result. **New approach:** methodology-driven logging. Add to CAMPAIGN.md, ASSEMBLER.md, and GAUNTLET.md: "When dispatching an agent via the Agent tool, append `{ agent, task, timestamp }` to `logs/agent-activity.jsonl` before the tool call."
 
-**1. Campaign regex mismatch — CRITICAL**
-`parseCampaignState()` regex expects `| name | STATUS | Mission N` but actual campaign-state.md format is `| # | Mission | Scope | Status | Debrief |`. Matches zero rows. Cascades to PRD Coverage and Prophecy Graph (3 features broken by 1 bug). Fix: rewrite regex to match actual 5-column format, extract mission number from column 1, name from column 2, status from column 4. Handle bold markdown status values (`**DONE**`).
+**Reliability (from failure analysis):**
+- **Hybrid watch + poll:** Use `fs.watch` for immediate notification, poll `fs.stat` every 3s as fallback. `fs.watch` is unreliable on Linux/Docker/NFS and can miss rapid writes on macOS.
+- **Tail-only reads:** On change events, seek to last known position and read only new lines. Never re-parse the entire file.
+- **Session truncation:** Truncate `agent-activity.jsonl` at campaign/gauntlet start. Historical agent activity from previous sessions is not meaningful for the live ticker. Cap at 1MB / ~10K lines with rotation.
+- **Debouncing:** Buffer WebSocket broadcasts to max 1 per second during rapid agent dispatches (e.g., `/gauntlet` launching 30+ agents).
 
-**2. Phase pipeline artifacts — MEDIUM**
-`parseBuildState()` regex may capture leading `| ` artifacts in edge cases. Fix: add explicit trim/clean step after capture.
+**Acceptance criteria:**
+- [ ] Ticker shows live agent names during /assemble, /campaign, /gauntlet
+- [ ] Ticker doesn't stall when fs.watch misses events (poll fallback works)
+- [ ] JSONL file rotates at 1MB, doesn't grow unbounded
+- [ ] CAMPAIGN.md, ASSEMBLER.md, GAUNTLET.md include JSONL write step
 
-**3. Findings counter historical totals — HIGH**
-`parseFindings()` counts ALL severity keywords across ALL log files including fixed findings from past campaigns. Numbers never decrease. Fix: parse `build-state.md` "Known Issues" section when available (human-curated source of truth for open issues), fall back to current regex scan if no build-state.md exists.
+---
 
-| File | Change |
-|------|--------|
-| `wizard/api/danger-room.ts` | Fix `parseCampaignState()` regex for actual format |
-| `wizard/api/danger-room.ts` | Clean `parseBuildState()` capture artifacts |
-| `wizard/api/danger-room.ts` | Rewrite `parseFindings()` to read Known Issues first |
+#### Phase 5: New Panels + Config
 
-#### Unwired Features
+**Tests panel:** Define data contract first — `{ passed: number, failed: number, total: number, duration_ms: number, last_run: string, failures: Array<{ name, message }> }`. Endpoint reads `test-results.json` (written by test runner hook or manual `npm test -- --json > test-results.json`).
 
-**4. Agent Activity Ticker — HIGH**
-`broadcastDangerRoom()` exported but never called. Ticker permanently shows "Sisko standing by..." Architecture: Claude Code `PostToolUse` hook for Agent tool → writes `{ agent, prompt_summary, status, timestamp }` to `logs/agent-activity.jsonl` → wizard watches with `fs.watch` → broadcasts via WebSocket → ticker renders in real-time. This is the key feature that makes the Danger Room come alive during `/gauntlet`, `/assemble`, and `/campaign` runs.
+**4 project-specific panels** (health, infrastructure, git status, deploy drift):
+- All implemented via the panel registry from Phase 0
+- Each is a single `DashboardPanel` declaration (~20-40 lines)
+- Project-specific panels enabled via `wizard/danger-room.config.json`:
+  ```json
+  {
+    "health_endpoint": "http://localhost:3000/api/health",
+    "pm2_process": "kongo-web",
+    "panels": ["health", "infrastructure", "git-status", "deploy-drift"]
+  }
+  ```
+- Use `child_process.execFile` (not `exec`) for command-based panels with timeout + output cap. Prevents shell injection.
 
-**5. Tests Panel — MEDIUM**
-UI element exists (`id="test-status"`), `renderTests()` defined, but no API endpoint, no fetch call. Fix: add `GET /api/danger-room/tests` endpoint that reads test results JSON (e.g., `test-results.json` or parses last `npm test` output).
+**Acceptance criteria:**
+- [ ] Tests panel renders pass/fail/total from structured JSON
+- [ ] Health panel shows green/red status from configured endpoint
+- [ ] Git status panel shows branch, uncommitted count, ahead/behind
+- [ ] Deploy drift detector shows IN SYNC or DRIFT DETECTED
+- [ ] `danger-room.config.json` controls which panels are active
+- [ ] Unconfigured panels show actionable empty state (not blank)
 
-**6. Cost Display — MEDIUM**
-UI element exists, no endpoint, no render function, no fetch call. Fix: wire to Status Line bridge — `cost.total_cost_usd` already flows through `~/.voidforge/context-stats.json` from the context gauge wiring above.
+---
 
-| File | Change |
-|------|--------|
-| `.claude/settings.json` | Add PostToolUse hook for Agent tool → JSONL |
-| `wizard/api/danger-room.ts` | Add fs.watch on agent-activity.jsonl, broadcast |
-| `wizard/ui/danger-room.js` | Wire ticker to WebSocket agent-activity events |
-| `wizard/api/danger-room.ts` | Add `GET /api/danger-room/tests` endpoint |
-| `wizard/ui/danger-room.js` | Wire `renderTests()` to fetch + refresh cycle |
-| `wizard/ui/danger-room.js` | Wire cost display to context-stats.json data |
+#### Phase 6: Victory Gauntlet
 
-### Danger Room Feature Proposals (Field Report #127)
+Full `/gauntlet` across the combined v13.0 changes. Non-negotiable.
 
-Real-world usage surfaced 4 new panel proposals for a production-grade Ops dashboard:
+---
 
-**1. Application Health Panel** — Poll the project's health endpoint (`GET /api/health`). Display: DB status, Redis status, response time, uptime, last deployed build hash vs current git HEAD. Catches stale PM2 builds serving old code.
+### Architecture Decisions
 
-**2. Infrastructure Status Panel** — Periodic `df -h`, `free -h`, `pm2 jstatus`, `ss -tlnp`. Display: disk %, memory %, PM2 process status, open ports. Prevents surprise disk-full incidents.
+**ADR: Methodology-driven agent logging over hooks** — Hooks can't access tool input (agent identity). Methodology instructions are reliable, work today, and don't depend on Claude Code internals. The orchestrator writes the log, not the runtime.
 
-**3. Git Status Panel** — `git status --porcelain`, `git log --oneline -1`, `git rev-list --count HEAD...origin/main`. Display: branch, uncommitted changes count, commits ahead/behind remote, last commit. Prevents "forgot to push" scenarios.
+**ADR: Per-session context files over shared file** — Multiple Claude Code sessions writing to one file causes corruption. Per-session files with "most recent wins" display logic eliminates the race condition.
 
-**4. Deployment Drift Detector** — Compare running build hash (`.next/BUILD_ID` or PM2 metadata) against `git rev-parse HEAD`. Display: "Build: abc123, Git: def456 — DRIFT DETECTED" or "IN SYNC". Catches PM2 serving stale builds.
+**ADR: Panel registry over copy-paste endpoints** — Adding panels should be a single declaration, not 4-file surgery. The registry pattern pays for itself at panel #3.
 
-**Implementation note:** All 4 are "read a file or run a command, return JSON" — ~20-40 lines per endpoint. For project-specific panels (health check, infrastructure), the Danger Room needs a config file (`wizard/danger-room.config.json`) specifying: health endpoint URL, PM2 process name, custom panels enabled/disabled.
+**ADR: Tiered polling over uniform 10-second poll** — Version and deploy endpoints change monthly. Context changes per-message. Polling everything at the same rate wastes resources and scales poorly with 50 concurrent clients.
 
 ### Estimated effort
-2-3 sessions. ~500 lines of changes. Wizard + methodology + hooks. MAJOR version bump (new dashboard paradigm — live real-time data instead of static file parsing).
+4-5 sessions (6 missions + Victory Gauntlet). ~1000 lines of changes. Wizard + methodology + UX. MAJOR version bump — new dashboard paradigm with live data, information architecture, and private network access.
 
 ---
 
