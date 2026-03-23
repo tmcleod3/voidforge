@@ -284,6 +284,8 @@ dnf install -y git curl`;
         const engine = ctx.database === 'postgres' ? 'postgres' : 'mysql';
         const port = ctx.database === 'postgres' ? 5432 : 3306;
         const dbInstanceId = `${slug}-db`;
+        // IG-R2: Random username instead of hardcoded 'admin'
+        const dbUsername = `vf_${randomBytes(4).toString('hex')}`;
         const specials = '!@#$%^&*';
         const suffix = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 10) + specials[Math.floor(Math.random() * specials.length)];
         const dbPassword = randomBytes(16).toString('hex') + suffix;
@@ -293,7 +295,7 @@ dnf install -y git curl`;
           DBInstanceIdentifier: dbInstanceId,
           DBInstanceClass: rdsInstanceClass(ec2InstanceType),
           Engine: engine,
-          MasterUsername: 'admin',
+          MasterUsername: dbUsername,
           MasterUserPassword: dbPassword,
           AllocatedStorage: 20,
           PubliclyAccessible: false,
@@ -309,7 +311,7 @@ dnf install -y git curl`;
         outputs['DB_ENGINE'] = engine;
         outputs['DB_PORT'] = String(port);
         outputs['DB_INSTANCE_ID'] = dbInstanceId;
-        outputs['DB_USERNAME'] = 'admin';
+        outputs['DB_USERNAME'] = dbUsername;
         outputs['DB_PASSWORD'] = dbPassword;
         emit({ step: 'rds', status: 'done', message: `RDS instance "${dbInstanceId}" created — waiting for endpoint` });
 
@@ -383,6 +385,9 @@ dnf install -y git curl`;
         const clusterId = `${slug}-redis`;
 
         await recordResourcePending(ctx.runId, 'elasticache-cluster', clusterId, region);
+        // Note: CreateCacheClusterCommand does not support AuthToken — Redis AUTH requires
+        // CreateReplicationGroupCommand with TransitEncryptionEnabled. Security relies on
+        // SG isolation (only instances in the same SG can reach the Redis port). (IG-R3)
         await elasticache.send(new CreateCacheClusterCommand({
           CacheClusterId: clusterId,
           CacheNodeType: cacheNodeType(ec2InstanceType),

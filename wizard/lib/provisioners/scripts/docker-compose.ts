@@ -27,7 +27,7 @@ export function generateDockerCompose(opts: ComposeOptions): string {
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:${appPort}/", "||", "exit", "1"]
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:${appPort}/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

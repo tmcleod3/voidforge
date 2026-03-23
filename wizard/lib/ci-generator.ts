@@ -148,7 +148,8 @@ function generateDeployWorkflow(framework: string, deployTarget: string): string
           mkdir -p ~/.ssh
           echo "\${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy-key.pem
           chmod 600 ~/.ssh/deploy-key.pem
-          ssh -i ~/.ssh/deploy-key.pem -o StrictHostKeyChecking=accept-new \${{ secrets.SSH_USER }}@\${{ secrets.SSH_HOST }} "cd /opt/app/current && git pull && ${vpsBuild}"`;
+          ssh -i ~/.ssh/deploy-key.pem -o StrictHostKeyChecking=accept-new \${{ secrets.SSH_USER }}@\${{ secrets.SSH_HOST }} "cd /opt/app/current && git pull && ${vpsBuild}"
+          rm -f ~/.ssh/deploy-key.pem`;
       break;
     }
     case 'static': {

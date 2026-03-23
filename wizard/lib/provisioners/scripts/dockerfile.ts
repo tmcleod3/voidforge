@@ -49,7 +49,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD ["wget", "--spider", "-q", "http://localhost:3000/", "||", "exit", "1"]
+  CMD ["sh", "-c", "wget --spider -q http://localhost:3000/ || exit 1"]
 
 CMD ["node", "server.js"]
 `;
@@ -80,7 +80,7 @@ USER appuser
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD ["wget", "--spider", "-q", "http://localhost:3000/", "||", "exit", "1"]
+  CMD ["sh", "-c", "wget --spider -q http://localhost:3000/ || exit 1"]
 
 CMD ["node", "dist/index.js"]
 `;
@@ -135,7 +135,7 @@ USER appuser
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD ["wget", "--spider", "-q", "http://localhost:3000/", "||", "exit", "1"]
+  CMD ["sh", "-c", "wget --spider -q http://localhost:3000/ || exit 1"]
 
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 `;
@@ -166,7 +166,7 @@ USER appuser
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \\
-  CMD ["wget", "--spider", "-q", "http://localhost:3000/", "||", "exit", "1"]
+  CMD ["sh", "-c", "wget --spider -q http://localhost:3000/ || exit 1"]
 
 CMD ["node", "dist/index.js"]
 `;
