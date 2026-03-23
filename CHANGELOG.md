@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [12.6.2] - 2026-03-22
+
+### Added
+- **v13.0 roadmap** — The Private Network: `--lan` mode for ZeroTier/Tailscale/WireGuard access, context gauge wiring via Status Line bridge, 3 Danger Room bug fixes, 3 unwired feature plans, 4 new dashboard panel proposals from real-world usage (field reports #127, #128)
+
+---
+
 ## [12.6.1] - 2026-03-22
 
 ### Changed

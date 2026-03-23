@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v11.3.0 (2026-03-18)
-**Next:** v12.0 — The Deep Current (Autonomous Campaign Intelligence)
-**Status:** v11.x complete. v12.0 adds the 9th concept layer (Voyager crew), autonomous campaign generation, cold start intake, cross-pipeline correlation, 3-tier autonomy.
+**Current:** v12.6.1 (2026-03-22)
+**Next:** v13.0 — The Private Network (LAN Mode)
+**Status:** v12.x complete. v13.0 adds `--lan` mode for private network access (ZeroTier/Tailscale/WireGuard) — the middle ground between localhost and public HTTPS.
 
 ---
 
@@ -1593,6 +1593,126 @@ The initial estimate was wrong on several commands. `/ux`, `/qa`, `/security`, `
 
 ### Effort
 1-2 sessions. Methodology-only. The actual edits are small — adding agent names to existing command file sections. The audit above is the hard part (done).
+
+---
+
+## v13.0 — The Private Network (LAN Mode)
+
+*"Not localhost. Not the public internet. The space in between."*
+
+**The problem:** The Danger Room has two access modes: local (`::`, no auth) and remote (`0.0.0.0` + Caddy HTTPS + TOTP 2FA + 5-layer security). There's no middle ground for private network overlays like ZeroTier, Tailscale, or WireGuard — where network membership IS the authentication and the full remote ceremony is overkill. Users default to SSH tunnels, which work but add friction (must maintain session, reconnect after sleep, remember the port forwarding command).
+
+**Evidence:** Field-tested on ZeroTier — Danger Room accessible at `http://10.226.118.41:3141/danger-room.html` with a single firewall rule. No Caddy, no domain, no TOTP, no SSL certificates. ZeroTier handles encryption (Salsa20/Poly1305) and authentication (approved members only).
+
+### Three-Tier Access Model
+
+| Tier | Flag | Bind | Auth | Use Case |
+|------|------|------|------|----------|
+| Local | (default) | `::` | None | Solo dev, same machine |
+| Private | `--lan` | `0.0.0.0` | Optional password | ZeroTier / Tailscale / WireGuard / LAN |
+| Public | `--remote` | `0.0.0.0` | 5-layer (Caddy+TOTP+vault) | VPS/EC2 with public domain |
+
+### `--lan` Mode Behavior
+
+- Binds `0.0.0.0` (all interfaces)
+- WebSocket origin validation relaxed for private IP ranges (`10.*`, `172.16-31.*`, `192.168.*`)
+- Optional password gate (for shared networks)
+- No TOTP, no Caddy, no vault auto-lock
+- Light audit trail (connections logged)
+- 24h session TTL (vs 8h remote)
+- Soft rate limiting (20/min vs 5/min + lockout)
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `scripts/voidforge.ts` | Add `--lan` flag, mode detection |
+| `wizard/server.ts` | Bind `0.0.0.0` for lan mode, skip Caddy |
+| `wizard/api/danger-room.ts` | Relax WebSocket origins for private IPs |
+| `wizard/lib/tower-auth.ts` | Optional password-only auth (no TOTP) |
+| `.claude/commands/dangerroom.md` | Document `--lan` + ZeroTier/Tailscale setup |
+| `docs/methods/DEVOPS_ENGINEER.md` | Private network access pattern |
+| `docs/adrs/ADR-0XX-private-network-access.md` | Decision record |
+
+### Context Gauge Wiring (Status Line Bridge)
+
+The Danger Room's context gauge shows "—%" because the wizard server has no visibility into Claude Code's context window. The frontend is already built (`renderGauge()` expects `{ percent: <0-100> }`), and the backend endpoint exists but returns `null`.
+
+**The bridge:** Claude Code's Status Line API sends session JSON (including `context_window.used_percentage`) via stdin to a configured shell script after every assistant message. The script writes to `~/.voidforge/context-stats.json`, the wizard reads it on the existing 10-second poll.
+
+```
+Claude Code → Status Line script (stdin) → ~/.voidforge/context-stats.json → wizard server → gauge
+```
+
+**Additional fields beyond percent:** tokens used, model name, session cost — displayed as tooltip/badge/footer stat.
+
+**Staleness handling:** Script writes `updated_at` timestamp. Backend returns `null` if older than 60 seconds (gauge reverts to "—%").
+
+| File | Change |
+|------|--------|
+| `wizard/api/danger-room.ts` | Read `~/.voidforge/context-stats.json` instead of null |
+| `wizard/ui/danger-room.js` | Extend `renderGauge()` for tokens/cost/model |
+| `wizard/ui/war-room.js` | Same gauge extension |
+| `scripts/danger-room-feed.sh` | New — Status Line bridge script |
+| `.claude/commands/dangerroom.md` | Document status line setup |
+
+### Danger Room Bug Fixes (Field Reports #127, #128)
+
+First real-world Danger Room usage surfaced 3 bugs and 3 unwired features.
+
+#### Bugs (fix in wizard/api/danger-room.ts)
+
+**1. Campaign regex mismatch — CRITICAL**
+`parseCampaignState()` regex expects `| name | STATUS | Mission N` but actual campaign-state.md format is `| # | Mission | Scope | Status | Debrief |`. Matches zero rows. Cascades to PRD Coverage and Prophecy Graph (3 features broken by 1 bug). Fix: rewrite regex to match actual 5-column format, extract mission number from column 1, name from column 2, status from column 4. Handle bold markdown status values (`**DONE**`).
+
+**2. Phase pipeline artifacts — MEDIUM**
+`parseBuildState()` regex may capture leading `| ` artifacts in edge cases. Fix: add explicit trim/clean step after capture.
+
+**3. Findings counter historical totals — HIGH**
+`parseFindings()` counts ALL severity keywords across ALL log files including fixed findings from past campaigns. Numbers never decrease. Fix: parse `build-state.md` "Known Issues" section when available (human-curated source of truth for open issues), fall back to current regex scan if no build-state.md exists.
+
+| File | Change |
+|------|--------|
+| `wizard/api/danger-room.ts` | Fix `parseCampaignState()` regex for actual format |
+| `wizard/api/danger-room.ts` | Clean `parseBuildState()` capture artifacts |
+| `wizard/api/danger-room.ts` | Rewrite `parseFindings()` to read Known Issues first |
+
+#### Unwired Features
+
+**4. Agent Activity Ticker — HIGH**
+`broadcastDangerRoom()` exported but never called. Ticker permanently shows "Sisko standing by..." Architecture: Claude Code `PostToolUse` hook for Agent tool → writes `{ agent, prompt_summary, status, timestamp }` to `logs/agent-activity.jsonl` → wizard watches with `fs.watch` → broadcasts via WebSocket → ticker renders in real-time. This is the key feature that makes the Danger Room come alive during `/gauntlet`, `/assemble`, and `/campaign` runs.
+
+**5. Tests Panel — MEDIUM**
+UI element exists (`id="test-status"`), `renderTests()` defined, but no API endpoint, no fetch call. Fix: add `GET /api/danger-room/tests` endpoint that reads test results JSON (e.g., `test-results.json` or parses last `npm test` output).
+
+**6. Cost Display — MEDIUM**
+UI element exists, no endpoint, no render function, no fetch call. Fix: wire to Status Line bridge — `cost.total_cost_usd` already flows through `~/.voidforge/context-stats.json` from the context gauge wiring above.
+
+| File | Change |
+|------|--------|
+| `.claude/settings.json` | Add PostToolUse hook for Agent tool → JSONL |
+| `wizard/api/danger-room.ts` | Add fs.watch on agent-activity.jsonl, broadcast |
+| `wizard/ui/danger-room.js` | Wire ticker to WebSocket agent-activity events |
+| `wizard/api/danger-room.ts` | Add `GET /api/danger-room/tests` endpoint |
+| `wizard/ui/danger-room.js` | Wire `renderTests()` to fetch + refresh cycle |
+| `wizard/ui/danger-room.js` | Wire cost display to context-stats.json data |
+
+### Danger Room Feature Proposals (Field Report #127)
+
+Real-world usage surfaced 4 new panel proposals for a production-grade Ops dashboard:
+
+**1. Application Health Panel** — Poll the project's health endpoint (`GET /api/health`). Display: DB status, Redis status, response time, uptime, last deployed build hash vs current git HEAD. Catches stale PM2 builds serving old code.
+
+**2. Infrastructure Status Panel** — Periodic `df -h`, `free -h`, `pm2 jstatus`, `ss -tlnp`. Display: disk %, memory %, PM2 process status, open ports. Prevents surprise disk-full incidents.
+
+**3. Git Status Panel** — `git status --porcelain`, `git log --oneline -1`, `git rev-list --count HEAD...origin/main`. Display: branch, uncommitted changes count, commits ahead/behind remote, last commit. Prevents "forgot to push" scenarios.
+
+**4. Deployment Drift Detector** — Compare running build hash (`.next/BUILD_ID` or PM2 metadata) against `git rev-parse HEAD`. Display: "Build: abc123, Git: def456 — DRIFT DETECTED" or "IN SYNC". Catches PM2 serving stale builds.
+
+**Implementation note:** All 4 are "read a file or run a command, return JSON" — ~20-40 lines per endpoint. For project-specific panels (health check, infrastructure), the Danger Room needs a config file (`wizard/danger-room.config.json`) specifying: health endpoint URL, PM2 process name, custom panels enabled/disabled.
+
+### Estimated effort
+2-3 sessions. ~500 lines of changes. Wizard + methodology + hooks. MAJOR version bump (new dashboard paradigm — live real-time data instead of static file parsing).
 
 ---
 
