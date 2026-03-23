@@ -83,6 +83,50 @@ Growth infrastructure should be established at the same time as the product — 
 
 This separation means the user can install Cultivation in 5 minutes (vault + treasury + revenue + daemon) and configure ad platforms later when they're ready to spend.
 
+## Ad Platform Setup (`/grow --setup`)
+
+*"Every dollar is a bullet. Load the gun before the heist." — Wax*
+
+Run `/grow --setup` after `/cultivation install` to configure ad platforms. This is the interactive credential-collection flow — separate from the Day-0 install so users can install Cultivation quickly and add platforms when ready.
+
+### Platform Selection
+
+Present each platform with guidance on best fit:
+
+| Platform | Best For | Setup Complexity |
+|----------|----------|-----------------|
+| **Google Ads** | Intent-based search ("best pitch deck tool") | Medium — API key + OAuth |
+| **Meta (Facebook/Instagram)** | Visual/social discovery, broad targeting | Medium — Business Manager + API token |
+| **LinkedIn** | B2B, enterprise, founders/VCs | Medium — Campaign Manager + API |
+| **Twitter/X** | Tech community, startup audience | Low — API key |
+| **Reddit** | Niche communities, technical audiences | Low — API key |
+
+"Start with 1-2 platforms. You can add more later."
+
+### Per-Platform Credential Flow (Breeze leads)
+
+For each selected platform:
+
+1. **Account check:** "Do you have a [Platform] Ads account?" If no → guide through account creation URL
+2. **Credential collection:** Walk through API key/OAuth setup with platform-specific instructions
+3. **Test connection:** Call the platform API with a read-only request (list campaigns or account info). Verify 200 response.
+4. **Store credentials:** Write to financial vault (NEVER to .env — vault-first per v14.0 ADR)
+5. **Confirm:** "✓ [Platform] connected — [Account Name]"
+
+If test connection fails: show the error, suggest common fixes (wrong API scope, account not approved for API access), offer to retry or skip.
+
+### Adapter Verification
+
+Verify existing adapters (`wizard/lib/adapters/`) support both modes:
+- **Credential collection mode:** Interactive setup, test connection, store in vault
+- **Runtime mode:** Read campaigns, submit spend, evaluate performance
+
+If an adapter only handles runtime mode, flag it for code changes before the platform can be onboarded.
+
+### Output
+
+Updated financial vault with platform credentials. Campaign-state.md records which platforms are connected. The Danger Room Campaigns tab will show connected platforms once `/grow` creates campaigns.
+
 ## The 6-Phase Protocol
 
 ### Phase 1 — Reconnaissance (Kelsier + Vin + Marsh)

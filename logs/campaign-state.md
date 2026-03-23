@@ -11,12 +11,12 @@
 
 | # | Mission | Scope | Status | Debrief |
 |---|---------|-------|--------|---------|
-| 1 | Financial Foundation + Revenue | Treasury connection, Stripe auto-detect, circuit breakers, Day-0 Setup methodology | NOT STARTED | — |
+| 1 | Financial Foundation + Revenue | Treasury connection, Stripe auto-detect, circuit breakers, Day-0 Setup methodology | **DONE** | #140 |
 | 2 | Ad Platform Onboarding | Guided credential setup for Google/Meta/LinkedIn/Twitter/Reddit, adapter verification | NOT STARTED | — |
 | 3 | Budget + Creatives + Tracking | Budget allocation, creative generation, tracking pixel injection, attribution | NOT STARTED | — |
 | 4 | Launch + Danger Room Integration | Activation flow, Growth tab wiring, heartbeat verification, end-to-end test | NOT STARTED | — |
 
-Missions completed: 0. Next checkpoint at: 4.
+Missions completed: 1. Next checkpoint at: 4.
 
 ## Previous Campaigns
 
