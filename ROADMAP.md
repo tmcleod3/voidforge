@@ -1716,6 +1716,36 @@ Real-world usage surfaced 4 new panel proposals for a production-grade Ops dashb
 
 ---
 
+## v14.0 — The Day-0 Engine (Cultivation Onboarding Redesign)
+
+*"Growth infrastructure from the first commit, not the first customer."*
+
+**The problem:** Cultivation's install assumes a post-launch state — deployed project, existing revenue, ad accounts already configured. The highest-leverage growth work happens BEFORE launch. The current flow installs vault + daemon + empty dashboard tabs, then says "run /grow" — but /grow needs ad accounts you don't have yet.
+
+**The fix:** Redesign `/cultivation` install as a 7-step guided onboarding wizard that establishes growth infrastructure from scratch:
+
+1. **Financial Foundation** — Connect treasury (Mercury/Brex/manual budget), set spending limits and circuit breakers
+2. **Revenue Tracking** — Auto-detect Stripe, connect to Treasury for day-0 revenue tracking
+3. **Ad Platform Setup** — Guided credential setup for Google Ads, Meta, LinkedIn, Twitter, Reddit with per-platform guidance
+4. **Initial Budget Allocation** — Product-type-aware split suggestions, daily spend limits, ROAS circuit breakers
+5. **Creative Foundation** — Pull existing brand assets, generate initial ad variants via /imagine, set up A/B test matrix
+6. **Tracking & Attribution** — Inject tracking pixels, connect analytics, define conversion events, configure attribution model
+7. **Launch** — Summary review, activate campaigns, Danger Room tabs light up with real data
+
+**Why it matters:** Attribution from first user, budget discipline from first dollar, AI optimization from first spend, treasury reconciliation from day 1.
+
+| File | Change | Priority |
+|------|--------|----------|
+| `.claude/commands/cultivation.md` | Redesign install flow with 7-step guided onboarding | High |
+| `docs/methods/GROWTH_STRATEGIST.md` | Add "Day-0 Setup" section | High |
+| `wizard/lib/adapters/` | Verify adapters handle onboarding credential flow | Medium |
+| `docs/methods/TREASURY.md` | Add "Pre-Revenue Setup" section | Medium |
+
+### Estimated effort
+2-3 sessions. Wizard + methodology + adapter changes. MAJOR version bump (new growth paradigm). (Field report #131)
+
+---
+
 ### Deferred Indefinitely
 
 | Proposal | Reason |
