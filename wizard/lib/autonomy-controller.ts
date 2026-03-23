@@ -8,7 +8,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { readFile, writeFile as writeFileAsync, mkdir } from 'node:fs/promises';
+import { readFile, open, rename, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { CampaignProposal } from './campaign-proposer.js';
@@ -69,9 +69,26 @@ export async function loadAutonomyState(): Promise<AutonomyState> {
   } catch { return { ...DEFAULT_STATE }; }
 }
 
-export async function saveAutonomyState(state: AutonomyState): Promise<void> {
-  await mkdir(DEEP_CURRENT_DIR, { recursive: true });
-  await writeFileAsync(AUTONOMY_STATE_PATH, JSON.stringify(state, null, 2));
+// IG-R4 LOKI-001: Serialization queue prevents concurrent write corruption
+let writeQueue: Promise<void> = Promise.resolve();
+function serialized<T>(fn: () => Promise<T>): Promise<T> {
+  const result = writeQueue.then(fn, () => fn());
+  writeQueue = result.then(() => {}, () => {});
+  return result;
+}
+
+export function saveAutonomyState(state: AutonomyState): Promise<void> {
+  return serialized(async () => {
+    await mkdir(DEEP_CURRENT_DIR, { recursive: true });
+    // IG-R4 LOKI-001: Atomic write — temp+fsync+rename prevents kill switch reset on crash
+    const tmpPath = AUTONOMY_STATE_PATH + '.tmp';
+    const fh = await open(tmpPath, 'w', 0o600);
+    try {
+      await fh.writeFile(JSON.stringify(state, null, 2));
+      await fh.sync();
+    } finally { await fh.close(); }
+    await rename(tmpPath, AUTONOMY_STATE_PATH);
+  });
 }
 
 // ── Circuit Breakers ──────────────────────────────────

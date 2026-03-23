@@ -7,7 +7,7 @@
  * Storage: ~/.voidforge/experiments.json
  */
 
-import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
+import { readFile, mkdir, rename, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -82,18 +82,30 @@ async function readStore(): Promise<ExperimentStore> {
   return { version: 1, experiments: [] };
 }
 
+// IG-R4 LOKI-002: Serialization queue prevents concurrent write corruption
+let writeQueue: Promise<void> = Promise.resolve();
+function serialized<T>(fn: () => Promise<T>): Promise<T> {
+  const result = writeQueue.then(fn, () => fn());
+  writeQueue = result.then(() => {}, () => {});
+  return result;
+}
+
 async function writeStore(store: ExperimentStore): Promise<void> {
   await ensureDir();
-  // Atomic write: write to temp file, then rename (prevents corruption on crash)
+  // IG-R4: Atomic write with fsync — temp+sync+rename
   const tmpFile = EXPERIMENTS_FILE + '.tmp';
-  await writeFile(tmpFile, JSON.stringify(store, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  const fh = await open(tmpFile, 'w', 0o600);
+  try {
+    await fh.writeFile(JSON.stringify(store, null, 2));
+    await fh.sync();
+  } finally { await fh.close(); }
   await rename(tmpFile, EXPERIMENTS_FILE);
 }
 
 // ── API ─────────────────────────────────────────
 
 /** Create a new experiment. */
-export async function createExperiment(
+export function createExperiment(
   name: string,
   description: string,
   project: string,
@@ -101,54 +113,58 @@ export async function createExperiment(
   variantA: ExperimentVariant,
   variantB: ExperimentVariant,
 ): Promise<Experiment> {
-  const store = await readStore();
-  const experiment: Experiment = {
-    id: randomUUID(),
-    name,
-    description,
-    project,
-    domain,
-    status: 'planned',
-    createdAt: new Date().toISOString(),
-    completedAt: null,
-    variantA,
-    variantB,
-    resultA: null,
-    resultB: null,
-    winner: null,
-    winReason: null,
-  };
-  store.experiments.push(experiment);
-  await writeStore(store);
-  return experiment;
+  return serialized(async () => {
+    const store = await readStore();
+    const experiment: Experiment = {
+      id: randomUUID(),
+      name,
+      description,
+      project,
+      domain,
+      status: 'planned',
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      variantA,
+      variantB,
+      resultA: null,
+      resultB: null,
+      winner: null,
+      winReason: null,
+    };
+    store.experiments.push(experiment);
+    await writeStore(store);
+    return experiment;
+  });
 }
 
 /** Record the result of running a variant. */
-export async function recordResult(
+export function recordResult(
   experimentId: string,
   variant: 'A' | 'B',
   result: ExperimentResult,
 ): Promise<Experiment | null> {
-  const store = await readStore();
-  const experiment = store.experiments.find(e => e.id === experimentId);
-  if (!experiment) return null;
+  return serialized(async () => {
+    const store = await readStore();
+    const experiment = store.experiments.find(e => e.id === experimentId);
+    if (!experiment) return null;
 
-  if (variant === 'A') experiment.resultA = result;
-  else experiment.resultB = result;
+    if (variant === 'A') experiment.resultA = result;
+    else experiment.resultB = result;
 
-  // Auto-evaluate if both results are in
-  if (experiment.resultA && experiment.resultB) {
-    experiment.status = 'complete';
-    experiment.completedAt = new Date().toISOString();
-    const evaluation = evaluate(experiment.resultA, experiment.resultB);
-    experiment.winner = evaluation.winner;
-    experiment.winReason = evaluation.reason;
-  } else {
-    experiment.status = 'running';
-  }
+    // Auto-evaluate if both results are in
+    if (experiment.resultA && experiment.resultB) {
+      experiment.status = 'complete';
+      experiment.completedAt = new Date().toISOString();
+      const evaluation = evaluate(experiment.resultA, experiment.resultB);
+      experiment.winner = evaluation.winner;
+      experiment.winReason = evaluation.reason;
+    } else {
+      experiment.status = 'running';
+    }
 
-  await writeStore(store);
-  return experiment;
+    await writeStore(store);
+    return experiment;
+  });
 }
 
 /** List all experiments, optionally filtered by status or project. */

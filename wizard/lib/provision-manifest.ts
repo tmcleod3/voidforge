@@ -9,7 +9,7 @@
  * Stored at ~/.voidforge/runs/<runId>.json
  */
 
-import { readFile, writeFile, readdir, unlink, mkdir } from 'node:fs/promises';
+import { readFile, readdir, unlink, mkdir, open, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -24,6 +24,18 @@ function serialized<T>(fn: () => Promise<T>): Promise<T> {
   const result = writeQueue.then(fn, () => fn());
   writeQueue = result.then(() => {}, () => {});
   return result;
+}
+
+// IG-R4 LOKI-003: Atomic write with fsync — crash-recovery manifests must survive crashes
+async function atomicWriteManifest(runId: string, manifest: ProvisionManifest): Promise<void> {
+  const filePath = manifestPath(runId);
+  const tmpPath = filePath + '.tmp';
+  const fh = await open(tmpPath, 'w', 0o600);
+  try {
+    await fh.writeFile(JSON.stringify(manifest, null, 2));
+    await fh.sync();
+  } finally { await fh.close(); }
+  await rename(tmpPath, filePath);
 }
 
 export interface ManifestResource {
@@ -69,7 +81,7 @@ export function createManifest(runId: string, target: string, region: string, pr
       status: 'in-progress',
       resources: [],
     };
-    await writeFile(manifestPath(runId), JSON.stringify(manifest, null, 2), 'utf-8');
+    await atomicWriteManifest(runId, manifest);
     return manifest;
   });
 }
@@ -80,7 +92,7 @@ export function recordResourcePending(runId: string, type: string, id: string, r
     const manifest = await readManifest(runId);
     if (!manifest) return;
     manifest.resources.push({ type, id, region, status: 'pending' });
-    await writeFile(manifestPath(runId), JSON.stringify(manifest, null, 2), 'utf-8');
+    await atomicWriteManifest(runId, manifest);
   });
 }
 
@@ -96,7 +108,7 @@ export function recordResourceCreated(runId: string, type: string, id: string, r
     } else {
       manifest.resources.push({ type, id, region, status: 'created' });
     }
-    await writeFile(manifestPath(runId), JSON.stringify(manifest, null, 2), 'utf-8');
+    await atomicWriteManifest(runId, manifest);
   });
 }
 
@@ -106,7 +118,7 @@ export function updateManifestStatus(runId: string, status: ProvisionManifest['s
     const manifest = await readManifest(runId);
     if (!manifest) return;
     manifest.status = status;
-    await writeFile(manifestPath(runId), JSON.stringify(manifest, null, 2), 'utf-8');
+    await atomicWriteManifest(runId, manifest);
   });
 }
 
@@ -117,7 +129,7 @@ export function recordResourceCleaned(runId: string, type: string, id: string): 
     if (!manifest) return;
     const resource = manifest.resources.find((r) => r.type === type && r.id === id);
     if (resource) resource.status = 'cleaned';
-    await writeFile(manifestPath(runId), JSON.stringify(manifest, null, 2), 'utf-8');
+    await atomicWriteManifest(runId, manifest);
   });
 }
 
