@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 14.0.0
+**Current:** 15.0.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 15.0.0 | 2026-03-22 | The Last Mile — /deploy command, campaign auto-deploy, /git --deploy, drift detector |
 | 14.0.0 | 2026-03-22 | The Day-0 Engine — Cultivation onboarding redesign: treasury, revenue, ad platforms, budget, creatives, tracking, launch |
 | 13.1.0 | 2026-03-22 | Dashboard Polish — break circular import, CORS/CSP LAN, header context gauge, consolidate private IP |
 | 13.0.0 | 2026-03-22 | The Living Dashboard — consolidation, 3-tier UX, LAN mode, Status Line bridge, agent ticker, new panels |

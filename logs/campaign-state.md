@@ -13,9 +13,9 @@
 |---|---------|-------|--------|---------|
 | 1 | Deploy Engine | /deploy command, target detection, strategy execution, health check, rollback, deploy-state.md | **DONE** | #144 |
 | 2 | Campaign Integration | Auto-deploy at campaign end, /git --deploy flag, CAMPAIGN.md deploy step | **DONE** | #145 |
-| 3 | Danger Room Integration | Wire deploy panel to deploy-state.md, drift detector | NOT STARTED | — |
+| 3 | Danger Room Integration | Wire deploy panel to deploy-state.md, drift detector | **DONE** | #146 |
 
-Missions completed: 2. Next checkpoint at: 4.
+Missions completed: 3. All missions complete — proceeding to version bump + Victory Gauntlet.
 
 ## Previous Campaigns
 

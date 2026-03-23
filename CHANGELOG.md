@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [15.0.0] - 2026-03-22
+
+### Added
+- **`/deploy` command** — Kusanagi's deploy agent with 6-step protocol: target detection (VPS/Vercel/Railway/Docker/Static/Cloudflare), pre-deploy checks (Levi), deploy execution, health check (L), rollback (Valkyrie), deploy-state.md logging
+- **Campaign Step 7** — optional auto-deploy after Victory Gauntlet passes. Blitz mode auto-deploys. Deploy failure doesn't revoke Victory.
+- **`/git --deploy` flag** — one-command commit + push + deploy. Coulson commits, Kusanagi deploys.
+- **Deploy drift detector** — `GET /api/danger-room/drift` compares deployed commit against `git rev-parse HEAD`. Catches "pushed but not deployed" scenarios.
+- **Deploy Automation** section in DEVOPS_ENGINEER.md — target detection, deploy state, campaign integration, rollback protocol
+
+### Changed
+- **Deploy panel** reads from `deploy-state.md` (v15.0 format) in addition to `deploy-log.json`
+
+---
+
 ## [14.0.0] - 2026-03-22
 
 ### Added
