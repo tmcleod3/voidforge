@@ -24,7 +24,13 @@ export function parseJsonBody(req: IncomingMessage): Promise<unknown> {
         return;
       }
       try {
-        resolve(JSON.parse(body));
+        const parsed: unknown = JSON.parse(body);
+        // IG-R2: Reject non-object bodies (null, arrays, strings, numbers) at the parser level
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          reject(new Error('Request body must be a JSON object'));
+          return;
+        }
+        resolve(parsed);
       } catch {
         reject(new Error('Invalid JSON'));
       }

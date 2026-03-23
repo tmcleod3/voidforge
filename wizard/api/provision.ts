@@ -5,6 +5,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
+import { realpath } from 'node:fs/promises';
 import { addRoute } from '../router.js';
 import { getSessionPassword } from './credentials.js';
 import { vaultGet, vaultKeys } from '../lib/vault.js';
@@ -104,15 +105,7 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     return;
   }
 
-  // CROSS-R4-011: Synchronous check-and-set to prevent TOCTOU race on concurrent requests
-  if (activeProvisionRun) {
-    sendJson(res, 429, { error: 'A provisioning run is already in progress. Wait for it to complete.' });
-    return;
-  }
-  // Set lock IMMEDIATELY (synchronous) before any async work
-  const runId = randomUUID();
-  activeProvisionRun = runId;
-
+  // Parse and validate BEFORE acquiring the lock (IG-R2: prevent lock deadlock on validation failure)
   const body = await parseJsonBody(req) as {
     projectDir?: string;
     projectName?: string;
@@ -142,16 +135,32 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     return;
   }
 
+  // IG-R4: Resolve symlinks and use real path for all operations
+  try {
+    body.projectDir = await realpath(body.projectDir);
+  } catch {
+    sendJson(res, 400, { error: 'Could not resolve project directory path' });
+    return;
+  }
+
   const provisioner = provisioners[body.deployTarget];
   if (!provisioner) {
     sendJson(res, 400, { error: `Unknown deploy target: ${body.deployTarget}` });
     return;
   }
 
-  const allCredentials = await loadCredentials(password);
+  // Load and validate credentials BEFORE acquiring lock (IG-R3: all failable steps before lock)
+  let allCredentials: Record<string, string>;
+  try {
+    allCredentials = await loadCredentials(password);
+  } catch {
+    sendJson(res, 500, { error: 'Failed to load credentials from vault' });
+    return;
+  }
 
   // Scope credentials to only what this provisioner needs (ADR-020)
   const scopedCreds = scopeCredentials(allCredentials, body.deployTarget);
+  const runId = randomUUID();
 
   const ctx: ProvisionContext = {
     runId,
@@ -166,12 +175,19 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     credentials: scopedCreds,
   };
 
-  // Validate before starting SSE
+  // Validate provisioner context BEFORE acquiring lock (IG-R3: prevents lock leak)
   const errors = await provisioner.validate(ctx);
   if (errors.length > 0) {
     sendJson(res, 400, { error: errors.join('; ') });
     return;
   }
+
+  // CROSS-R4-011: Lock acquired AFTER all validation passes — only SSE streaming can fail from here
+  if (activeProvisionRun) {
+    sendJson(res, 429, { error: 'A provisioning run is already in progress. Wait for it to complete.' });
+    return;
+  }
+  activeProvisionRun = runId;
 
   // Start SSE stream
   res.writeHead(200, {
@@ -426,12 +442,21 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     // ── Deploy logging (ADR-021) ─────────────────────────────────
     if (result.success) {
       try {
-        // Sanitize outputs before persisting — strip secrets (same logic as SSE sanitizer)
+        // Sanitize outputs before persisting — strip secrets (same keywords as SSE sanitizer)
         const logOutputs = { ...result.outputs };
         delete logOutputs['DB_PASSWORD'];
         delete logOutputs['GITHUB_TOKEN'];
+        const SAFE_LOG_KEYS = new Set(['DEPLOY_URL', 'S3_WEBSITE_URL', 'CF_PROJECT_URL', 'GITHUB_REPO_URL', 'SSH_KEY_PATH']);
         for (const key of Object.keys(logOutputs)) {
-          if (key.toLowerCase().includes('password') || key.toLowerCase().includes('secret') || key.toLowerCase().includes('token')) {
+          if (SAFE_LOG_KEYS.has(key)) continue;
+          const lk = key.toLowerCase();
+          if (lk.includes('password') || lk.includes('secret') || lk.includes('token')
+              || lk.includes('credential') || lk.includes('_key') || lk.includes('_pass')
+              || lk.includes('_pwd') || lk.includes('passphrase') || lk.includes('bearer')
+              || lk.includes('oauth') || lk.includes('jwt') || lk.includes('signing')
+              || lk.includes('private') || lk.includes('connection_uri') || lk.includes('database_url')
+              || lk.includes('redis_url') || lk.includes('mongo_uri')
+              || lk.includes('cert') || lk.includes('hmac') || lk.includes('auth_code')) {
             delete logOutputs[key];
           }
         }
@@ -486,9 +511,18 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     const safeOutputs = { ...result.outputs };
     delete safeOutputs['DB_PASSWORD'];
     delete safeOutputs['GITHUB_TOKEN'];
-    // Ensure no credential keys leaked into outputs
+    // IG-R4/R5: Secret stripping — broad keywords + allowlist for safe output keys
+    const SAFE_OUTPUT_KEYS = new Set(['DEPLOY_URL', 'S3_WEBSITE_URL', 'CF_PROJECT_URL', 'GITHUB_REPO_URL', 'SSH_KEY_PATH']);
     for (const key of Object.keys(safeOutputs)) {
-      if (key.toLowerCase().includes('password') || key.toLowerCase().includes('secret') || key.toLowerCase().includes('token')) {
+      if (SAFE_OUTPUT_KEYS.has(key)) continue;
+      const lk = key.toLowerCase();
+      if (lk.includes('password') || lk.includes('secret') || lk.includes('token')
+          || lk.includes('credential') || lk.includes('_key') || lk.includes('_pass')
+          || lk.includes('_pwd') || lk.includes('passphrase') || lk.includes('bearer')
+          || lk.includes('oauth') || lk.includes('jwt') || lk.includes('signing')
+          || lk.includes('private') || lk.includes('connection_uri') || lk.includes('database_url')
+          || lk.includes('redis_url') || lk.includes('mongo_uri')
+          || lk.includes('cert') || lk.includes('hmac') || lk.includes('auth_code')) {
         delete safeOutputs[key];
       }
     }
@@ -500,7 +534,7 @@ addRoute('POST', '/api/provision/start', async (req: IncomingMessage, res: Serve
     console.error('Provisioning fatal error:', errMsg);
     await updateManifestStatus(runId, 'failed');
     // Include sanitized error detail so the user can act on it (UX H-01)
-    const safeErrMsg = errMsg.replace(/[A-Za-z0-9+/=]{40,}/g, '***'); // Strip long tokens
+    const safeErrMsg = errMsg.replace(/[A-Za-z0-9+/=]{16,}/g, '***'); // Strip tokens (16+ chars, IG-R2)
     sseWrite(`data: ${JSON.stringify({ step: 'fatal', status: 'error', message: 'Provisioning failed unexpectedly. Check that credentials are valid and try again.', detail: safeErrMsg })}\n\n`);
   } finally {
     activeProvisionRun = null;

@@ -260,13 +260,8 @@ addRoute('GET', '/api/cloud/status', async (_req: IncomingMessage, res: ServerRe
   const status: Record<string, boolean> = {};
 
   for (const provider of PROVIDERS) {
-    // A provider is "configured" if all its required fields are stored
-    // GitHub is special: only token is required, owner is optional
-    if (provider.id === 'github') {
-      status[provider.id] = keys.includes('github-token');
-    } else {
-      status[provider.id] = provider.fields.every((f) => keys.includes(f.key));
-    }
+    // IG-R2: Unified check — a provider is configured if all non-optional fields are stored
+    status[provider.id] = provider.fields.every((f) => f.optional || keys.includes(f.key));
   }
 
   sendJson(res, 200, { status });
@@ -279,8 +274,14 @@ addRoute('POST', '/api/cloud/validate', async (req: IncomingMessage, res: Server
 
   const body = await parseJsonBody(req) as { provider?: string; credentials?: Record<string, string> };
 
-  if (!body.provider || !body.credentials) {
+  if (!body.provider || !body.credentials || typeof body.credentials !== 'object') {
     sendJson(res, 400, { error: 'provider and credentials are required' });
+    return;
+  }
+
+  // IG-R2: Validate all credential values are strings (prevent non-string vault storage)
+  if (Object.values(body.credentials).some((v) => typeof v !== 'string')) {
+    sendJson(res, 400, { error: 'All credential values must be strings' });
     return;
   }
 

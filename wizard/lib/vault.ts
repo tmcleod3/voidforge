@@ -82,11 +82,12 @@ async function decrypt(data: Buffer, password: string): Promise<string> {
 
 async function readVault(password: string): Promise<VaultData> {
   // QA-R2-002: Use timing-safe comparison for cache password check
+  // IG-R2: Return a shallow copy from cache to prevent caller mutation from corrupting the cache
   if (sessionCache) {
     const a = Buffer.from(sessionCache.password, 'utf-8');
     const b = Buffer.from(password, 'utf-8');
     if (a.length === b.length && timingSafeEqual(a, b)) {
-      return sessionCache.data;
+      return { ...sessionCache.data };
     }
   }
 
@@ -99,7 +100,7 @@ async function readVault(password: string): Promise<VaultData> {
   const data = JSON.parse(json) as VaultData;
 
   sessionCache = { password, data };
-  return data;
+  return { ...data };
 }
 
 async function writeVault(password: string, data: VaultData): Promise<void> {
