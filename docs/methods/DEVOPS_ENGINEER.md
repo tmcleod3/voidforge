@@ -131,6 +131,51 @@ If a process manager (PM2, systemd, Docker, supervisord) owns the application po
 
 **Detection rule:** When writing CLAUDE.md "How to Run" sections or session restart commands, check if the project uses a process manager (`ecosystem.config.js`, `docker-compose.yml`, `*.service` files). If yes, the restart command MUST go through the PM — not through port killing.
 
+## Deploy Automation (`/deploy` command)
+
+The `/deploy` command automates the build-deploy-verify cycle. Kusanagi leads, Levi executes, L monitors, Valkyrie handles rollback.
+
+### Target Detection
+
+Read `deploy:` from PRD frontmatter. If absent, scan for evidence:
+- `vercel.json` / `.vercel/` → Vercel
+- `railway.json` / `railway.toml` → Railway
+- `Dockerfile` / `docker-compose.yml` → Docker
+- `SSH_HOST` in .env or vault → VPS/EC2
+- `wrangler.toml` → Cloudflare Workers/Pages
+
+### Deploy State
+
+Maintain `/logs/deploy-state.md` after every deploy:
+```markdown
+Last deployed: 2026-03-22T12:00:00Z
+Version: v2.9.0
+Commit: abc123
+Target: vps (dialog.travel)
+Status: healthy
+Health check: 200 OK (142ms)
+```
+
+The Danger Room's deploy panel reads this file. The drift detector compares `deploy-state.md` commit against `git rev-parse HEAD`.
+
+### Campaign Integration
+
+- **At campaign end (Step 6):** After Victory Gauntlet + debrief, prompt: "Deploy to [target]? [Y/n]". In `--blitz` mode: auto-deploy.
+- **On `/git --deploy`:** Auto-deploy after commit. Levi runs the full deploy cycle.
+- **Standalone:** `/deploy` runs independently for ad-hoc deploys.
+
+### Rollback Protocol (Valkyrie)
+
+If health check fails after deploy:
+1. **VPS:** `git checkout HEAD~1 && npm ci && npm run build && pm2 restart`
+2. **Vercel:** `vercel rollback`
+3. **Docker:** restart previous container image
+4. Re-run health check on rolled-back version
+5. Log rollback to deploy-state.md with timestamp and reason
+6. Alert: "Deploy failed. Rolled back to previous version. See deploy-state.md for details."
+
+(Field report #97: 3 campaigns of Dialog Travel code never reached production because no deploy step existed.)
+
 ## Deploy Safety Rules
 
 **rsync exclusion mandate:** NEVER use `rsync --delete` without excluding VPS-only directories. User-uploaded files, generated avatars, and data files only exist on the VPS — `--delete` will destroy them. Mandatory exclusions:

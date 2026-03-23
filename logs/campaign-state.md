@@ -1,24 +1,24 @@
-# Campaign State — VoidForge Campaign 15 (v14.0 The Day-0 Engine)
+# Campaign State — VoidForge Campaign 16 (v15.0 The Last Mile)
 
 ## Campaign Info
 
-**Version:** v14.0
-**Codename:** The Day-0 Engine
+**Version:** v15.0
+**Codename:** The Last Mile
 **Mode:** `--blitz`
-**ROADMAP:** Cultivation onboarding redesign — 7-step guided growth setup from scratch
+**ROADMAP:** /deploy command — target detection, deploy strategies, campaign integration, Danger Room wiring
 
 ## Mission Plan
 
 | # | Mission | Scope | Status | Debrief |
 |---|---------|-------|--------|---------|
-| 1 | Financial Foundation + Revenue | Treasury connection, Stripe auto-detect, circuit breakers, Day-0 Setup methodology | **DONE** | #140 |
-| 2 | Ad Platform Onboarding | Guided credential setup for Google/Meta/LinkedIn/Twitter/Reddit, adapter verification | **DONE** | #141 |
-| 3 | Budget + Creatives + Tracking | Budget allocation, creative generation, tracking pixel injection, attribution | **DONE** | #142 |
-| 4 | Launch + Danger Room Integration | Activation flow, Growth tab wiring, heartbeat verification, end-to-end test | **DONE** | #143 |
+| 1 | Deploy Engine | /deploy command, target detection, strategy execution, health check, rollback, deploy-state.md | NOT STARTED | — |
+| 2 | Campaign Integration | Auto-deploy at campaign end, /git --deploy flag, CAMPAIGN.md deploy step | NOT STARTED | — |
+| 3 | Danger Room Integration | Wire deploy panel to deploy-state.md, drift detector | NOT STARTED | — |
 
-Missions completed: 4. All missions complete — proceeding to version bump + Victory Gauntlet.
+Missions completed: 0. Next checkpoint at: 4.
 
 ## Previous Campaigns
 
+- Campaign 15 (v14.0): 4 missions, COMPLETE. Victory Gauntlet passed.
 - Campaign 14 (v13.1): 1 mission, COMPLETE. Gauntlet passed.
-- Campaign 13 (v13.0): 6 missions, COMPLETE. Victory Gauntlet passed. 7 Critical+High fixed.
+- Campaign 13 (v13.0): 6 missions, COMPLETE. Victory Gauntlet passed.
