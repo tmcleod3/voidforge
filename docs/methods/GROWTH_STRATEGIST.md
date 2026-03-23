@@ -170,7 +170,48 @@ Updated financial vault with platform credentials. Campaign-state.md records whi
 **Track C — Outreach** (Sarene): Cold email sequences, co-marketing pitches.
 
 **Output:** `/logs/growth-distribution.md` + `/logs/growth-campaigns.json` (campaign structures, not launched).
-**Gate:** User confirmation before Phase 5. Campaign launch requires `/treasury` setup.
+**Gate:** User confirmation before Phase 4.5.
+
+### Phase 4.5 — Launch Preparation (Steris + Shallan + Vin) — Day-0
+
+*"47 contingency plans. One launch."*
+
+This phase bridges campaign creation (Phase 4) and compliance review (Phase 5). It handles the three things needed before campaigns go live: budget, creatives, and tracking.
+
+**1. Budget Allocation (Steris):**
+- Read connected treasury balance and monthly budget from vault
+- Product-type-aware split suggestions:
+  - B2B SaaS → 60% Google Ads, 30% LinkedIn, 10% testing
+  - Consumer app → 50% Meta, 30% Google, 20% testing
+  - Dev tool → 40% Google, 30% Reddit, 20% Twitter, 10% testing
+  - E-commerce → 50% Google Shopping, 30% Meta, 20% testing
+- Set daily spend limits per platform (default: $10/day per platform for new campaigns)
+- Configure circuit breakers: pause at <1.0x ROAS after 7 days (or absolute cap for pre-revenue)
+- Present allocation for user approval: "Here's the proposed split. Adjust? [enter to accept]"
+
+**2. Creative Foundation (Shallan + /imagine):**
+- Pull brand assets from project: company name, tagline, `<meta>` descriptions, OG images, CSS custom properties (brand colors)
+- Generate initial ad variants via `/imagine` or Shallan's templates:
+  - 3 headline variants (value prop, social proof, urgency)
+  - 2 image variants (product screenshot + lifestyle/abstract)
+  - = 6 ad set combinations for A/B testing
+- For each platform: format creatives to platform specs (Meta: 1200x628, Google: responsive, LinkedIn: 1200x627)
+- Store creative assets in `/content/ads/` directory
+
+**3. Tracking & Attribution (Vin):**
+- **Conversion events:** Define 3 measurable events:
+  1. Signup / account creation
+  2. First meaningful action (create project, make purchase, etc. — from PRD core features)
+  3. Paid conversion (subscription, purchase — if applicable)
+- **Tracking pixels:** For web apps, generate pixel snippets for each connected platform:
+  - Google Ads: `gtag('config', 'AW-XXXXXXX')` + conversion action
+  - Meta: `fbq('init', 'XXXXXXX')` + standard events
+  - LinkedIn: Insight Tag
+- **Attribution model:** Last-click default with cross-platform deduplication (same user converting on multiple platforms counts once)
+- Output pixel snippets to `/content/tracking/` — user injects into their app manually (VoidForge does NOT auto-inject into source code)
+
+**Output:** `/logs/growth-launch-prep.md` + `/content/ads/` + `/content/tracking/`
+**Auto-continues to Phase 5.**
 
 ### Phase 5 — Compliance (Szeth)
 
