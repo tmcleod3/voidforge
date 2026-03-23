@@ -3,8 +3,8 @@
 > The plan for the plan-maker.
 
 **Current:** v12.6.4 (2026-03-22)
-**Next:** v13.1 — Dashboard Polish → v14.0 — The Day-0 Engine
-**Status:** v13.0 shipped. v13.1 cleans up Gauntlet tech debt (8 items, 1 session). v14.0 redesigns Cultivation onboarding as a 7-step guided growth setup — treasury, revenue, ads, budget, creatives, tracking, launch.
+**Next:** v13.1 → v14.0 → v15.0
+**Status:** v13.0 shipped. Pipeline: v13.1 Dashboard Polish (1 session) → v14.0 Day-0 Engine (3-4 sessions) → v15.0 Deploy Command (2-3 sessions). Zero open issues.
 
 ---
 
@@ -1833,7 +1833,7 @@ Full `/gauntlet` across the combined v13.0 changes. Non-negotiable.
 | 5 | Health + Infrastructure panels deferred from v13.0 M6 | MEDIUM | Add `GET /api/danger-room/health` (poll configured endpoint), `GET /api/danger-room/infra` (execFile: df, free, pm2) |
 | 6 | Deploy Drift Detector deferred from v13.0 M6 | MEDIUM | Add `GET /api/danger-room/drift` (compare build hash vs git HEAD) |
 | 7 | `health-poller.ts` and `site-scanner.ts` still have old private IP implementations | LOW | Replace with import from shared `wizard/lib/network.ts` |
-| 8 | Open issue #97: `/deploy` command (Kusanagi's deploy agent) | LOW | Evaluate scope — may be v14.0 or v15.0 |
+| 8 | `/deploy` command scoped — see v15.0 below | LOW | Feature request #97 — full spec in v15.0 |
 
 ### Estimated effort
 1 session. ~200 lines. PATCH version bump (v13.1.0).
@@ -1978,6 +1978,80 @@ Focus areas beyond standard checks:
 
 ### Estimated effort
 3-4 sessions (4 missions + Victory Gauntlet). Wizard + methodology + adapter + Danger Room integration. MAJOR version bump — new growth paradigm. (Field report #131)
+
+---
+
+## v15.0 — The Last Mile (Deploy Command)
+
+*"Build it. Ship it. Verify it. Roll it back if it breaks."*
+
+**The problem:** Campaigns build code locally and commit it, but never deploy. In Dialog Travel, 3 campaigns of work (v0.3→v2.9) sat on the local machine while the live server ran the original version. There is no deploy step in the campaign protocol. `/build` builds, `/git` commits, `/assemble` orchestrates, but nothing pushes code to production. (GitHub issue #97)
+
+**The fix:** A new `/deploy` command with Kusanagi as lead, integrating into `/campaign` and `/git` workflows.
+
+### Core Behavior
+
+1. **Read deploy target** from PRD frontmatter (`deploy: vps|vercel|railway|docker|static`)
+2. **Detect infrastructure state** — SSH keys, remotes, VPS access, Vercel project
+3. **Choose deploy strategy:**
+   - **VPS/EC2:** rsync + SSH → npm ci → prisma migrate → build → pm2 restart
+   - **Vercel:** `vercel --prod` or git push trigger
+   - **Railway:** `railway up` or git push trigger
+   - **Docker:** build image, push to registry, restart service
+   - **Static (Cloudflare/S3):** sync built assets
+4. **Health check** after deploy (curl health endpoint, verify HTTP 200)
+5. **Rollback** if health check fails (keep previous build, restart with old version)
+
+### Campaign Integration
+
+- **At campaign end:** After Victory Gauntlet + debrief, prompt: "Deploy to [target]? [Y/n]". In `--blitz` mode, auto-deploy.
+- **On `/git` commit:** Optional flag: `/git --deploy` to auto-deploy after commit
+- **Standalone:** `/deploy` runs independently for ad-hoc deploys
+
+### Deploy State
+
+Maintain `/logs/deploy-state.md`:
+```
+Last deployed: 2026-03-17T12:00:00Z
+Version: v2.9.0
+Commit: abc123
+Target: vps (dialog.travel)
+Status: healthy
+Health check: 200 OK
+```
+
+### Safety Rails
+
+- Never deploy without a passing build
+- Gauntlet checkpoint before first deploy of a campaign
+- Preview deploy (staging) before production if target supports it
+- Rollback on health check failure
+- Deploy log with timestamps for audit
+- The existing Danger Room deploy panel + drift detector (v13.0/v13.1) will show live deploy status
+
+### Campaign Missions
+
+| # | Mission | Scope |
+|---|---------|-------|
+| 1 | Deploy engine | Target detection, strategy selection, SSH/API deploy executors, health check, rollback |
+| 2 | Campaign integration | Auto-deploy at campaign end, `/git --deploy` flag, deploy-state.md |
+| 3 | Danger Room integration | Wire deploy panel to live deploy state, drift detector uses deploy-state.md |
+| 4 | Victory Gauntlet | Full gauntlet on deploy infrastructure — security focus on SSH/credential handling |
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `.claude/commands/deploy.md` | New — `/deploy` command definition |
+| `docs/methods/DEVOPS_ENGINEER.md` | Add deploy automation section |
+| `docs/methods/CAMPAIGN.md` | Add deploy step to Step 5 (after commit) |
+| `docs/methods/RELEASE_MANAGER.md` | Add `/git --deploy` flag |
+| `wizard/lib/deploy-engine.ts` | New — target detection, strategy execution, health check, rollback |
+| `wizard/api/deploy.ts` | Extend with deploy-engine integration |
+| `CLAUDE.md` | Add `/deploy` to slash command table |
+
+### Estimated effort
+2-3 sessions (3 missions + Victory Gauntlet). Wizard + methodology. MAJOR version bump — new command, new agent capabilities, campaign protocol change.
 
 ---
 
