@@ -535,4 +535,5 @@ export async function startHeartbeat(vaultPassword: string): Promise<void> {
 }
 
 // SEC-007: vaultKey is NOT exported — vault password must not be accessible outside the daemon
-export { daemonState };
+// readCampaigns + readTreasurySummary exported for unit testing (read-only, no security risk)
+export { daemonState, readCampaigns, readTreasurySummary };

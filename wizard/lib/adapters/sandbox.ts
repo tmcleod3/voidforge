@@ -18,8 +18,8 @@ import type {
 } from './types.js';
 import { toCents } from './types.js';
 
-// In-memory campaign store for the sandbox
-const campaigns = new Map<string, {
+/** Campaign state shape for the in-memory sandbox store. */
+interface SandboxCampaignState {
   id: string;
   name: string;
   status: 'active' | 'paused' | 'deleted';
@@ -29,7 +29,7 @@ const campaigns = new Map<string, {
   impressions: number;
   clicks: number;
   conversions: number;
-}>();
+}
 
 export class SandboxSetup implements AdPlatformSetup {
   constructor(private label: string = 'Sandbox') {}
@@ -59,6 +59,9 @@ export class SandboxSetup implements AdPlatformSetup {
 }
 
 export class SandboxAdapter implements AdPlatformAdapter {
+  // Instance-level campaign store — prevents state leaks between test runs and adapter instances
+  private campaigns = new Map<string, SandboxCampaignState>();
+
   constructor(private accountId: string = 'sandbox', private tokens: OAuthTokens = { accessToken: '', refreshToken: '', expiresAt: '', platform: 'meta', scopes: [] }) {}
 
   async refreshToken(token: OAuthTokens): Promise<OAuthTokens> {
@@ -71,7 +74,7 @@ export class SandboxAdapter implements AdPlatformAdapter {
 
   async createCampaign(config: CampaignConfig): Promise<CampaignResult> {
     const id = `sandbox_camp_${randomUUID().slice(0, 12)}`;
-    campaigns.set(id, {
+    this.campaigns.set(id, {
       id,
       name: config.name,
       status: 'paused',
@@ -91,7 +94,7 @@ export class SandboxAdapter implements AdPlatformAdapter {
   }
 
   async updateCampaign(id: string, changes: CampaignUpdate): Promise<void> {
-    const camp = campaigns.get(id);
+    const camp = this.campaigns.get(id);
     if (camp) {
       if (changes.name) camp.name = changes.name;
       if (changes.dailyBudget) camp.dailyBudgetCents = changes.dailyBudget as number;
@@ -99,22 +102,22 @@ export class SandboxAdapter implements AdPlatformAdapter {
   }
 
   async pauseCampaign(id: string): Promise<void> {
-    const camp = campaigns.get(id);
+    const camp = this.campaigns.get(id);
     if (camp) camp.status = 'paused';
   }
 
   async resumeCampaign(id: string): Promise<void> {
-    const camp = campaigns.get(id);
+    const camp = this.campaigns.get(id);
     if (camp) camp.status = 'active';
   }
 
   async deleteCampaign(id: string): Promise<void> {
-    const camp = campaigns.get(id);
+    const camp = this.campaigns.get(id);
     if (camp) camp.status = 'deleted';
   }
 
   async updateBudget(id: string, dailyBudget: Cents): Promise<void> {
-    const camp = campaigns.get(id);
+    const camp = this.campaigns.get(id);
     if (camp) camp.dailyBudgetCents = dailyBudget as number;
   }
 
@@ -124,7 +127,7 @@ export class SandboxAdapter implements AdPlatformAdapter {
 
   async getSpend(dateRange: { start: string; end: string }): Promise<SpendReport> {
     // Generate realistic spend data based on active campaigns
-    const activeCampaigns = [...campaigns.values()].filter(c => c.status === 'active');
+    const activeCampaigns = [...this.campaigns.values()].filter(c => c.status === 'active');
     const dayCount = Math.ceil(
       (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) / (24 * 60 * 60 * 1000)
     );
@@ -168,7 +171,7 @@ export class SandboxAdapter implements AdPlatformAdapter {
   }
 
   async getPerformance(campaignId: string): Promise<PerformanceMetrics> {
-    const camp = campaigns.get(campaignId);
+    const camp = this.campaigns.get(campaignId);
     const impressions = camp?.impressions ?? Math.round(1000 + Math.random() * 9000);
     const clicks = camp?.clicks ?? Math.round(impressions * 0.025);
     const conversions = camp?.conversions ?? Math.round(clicks * 0.04);
