@@ -1,7 +1,7 @@
 # VoidForge — Scaling Assessment
 
-**Version:** 7.7.0
-**Last reviewed:** 2026-03-16
+**Version:** 15.2.1
+**Last reviewed:** 2026-03-23
 
 ## Context
 
@@ -51,3 +51,15 @@ Would require a fundamentally different product:
 PTY sessions. Each `node-pty` session spawns a real shell process with its own memory footprint. On a 2GB t3.small, 20 concurrent PTY sessions (each running Claude Code) would consume ~1.5GB. This is the hard ceiling for remote mode.
 
 Mitigation: Idle session timeout (30 minutes). Disconnected sessions auto-reaped when new ones are requested.
+
+## v15.x Scaling Improvements
+
+| Feature | Version | Impact |
+|---------|---------|--------|
+| Health poller batch writes | v15.1 | N individual registry writes per poll → 1 batch write. Eliminates O(n^2) I/O at scale. |
+| LAN mode | v13.0 | 3-tier access (local/LAN/remote) via ZeroTier/Tailscale/WireGuard. Dashboard-only in LAN mode. |
+| Danger Room WebSocket | v10.0 | Tiered polling (5s/10s/60s). Max ~50 concurrent WebSocket clients. |
+| Danger Room Page Visibility | v13.0 | Polling pauses when browser tab is hidden. Saves bandwidth. |
+| Vault auto-lock | v15.1 | 15-min idle timeout. Reduces exposure window for vault credentials in memory. |
+| Heartbeat daemon | v11.1 | Background daemon for token refresh, spend monitoring, scheduled jobs. Separate from main server. |
+| Test suite | v15.1 | 91 vitest tests with --pool forks isolation. Catches regressions before deploy. |

@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v11.3.0 (2026-03-18)
-**Next:** v12.0 — The Deep Current (Autonomous Campaign Intelligence)
-**Status:** v11.x complete. v12.0 adds the 9th concept layer (Voyager crew), autonomous campaign generation, cold start intake, cross-pipeline correlation, 3-tier autonomy.
+**Current:** v15.2.1 (2026-03-23)
+**Status:** All planned versions through v15.2 shipped. v4.0–v15.2 below are historical — completed work, not future plans. Zero open issues.
+**91 tests**, 8 universes, 247 agents, 25 slash commands.
 
 ---
 
@@ -1518,6 +1518,540 @@ New tab: **Deep Current** — situation model (5-dimension radar), active propos
 - Kill switch (`/current --stop`)
 - Deploy freeze windows
 - 30-day mandatory strategic sync enforcement
+
+---
+
+## v12.5 — The Full Roster (Agent Utilization Overhaul)
+
+*"190+ agents on the bench, 6 on the field."*
+
+**The problem:** Command files name only lead agents. The method docs have deep rosters (12+ agents per domain), but the command files — which is what Claude Code actually reads at runtime — often only mention the lead by name. Result: Claude deploys 3-6 perspectives per command when 20-30 are available. The remaining 200+ agents are defined but never invoked.
+
+**Evidence from field reports:** The recurring pattern across #99, #103, #104, #108, #111, #114, #115 is that issues are caught late (by Gauntlet or user) that should have been caught earlier by a named agent who was never called. Auth flow bugs (#115) would have been caught if Nightwing's auth flow end-to-end test was in the `/build` command, not just the method doc.
+
+**The fix:** Update every command file to explicitly name the sub-agents it should deploy, matching the roster defined in the method doc.
+
+### Verified Audit (deep scan of command files vs method docs + registry)
+
+**247 agents in the naming registry. Here's where they actually get called:**
+
+| Command | In Command File | In Method Doc | Gap | Priority |
+|---------|----------------|---------------|-----|----------|
+| `/architect` | 15 (Picard + full ST bridge) | 16 (adds Pike) | Pike missing from command | Low — already strong |
+| `/ux` | 17 (Galadriel + full Tolkien) | 17 | **NONE — fully wired** | N/A |
+| `/qa` | 15 (Batman + full DC) | 15 | **NONE — fully wired** | N/A |
+| `/security` | 17 (Kenobi + full SW) | 17 | **NONE — fully wired** | N/A |
+| `/build` | ~35 (multi-universe) | ~35 | **NONE — fully wired** | N/A |
+| `/gauntlet` | 41 (largest roster) | ~60 (Infinity mode) | 19 agents in Infinity but not standard | Medium |
+| `/debrief` | 7 (Bashir + DS9 + Wong) | 7 | **NONE — fully wired** | N/A |
+| `/grow` | 17 (full Cosmere) | 17 | **NONE — fully wired** | N/A |
+| `/current` | 8 (Voyager + Vin + Marsh) | 8 | **NONE — fully wired** | N/A |
+| `/campaign` | 9 (Sisko + DS9 + Fury + Thanos + Troi + Pike) | 9 | **NONE — actually well-wired** | N/A |
+| `/review` | 12 | 20+ (Stark's full team) | **8 missing:** Rogers, Banner, Strange, Barton, Thor, Romanoff, Wanda, T'Challa | **HIGH** |
+| `/assemble` | 21 | 35+ (should invoke all review teams) | **14 missing** from review/QA/UX sub-teams | **HIGH** |
+| `/devops` | 6 | 16 (Kusanagi's full anime team) | **10 missing:** L, Valkyrie, Vegeta, Trunks, Mikasa, Erwin, Mustang, Olivier, Hughes, Calcifer, Duo | **HIGH** |
+| `/treasury` | 3 | 6+ (Dockson + Steris, Vin, Szeth, Breeze) | **3 missing** | Medium |
+
+### The Real Gaps (corrected from initial estimate)
+
+The initial estimate was wrong on several commands. `/ux`, `/qa`, `/security`, `/debrief`, `/grow`, `/current`, and `/campaign` are actually **fully wired** — the command files already name their complete rosters. The problem is concentrated in **3 commands**:
+
+1. **`/review`** — 12 agents instead of 20+. Stark flies with Picard, Spock, Seven, Oracle, Batman but NOT his own Marvel team (Rogers, Banner, Strange, Barton, Thor, Romanoff, Wanda, T'Challa). This is the biggest gap — code review misses backend service patterns (Strange), API design (Rogers), security implications (Romanoff), and performance (Thor).
+
+2. **`/assemble`** — 21 agents but doesn't name the full sub-teams it invokes. When `/assemble` calls `/review`, it should get Stark's full team. When it calls `/ux`, it should get Galadriel's full team. Currently it names the leads but not the sub-agents.
+
+3. **`/devops`** — 6 agents named (Kusanagi, Senku, Levi, Spike, Bulma, Holo) but 10+ more in the method doc (L, Valkyrie, Vegeta, Trunks, Mikasa, Erwin, Mustang, Olivier, Hughes, Calcifer, Duo). The extended anime roster handles monitoring (L), disaster recovery (Valkyrie), scaling (Vegeta), migration (Trunks), and more.
+
+### Cross-Domain Agents (the hidden roster)
+
+**The question you're really asking:** Do agents cross domain boundaries? Should Bilbo (copy) show up in `/review` when API error messages are wrong? Should Éowyn (enchantment) appear in `/build` to add delight during construction?
+
+**Current cross-domain assignments:**
+- Bilbo shows up in `/ux` (copy audit) and `/build` (copy review) — already cross-domain
+- Éowyn shows up in `/ux` (enchantment) and `/gauntlet` (final enchantment pass) — already cross-domain
+- Samwise shows up in `/ux` (a11y), `/gauntlet` (final a11y), and `/assemble` — 3 commands
+- Nightwing shows up in `/qa`, `/gauntlet`, `/assemble`, `/build` — 4 commands
+- Seven shows up in `/review`, `/assemble`, `/current` — 3 commands
+
+**Missing cross-domain that would catch field report bugs:**
+- **Nightwing** should be in `/review` — auth flow end-to-end testing (#115) is a review concern, not just QA
+- **Bilbo** should be in `/review` — error message copy is caught by Bilbo but he's only in `/ux`
+- **Éowyn** should be in `/build` Phase 10 (polish) — enchantment during construction, not just review
+- **Samwise** should be in `/build` Phase 10 — a11y during construction, not deferred to `/ux`
+- **Troi** should be in `/review` — PRD compliance is often a review-time catch
+- **Constantine** should be in `/review` — cursed code is a code review concern, not just QA
+
+### Updated Deliverables
+
+1. **`/review` command** — Add Stark's full Marvel team + cross-domain agents (Nightwing, Bilbo, Troi, Constantine). Goes from 12 → ~20 agents.
+2. **`/assemble` command** — When invoking sub-commands, explicitly name the full rosters. Goes from 21 → ~35 agents named.
+3. **`/devops` command** — Add the full anime extended roster. Goes from 6 → ~16 agents.
+4. **`/treasury` command** — Add Steris, Vin, Szeth, Breeze. Goes from 3 → ~7 agents.
+5. **`/architect` command** — Add Pike (already in method doc, missing from command). Minor fix.
+6. **`/gauntlet` Infinity mode** — Verify all 60+ agents in the Infinity roster are named in the command file, not just the method doc.
+7. **Cross-domain manifest** — Document which agents appear in multiple commands and why (a "who helps where" reference).
+
+### Effort
+1-2 sessions. Methodology-only. The actual edits are small — adding agent names to existing command file sections. The audit above is the hard part (done).
+
+---
+
+## v13.0 — The Living Dashboard
+
+*"Not localhost. Not the public internet. Not static. Not guessing. A dashboard that sees what you see."*
+
+**The vision:** Transform the Danger Room from a static file-parsing dashboard into a live, real-time operations center — with proper information architecture, private network access, and a UX that serves solo developers, team leads, and remote operators equally well.
+
+**Source:** Field reports #126-131, architectural review (Spock + La Forge + Data), first real-world usage on ZeroTier.
+
+### Campaign Missions
+
+Build in this order — each phase is one `/campaign` mission. Dependencies are strict.
+
+---
+
+#### Phase 0: Consolidation (prerequisite — unlocks everything else)
+
+**Problem:** `danger-room.ts` and `war-room.ts` are near-identical (800+ lines duplicated across 4 files). Every subsequent change must be applied 4 times. This must be resolved before any feature work.
+
+**Deliverables:**
+1. Extract `wizard/lib/dashboard-data.ts` — shared parsers (`parseCampaignState`, `parseBuildState`, `parseFindings`, `readDeployLog`, `readVersion`)
+2. Extract `wizard/lib/dashboard-ws.ts` — WebSocket infrastructure factory (WSS setup, heartbeat, broadcast, upgrade, close)
+3. Extract `wizard/lib/http-helpers.ts` — `sendJson()` (duplicated 13 times) + `readFileOrNull()`
+4. Extract `wizard/ui/dashboard-shared.js` — shared render functions (`renderGauge`, `renderTimeline`, etc.)
+5. Slim `danger-room.ts` and `war-room.ts` to thin wrappers importing shared code
+6. **Fix all 3 broken parsers during consolidation:**
+   - `parseCampaignState()` — rewrite regex for actual format. Cross-reference CAMPAIGN.md's Prophecy Board template against real campaign-state.md files to determine canonical format. Normalize status vocabulary (`**DONE**` → `COMPLETE`). Extend return type to include `blockedBy` and `debrief` fields.
+   - `parseBuildState()` — add trim/clean step to remove capture artifacts
+   - `parseFindings()` — read `build-state.md` "Known Issues" first, fall back to regex. Add defensive logging: warn if no missions found in non-empty file.
+7. **Implement panel registry pattern:**
+   ```typescript
+   interface DashboardPanel {
+     id: string;
+     endpoint: string;
+     fetch: () => Promise<unknown>;
+     pollTier: 'fast' | 'slow';
+   }
+   ```
+   New panels become single object declarations. Route registration, poll orchestration, and WebSocket broadcast are generic over the panel list.
+8. **Implement tiered polling:**
+   - Fast (5s): context, agent activity, tests (during active runs)
+   - Slow (60s): version, deploy, campaign, build, findings
+
+**Acceptance criteria:**
+- [ ] Zero duplicated parser/render code between danger-room and war-room
+- [ ] `sendJson` and `readFileOrNull` exist in exactly one place
+- [ ] All 3 parsers produce correct output against real log files
+- [ ] Adding a new panel requires touching exactly 1 file (panel declaration)
+
+---
+
+#### Phase 1: Information Architecture + UX Review (Galadriel — full bridge)
+
+**Problem:** The Danger Room was built feature-by-feature from field reports. No holistic information architecture was designed. Data types are mixed — system metrics, campaign progress, live agent activity, and historical findings all share the same flat grid with no hierarchy. For diverse users (solo dev, team lead, remote operator), the dashboard must communicate what matters NOW vs what's historical context.
+
+**Deliverables — Full `/ux` review with all agents:**
+
+1. **Data classification** — every panel classified into one of three tiers:
+   - **Tier 1: Live Feed** (real-time, changes per-second) — context gauge, agent ticker, cost tracker. These demand immediate attention. Visual treatment: prominent position, animated indicators, distinct background.
+   - **Tier 2: Campaign State** (changes per-mission, ~30min cycles) — mission timeline, phase pipeline, findings scoreboard, PRD coverage. These track progress. Visual treatment: structured cards with progress indicators.
+   - **Tier 3: System Status** (changes rarely, background monitoring) — version, deploy status, git status, infrastructure, health. These are reference data. Visual treatment: compact status bar or collapsible section.
+
+2. **Layout redesign for the Ops tab:**
+   ```
+   ┌─────────────────────────────────────────────────────────┐
+   │ HEADER: Project name, version, model badge, cost        │
+   ├────────────────────┬────────────────────────────────────┤
+   │ CONTEXT GAUGE      │ AGENT ACTIVITY TICKER (live feed)  │
+   │ (circular, large)  │ Scrolling: "Picard scanning..."   │
+   │                    │ "Batman probing edge cases..."     │
+   ├────────────────────┴────────────────────────────────────┤
+   │ CAMPAIGN PROGRESS                                       │
+   │ Mission timeline (horizontal) + Phase pipeline (vertical)│
+   │ Findings scoreboard (severity badges, open count only)  │
+   ├─────────────────────────┬──────────────────────────────┤
+   │ SYSTEM STATUS (compact)  │ DEPLOY / DRIFT DETECTOR     │
+   │ Git: main ✓ 2 ahead     │ Build: abc123 = HEAD ✓      │
+   │ Disk: 45% | Mem: 2.1GB  │ Health: 200 OK (12ms)       │
+   │ PM2: online (3 procs)   │ Last deploy: 2h ago         │
+   └─────────────────────────┴──────────────────────────────┘
+   ```
+
+3. **Responsive considerations** — the dashboard will be used on:
+   - Full desktop (primary) — full grid layout
+   - iPad/tablet on desk while coding — two-column layout, larger touch targets
+   - Phone glance via ZeroTier — single column, most critical info only (context %, active agent, findings count)
+
+4. **Accessibility audit** — keyboard navigation between panels, ARIA labels on all gauges and status indicators, color-blind-safe severity indicators (not just red/yellow/green — add icons/patterns), screen reader announcements for agent ticker updates.
+
+5. **Cultivation tab review** — same information hierarchy principles applied to Growth, Treasury, Campaigns, Heartbeat, and Deep Current tabs. Ensure the day-0 onboarding flow (v14.0) has a clear visual home.
+
+6. **Empty states and onboarding** — every panel needs a meaningful empty state that guides the user toward activation:
+   - Context gauge "—%" → "Set up Status Line to see live context" (with link to docs)
+   - Agent ticker "Sisko standing by..." → "Run /assemble or /campaign to see live agent activity"
+   - Tests panel "No test data" → "Run tests to see results here"
+   - Each empty state is an onboarding moment, not a dead end.
+
+**Acceptance criteria:**
+- [ ] Every panel classified into Live Feed / Campaign State / System Status
+- [ ] Layout wireframes for desktop, tablet, and phone
+- [ ] Accessibility audit covers keyboard nav, ARIA, color-blind safety
+- [ ] Cultivation tabs have consistent hierarchy with Ops tabs
+- [ ] All empty states have actionable guidance
+
+---
+
+#### Phase 2: LAN Mode
+
+**Problem:** Two access modes (local/remote) with nothing in between.
+
+**Three-Tier Access Model:**
+
+| Tier | Flag | Bind | Auth | Use Case |
+|------|------|------|------|----------|
+| Local | (default) | `::` | None | Solo dev, same machine |
+| Private | `--lan` | `0.0.0.0` | Optional password | ZeroTier / Tailscale / WireGuard / LAN |
+| Public | `--remote` | `0.0.0.0` | 5-layer (Caddy+TOTP+vault) | VPS/EC2 with public domain |
+
+**`--lan` mode behavior:** Binds `0.0.0.0`, optional password (no TOTP/Caddy/vault), light audit trail, 24h session TTL, soft rate limiting (20/min).
+
+**Private IP validation (from architectural review):** Use numeric octet parsing (not string prefix matching — SECURITY_AUDITOR.md explicitly warns against this). Include:
+- RFC 1918: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
+- CGNAT/Tailscale: `100.64.0.0/10` (RFC 6598)
+- IPv6 ULA: `fd00::/8` (ZeroTier, WireGuard)
+Extract into shared `wizard/lib/network.ts` → `isPrivateOrigin()` (consolidates existing duplicate implementations in `health-poller.ts` and `site-scanner.ts`).
+
+**Acceptance criteria:**
+- [ ] `--lan` flag binds `0.0.0.0` with optional password
+- [ ] WebSocket origin validation accepts RFC 1918 + CGNAT + IPv6 ULA
+- [ ] `/dangerroom` command displays correct URL for all three modes
+- [ ] `isPrivateOrigin()` passes tests for Tailscale (100.x), ZeroTier (10.x + fd00::), WireGuard (10.x)
+
+---
+
+#### Phase 3: Status Line Bridge
+
+**Architecture:**
+```
+Claude Code → Status Line script (stdin JSON) → ~/.voidforge/context-stats-{session}.json → wizard server → gauge + cost
+```
+
+**Key design decisions (from architectural review):**
+- **Atomic writes:** Write to `.tmp`, fsync, rename — same pattern as `tower-auth.ts` (lines 257-269). Prevents corrupt JSON from partial writes.
+- **Per-session files:** Write to `context-stats-{session_id}.json`, not a shared file. Prevents concurrent write corruption from multiple Claude Code sessions. Wizard reads all matching files, displays the most recently updated one.
+- **Staleness:** Backend returns `null` if `updated_at` > 60 seconds old. Gauge reverts to "—%".
+- **Shared data source:** Context gauge AND cost display both read from the same file. Status Line JSON includes `context_window.used_percentage` + `cost.total_cost_usd` + `model.display_name`. One bridge, two consumers.
+- **Cost display needs `renderCost()` function** — this is a new function + fetch target + refresh wiring, not just "wire to context-stats" (deeper gap than originally noted).
+
+**Methodology update:** `docs/methods/CONTEXT_MANAGEMENT.md` — once gauge is wired, agents should check the dashboard instead of asking users to run `/context`.
+
+**Acceptance criteria:**
+- [ ] Context gauge shows live percentage during active session
+- [ ] Gauge reverts to "—%" within 60s of session ending
+- [ ] Cost display shows cumulative session cost
+- [ ] Two concurrent Claude Code sessions don't corrupt each other's data
+- [ ] `CONTEXT_MANAGEMENT.md` references passive gauge monitoring
+
+---
+
+#### Phase 4: Agent Ticker (methodology-driven, not hook-driven)
+
+**Approach change (from architectural review):** The original plan used a PostToolUse hook, but hooks can't extract agent identity from tool input — they only receive tool name and result. **New approach:** methodology-driven logging. Add to CAMPAIGN.md, ASSEMBLER.md, and GAUNTLET.md: "When dispatching an agent via the Agent tool, append `{ agent, task, timestamp }` to `logs/agent-activity.jsonl` before the tool call."
+
+**Reliability (from failure analysis):**
+- **Hybrid watch + poll:** Use `fs.watch` for immediate notification, poll `fs.stat` every 3s as fallback. `fs.watch` is unreliable on Linux/Docker/NFS and can miss rapid writes on macOS.
+- **Tail-only reads:** On change events, seek to last known position and read only new lines. Never re-parse the entire file.
+- **Session truncation:** Truncate `agent-activity.jsonl` at campaign/gauntlet start. Historical agent activity from previous sessions is not meaningful for the live ticker. Cap at 1MB / ~10K lines with rotation.
+- **Debouncing:** Buffer WebSocket broadcasts to max 1 per second during rapid agent dispatches (e.g., `/gauntlet` launching 30+ agents).
+
+**Acceptance criteria:**
+- [ ] Ticker shows live agent names during /assemble, /campaign, /gauntlet
+- [ ] Ticker doesn't stall when fs.watch misses events (poll fallback works)
+- [ ] JSONL file rotates at 1MB, doesn't grow unbounded
+- [ ] CAMPAIGN.md, ASSEMBLER.md, GAUNTLET.md include JSONL write step
+
+---
+
+#### Phase 5: New Panels + Config
+
+**Tests panel:** Define data contract first — `{ passed: number, failed: number, total: number, duration_ms: number, last_run: string, failures: Array<{ name, message }> }`. Endpoint reads `test-results.json` (written by test runner hook or manual `npm test -- --json > test-results.json`).
+
+**4 project-specific panels** (health, infrastructure, git status, deploy drift):
+- All implemented via the panel registry from Phase 0
+- Each is a single `DashboardPanel` declaration (~20-40 lines)
+- Project-specific panels enabled via `wizard/danger-room.config.json`:
+  ```json
+  {
+    "health_endpoint": "http://localhost:3000/api/health",
+    "pm2_process": "kongo-web",
+    "panels": ["health", "infrastructure", "git-status", "deploy-drift"]
+  }
+  ```
+- Use `child_process.execFile` (not `exec`) for command-based panels with timeout + output cap. Prevents shell injection.
+
+**Acceptance criteria:**
+- [ ] Tests panel renders pass/fail/total from structured JSON
+- [ ] Health panel shows green/red status from configured endpoint
+- [ ] Git status panel shows branch, uncommitted count, ahead/behind
+- [ ] Deploy drift detector shows IN SYNC or DRIFT DETECTED
+- [ ] `danger-room.config.json` controls which panels are active
+- [ ] Unconfigured panels show actionable empty state (not blank)
+
+---
+
+#### Phase 6: Victory Gauntlet
+
+Full `/gauntlet` across the combined v13.0 changes. Non-negotiable.
+
+---
+
+### Architecture Decisions
+
+**ADR: Methodology-driven agent logging over hooks** — Hooks can't access tool input (agent identity). Methodology instructions are reliable, work today, and don't depend on Claude Code internals. The orchestrator writes the log, not the runtime.
+
+**ADR: Per-session context files over shared file** — Multiple Claude Code sessions writing to one file causes corruption. Per-session files with "most recent wins" display logic eliminates the race condition.
+
+**ADR: Panel registry over copy-paste endpoints** — Adding panels should be a single declaration, not 4-file surgery. The registry pattern pays for itself at panel #3.
+
+**ADR: Tiered polling over uniform 10-second poll** — Version and deploy endpoints change monthly. Context changes per-message. Polling everything at the same rate wastes resources and scales poorly with 50 concurrent clients.
+
+### Estimated effort
+4-5 sessions (6 missions + Victory Gauntlet). ~1000 lines of changes. Wizard + methodology + UX. MAJOR version bump — new dashboard paradigm with live data, information architecture, and private network access.
+
+---
+
+## v13.1 — Dashboard Polish (Tech Debt from v13.0 Gauntlet)
+
+*Gauntlet-identified items documented but not blocking v13.0 ship. Clean up before v14.0.*
+
+| # | Item | Severity | Fix |
+|---|------|----------|-----|
+| 1 | Circular import: `dashboard-ws.ts` → `server.ts` → `danger-room.ts` → `dashboard-ws.ts` | MEDIUM | Extract `getServerPort`/`getServerHost` into `wizard/lib/server-config.ts` |
+| 2 | CORS/CSP headers don't include LAN origins — WebSocket from LAN peers blocked by CSP | MEDIUM | In LAN mode, add requesting origin to CORS if `isPrivateOrigin()`, add `ws://*:PORT` to CSP `connect-src` |
+| 3 | Context gauge scrolls out of view when user scrolls past Tier 1 | MEDIUM | Add compact context indicator in header bar (always visible) |
+| 4 | Deep Current "Launch Campaign" and "Dismiss" buttons unwired | MEDIUM | Wire to API calls or display as disabled with CLI instruction tooltip |
+| 5 | Health + Infrastructure panels deferred from v13.0 M6 | MEDIUM | Add `GET /api/danger-room/health` (poll configured endpoint), `GET /api/danger-room/infra` (execFile: df, free, pm2) |
+| 6 | Deploy Drift Detector deferred from v13.0 M6 | MEDIUM | Add `GET /api/danger-room/drift` (compare build hash vs git HEAD) |
+| 7 | `health-poller.ts` and `site-scanner.ts` still have old private IP implementations | LOW | Replace with import from shared `wizard/lib/network.ts` |
+| 8 | `/deploy` command scoped — see v15.0 below | LOW | Feature request #97 — full spec in v15.0 |
+
+### Estimated effort
+1 session. ~200 lines. PATCH version bump (v13.1.0).
+
+---
+
+## v14.0 — The Day-0 Engine (Cultivation Onboarding Redesign)
+
+*"Growth infrastructure from the first commit, not the first customer."*
+
+**The problem:** Cultivation's install assumes a post-launch state — deployed project, existing revenue, ad accounts already configured. The highest-leverage growth work happens BEFORE launch. The current flow installs vault + daemon + empty dashboard tabs, then says "run /grow" — but /grow needs ad accounts you don't have yet.
+
+**The vision:** Redesign `/cultivation` install as a 7-step guided onboarding wizard that establishes growth infrastructure from scratch. The user walks through treasury setup, revenue tracking, ad platform credentials, budget allocation, creative generation, tracking pixels, and launch — all in one guided session. The Danger Room's Growth tabs light up with real data from minute one.
+
+**Source:** Field report #131, v13.0 architectural review.
+
+### Campaign Missions
+
+Build in this order. Dependencies are strict.
+
+---
+
+#### Mission 1: Financial Foundation + Revenue Tracking (Steps 1-2)
+
+**Objective:** Connect treasury and revenue sources before anything else. Money in, money out — the foundation.
+
+**Deliverables:**
+1. Redesign `/cultivation` install command to start with a guided financial setup interview
+2. Add "Day-0 Setup" section to GROWTH_STRATEGIST.md with the full onboarding sequence
+3. Add "Pre-Revenue Setup" section to TREASURY.md — connecting treasury before first dollar
+4. Verify Mercury adapter handles onboarding credential flow (guided API key setup)
+5. Auto-detect Stripe: scan project for `stripe` dependency or `STRIPE_SECRET_KEY` in env/vault. If found, offer to connect. If not, offer Stripe setup or manual tracking.
+6. Create financial vault entry for connected accounts with circuit breakers from the start
+
+**Acceptance criteria:**
+- [ ] `/cultivation install` starts with treasury connection interview
+- [ ] Mercury/Brex API key setup is guided with test-connection verification
+- [ ] Stripe auto-detection works for Next.js, Express, Django, FastAPI projects
+- [ ] Manual budget entry works when no payment processor exists
+- [ ] Circuit breakers configured: pause if ROAS < 1.0x for 7 days
+- [ ] GROWTH_STRATEGIST.md has Day-0 Setup section
+- [ ] TREASURY.md has Pre-Revenue Setup section
+
+---
+
+#### Mission 2: Ad Platform Onboarding (Step 3)
+
+**Objective:** Guide users through ad platform credential setup with per-platform instructions.
+
+**Deliverables:**
+1. Interactive platform selection: present Google Ads, Meta, LinkedIn, Twitter, Reddit with guidance on best fit by product type (B2B → LinkedIn, visual → Meta, intent → Google, etc.)
+2. Per-platform credential walkthrough: create account → get API credentials → store in vault → test connection
+3. Verify existing adapters (`wizard/lib/adapters/`) handle the credential-collection flow, not just the API-call flow
+4. Recommend starting with 1-2 platforms: "You can add more later."
+5. Update `.claude/commands/cultivation.md` with the ad platform onboarding flow
+
+**Acceptance criteria:**
+- [ ] Each supported platform has a guided credential setup flow
+- [ ] Test-connection verification before proceeding to next step
+- [ ] Credentials stored in financial vault (not .env)
+- [ ] Adapter interfaces support both "collect credentials" and "run campaign" modes
+- [ ] User can skip platforms and add them later
+
+---
+
+#### Mission 3: Budget + Creatives + Tracking (Steps 4-6)
+
+**Objective:** Allocate budget, generate initial creatives, set up attribution.
+
+**Deliverables:**
+1. Budget allocation: product-type-aware split suggestions (e.g., B2B SaaS → 60% Google, 30% LinkedIn, 10% testing). Daily spend limits per platform. Circuit breakers.
+2. Creative foundation: pull brand assets from project (company name, tagline, OG images, brand colors from CSS vars). Generate initial ad variants via `/imagine` or Shallan's creative templates. Set up A/B test matrix (3 headlines × 2 images = 6 variants).
+3. Tracking setup: inject tracking pixels (Google Ads conversion, Meta Pixel) into published site. Connect to PostHog/analytics for funnel tracking. Define conversion events (signup, first action, subscription). Attribution model: last-click default, cross-platform dedup.
+4. Update Kelsier's GROWTH_STRATEGIST.md Phase 1 to reference the Day-0 setup outputs
+
+**Acceptance criteria:**
+- [ ] Budget suggestions are product-type-aware (not generic)
+- [ ] Creative generation pulls from existing brand assets
+- [ ] At least 6 ad variants generated (3 headlines × 2 images)
+- [ ] Tracking pixel injection works for Next.js and static sites
+- [ ] Conversion events are defined with measurable criteria
+- [ ] Attribution model documented and configurable
+
+---
+
+#### Mission 4: Launch + Danger Room Integration (Step 7)
+
+**Objective:** Activate everything and verify the Danger Room shows live data.
+
+**Deliverables:**
+1. Launch summary: present the full growth engine configuration for user review before activation
+2. Activate campaigns via adapters. Heartbeat daemon starts monitoring spend, refreshing tokens, evaluating A/B tests.
+3. Danger Room Growth tab: verify KPI cards show real revenue/spend/net data from connected sources
+4. Danger Room Campaigns tab: verify campaign table shows active campaigns with real platform data
+5. Verify the Growth tab empty state transitions to the real data view when Cultivation is installed and data flows
+6. End-to-end test: install → configure → launch → verify Danger Room reflects live data
+
+**Acceptance criteria:**
+- [ ] Launch summary shows all configured platforms, budgets, creatives, tracking
+- [ ] User must confirm before campaigns go live
+- [ ] Growth tab KPI cards show real revenue from Stripe adapter
+- [ ] Campaigns tab shows platform name, campaign name, spend, status
+- [ ] Heartbeat daemon runs and reports to `/api/danger-room/heartbeat`
+- [ ] Growth tab empty state → real data transition is smooth
+
+---
+
+#### Mission 5: Victory Gauntlet
+
+Full `/gauntlet` across the combined v14.0 changes. Non-negotiable.
+
+Focus areas beyond standard checks:
+- **Financial safety:** Can the system accidentally overspend? Are circuit breakers tested?
+- **Credential security:** Are ad platform API keys stored securely? Never in .env, always in vault?
+- **Pixel injection safety:** Do injected tracking scripts introduce XSS vectors?
+- **Adapter failure modes:** What happens when Google Ads API returns 429? When Meta token expires?
+
+---
+
+### Architecture Decisions
+
+**ADR: Guided interview over config file** — The onboarding is an interactive interview, not a `cultivation.config.json` to fill in manually. Users don't know what API scopes Google Ads requires or what Mercury endpoint to use. The wizard asks questions and fills in the config.
+
+**ADR: Vault-first credentials** — All ad platform and treasury credentials go to the financial vault with TOTP protection, never to `.env`. The adapters read from vault at runtime.
+
+**ADR: Conservative budget defaults** — First-time budgets default to $10/day per platform with aggressive circuit breakers (pause at <1.0x ROAS after 7 days). Users can increase after seeing results. Prevent "$500 burned on day 1" scenarios.
+
+### Dependencies
+
+- v13.0 Living Dashboard (SHIPPED) — Danger Room Growth/Campaigns tabs exist, need real data
+- v13.1 Dashboard Polish (PLANNED) — not a hard dependency but nice-to-have before v14.0
+- Cultivation wizard code (`wizard/lib/adapters/`, `wizard/lib/financial-vault.ts`) — already exists, needs onboarding flow additions
+- `/imagine` for creative generation — already exists, needs to be callable from onboarding
+
+### Open Issues to Address
+
+| Issue | Status | Action |
+|-------|--------|--------|
+| #97 | Feature: /deploy command | Evaluate in v14.0 — may integrate with launch step |
+| #98 | Kongo.io M27 CSRF fix | Project-specific, not VoidForge methodology |
+| #94, #91, #89, #87, #86 | Kongo.io campaign field reports | Project-specific debriefs, not VoidForge methodology issues — close as external |
+
+### Estimated effort
+3-4 sessions (4 missions + Victory Gauntlet). Wizard + methodology + adapter + Danger Room integration. MAJOR version bump — new growth paradigm. (Field report #131)
+
+---
+
+## v15.0 — The Last Mile (Deploy Command)
+
+*"Build it. Ship it. Verify it. Roll it back if it breaks."*
+
+**The problem:** Campaigns build code locally and commit it, but never deploy. In Dialog Travel, 3 campaigns of work (v0.3→v2.9) sat on the local machine while the live server ran the original version. There is no deploy step in the campaign protocol. `/build` builds, `/git` commits, `/assemble` orchestrates, but nothing pushes code to production. (GitHub issue #97)
+
+**The fix:** A new `/deploy` command with Kusanagi as lead, integrating into `/campaign` and `/git` workflows.
+
+### Core Behavior
+
+1. **Read deploy target** from PRD frontmatter (`deploy: vps|vercel|railway|docker|static`)
+2. **Detect infrastructure state** — SSH keys, remotes, VPS access, Vercel project
+3. **Choose deploy strategy:**
+   - **VPS/EC2:** rsync + SSH → npm ci → prisma migrate → build → pm2 restart
+   - **Vercel:** `vercel --prod` or git push trigger
+   - **Railway:** `railway up` or git push trigger
+   - **Docker:** build image, push to registry, restart service
+   - **Static (Cloudflare/S3):** sync built assets
+4. **Health check** after deploy (curl health endpoint, verify HTTP 200)
+5. **Rollback** if health check fails (keep previous build, restart with old version)
+
+### Campaign Integration
+
+- **At campaign end:** After Victory Gauntlet + debrief, prompt: "Deploy to [target]? [Y/n]". In `--blitz` mode, auto-deploy.
+- **On `/git` commit:** Optional flag: `/git --deploy` to auto-deploy after commit
+- **Standalone:** `/deploy` runs independently for ad-hoc deploys
+
+### Deploy State
+
+Maintain `/logs/deploy-state.md`:
+```
+Last deployed: 2026-03-17T12:00:00Z
+Version: v2.9.0
+Commit: abc123
+Target: vps (dialog.travel)
+Status: healthy
+Health check: 200 OK
+```
+
+### Safety Rails
+
+- Never deploy without a passing build
+- Gauntlet checkpoint before first deploy of a campaign
+- Preview deploy (staging) before production if target supports it
+- Rollback on health check failure
+- Deploy log with timestamps for audit
+- The existing Danger Room deploy panel + drift detector (v13.0/v13.1) will show live deploy status
+
+### Campaign Missions
+
+| # | Mission | Scope |
+|---|---------|-------|
+| 1 | Deploy engine | Target detection, strategy selection, SSH/API deploy executors, health check, rollback |
+| 2 | Campaign integration | Auto-deploy at campaign end, `/git --deploy` flag, deploy-state.md |
+| 3 | Danger Room integration | Wire deploy panel to live deploy state, drift detector uses deploy-state.md |
+| 4 | Victory Gauntlet | Full gauntlet on deploy infrastructure — security focus on SSH/credential handling |
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `.claude/commands/deploy.md` | New — `/deploy` command definition |
+| `docs/methods/DEVOPS_ENGINEER.md` | Add deploy automation section |
+| `docs/methods/CAMPAIGN.md` | Add deploy step to Step 5 (after commit) |
+| `docs/methods/RELEASE_MANAGER.md` | Add `/git --deploy` flag |
+| `wizard/lib/deploy-engine.ts` | New — target detection, strategy execution, health check, rollback |
+| `wizard/api/deploy.ts` | Extend with deploy-engine integration |
+| `CLAUDE.md` | Add `/deploy` to slash command table |
+
+### Estimated effort
+2-3 sessions (3 missions + Victory Gauntlet). Wizard + methodology. MAJOR version bump — new command, new agent capabilities, campaign protocol change.
 
 ---
 

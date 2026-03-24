@@ -11,6 +11,19 @@ Reference implementations for common code structures. These show the **shape and
 | Error Handling | `error-handling.ts` | Canonical error strategy | Next.js + Express + Django + Rails |
 | Job Queue | `job-queue.ts` | Background jobs, async work | BullMQ + Celery + Sidekiq |
 | Multi-Tenant | `multi-tenant.ts` | Workspace/org scoping | Next.js + Django + Rails |
+| Third-Party Script | `third-party-script.ts` | Loading external scripts (3 states) | Browser |
+| Mobile Screen | `mobile-screen.tsx` | React Native screen with safe area, a11y | React Native |
+| Mobile Service | `mobile-service.ts` | Offline-first data with sync queue | React Native |
+| Game Loop | `game-loop.ts` | Fixed timestep with interpolation | Phaser/Three.js/Pixi |
+| Game State | `game-state.ts` | Hierarchical state machine with save/load | Any game engine |
+| Game Entity | `game-entity.ts` | Entity Component System | Any game engine |
+| SSE Endpoint | `sse-endpoint.ts` | Server-Sent Events with lifecycle | Express/FastAPI/Django |
+| Ad Platform Adapter | `ad-platform-adapter.ts` | Split setup/runtime/readonly interfaces | Google/Meta/LinkedIn/Twitter |
+| Financial Transaction | `financial-transaction.ts` | Branded Cents, hash-chained log, atomic writes | Any |
+| Daemon Process | `daemon-process.ts` | PID management, Unix socket, signal handling | Node.js |
+| Revenue Source Adapter | `revenue-source-adapter.ts` | Read-only revenue interface | Stripe/Paddle |
+| OAuth Token Lifecycle | `oauth-token-lifecycle.ts` | Refresh at 80% TTL, vault integration | Any OAuth provider |
+| Outbound Rate Limiter | `outbound-rate-limiter.ts` | Safety margins, daily quotas, retry logic | Any API client |
 
 ## How to Use
 
