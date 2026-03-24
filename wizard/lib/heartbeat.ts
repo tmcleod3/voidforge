@@ -69,11 +69,15 @@ async function handleRequest(
     return { status: 401, body: { ok: false, error: 'Session token required' } };
   }
 
-  // SEC-001 + R4-MAUL-001: Verify vault password with constant-time comparison
+  // SEC-001 + R4-MAUL-001: Verify vault password with HMAC comparison (constant-time
+  // regardless of input length — no length leak unlike timingSafeEqual's length check)
   let vaultVerified = false;
-  if (auth.vaultPassword && vaultKey && auth.vaultPassword.length === vaultKey.length) {
-    const { timingSafeEqual } = await import('node:crypto');
-    vaultVerified = timingSafeEqual(Buffer.from(auth.vaultPassword), Buffer.from(vaultKey));
+  if (auth.vaultPassword && vaultKey) {
+    const { createHmac, timingSafeEqual } = await import('node:crypto');
+    const HMAC_KEY = 'voidforge-vault-password-comparison-v1';
+    const providedMac = createHmac('sha256', HMAC_KEY).update(auth.vaultPassword).digest();
+    const expectedMac = createHmac('sha256', HMAC_KEY).update(vaultKey).digest();
+    vaultVerified = timingSafeEqual(providedMac, expectedMac);
   }
 
   // SEC-001: Verify TOTP code (not just presence)
@@ -309,7 +313,8 @@ async function readTreasurySummary(): Promise<unknown> {
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as { amountCents?: number };
-          totalSpendCents += entry.amountCents ?? 0;
+          // Clamp negative values — spend should never be negative
+          totalSpendCents += Math.max(0, entry.amountCents ?? 0);
         } catch { /* skip malformed lines */ }
       }
     }

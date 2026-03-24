@@ -209,7 +209,8 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as { amountCents?: number };
-          totalSpendCents += entry.amountCents ?? 0;
+          // Clamp negative values — spend should never be negative
+          totalSpendCents += Math.max(0, entry.amountCents ?? 0);
         } catch { /* skip malformed lines */ }
       }
     }

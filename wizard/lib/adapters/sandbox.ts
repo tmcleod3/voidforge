@@ -125,9 +125,19 @@ export class SandboxAdapter implements AdPlatformAdapter {
   async getSpend(dateRange: { start: string; end: string }): Promise<SpendReport> {
     // Generate realistic spend data based on active campaigns
     const activeCampaigns = [...campaigns.values()].filter(c => c.status === 'active');
-    const dayCount = Math.max(1, Math.ceil(
+    const dayCount = Math.ceil(
       (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) / (24 * 60 * 60 * 1000)
-    ));
+    );
+
+    // Invalid date range (end before start) — return empty result
+    if (dayCount <= 0) {
+      return {
+        platform: 'meta',
+        dateRange,
+        totalSpend: toCents(0),
+        campaigns: [],
+      };
+    }
 
     const campaignSpend = activeCampaigns.map(c => {
       // Simulate realistic daily spend (~70-95% of budget)

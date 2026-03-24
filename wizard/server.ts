@@ -285,6 +285,9 @@ export async function checkNativeModulesChanged(): Promise<boolean> {
   return false;
 }
 
+// Module-level reference to IPv6 loopback proxy so shutdown() can close it
+let ipv6Proxy: import('node:net').Server | null = null;
+
 export function startServer(port: number, options?: { remote?: boolean; lan?: boolean; host?: string }): Promise<void> {
   setServerPort(port);
   if (options?.remote) {
@@ -390,7 +393,7 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
       if (!isRemoteMode() && !isLanMode()) {
         try {
           const net = await import('node:net');
-          const ipv6Proxy = net.createServer((socket) => {
+          ipv6Proxy = net.createServer((socket) => {
             const upstream = net.connect({ port, host: '127.0.0.1' });
             socket.pipe(upstream);
             upstream.pipe(socket);
@@ -415,6 +418,7 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
       closeDangerRoom();
       closeWarRoom();
       killAllSessions?.();
+      if (ipv6Proxy) { ipv6Proxy.close(); ipv6Proxy = null; }
       server.close(() => process.exit(0));
       setTimeout(() => process.exit(0), 2000);
     };

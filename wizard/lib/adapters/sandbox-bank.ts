@@ -31,9 +31,18 @@ export class SandboxBankAdapter implements RevenueSourceAdapter {
 
   async getTransactions(dateRange: DateRange, cursor?: string): Promise<TransactionPage> {
     // Generate realistic transaction data
-    const dayCount = Math.max(1, Math.ceil(
+    const dayCount = Math.ceil(
       (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) / (24 * 60 * 60 * 1000)
-    ));
+    );
+
+    // Invalid date range (end before start) — return empty result
+    if (dayCount <= 0) {
+      return {
+        transactions: [],
+        hasMore: false,
+        cursor: undefined,
+      };
+    }
 
     const transactions: TransactionPage['transactions'] = [];
 
