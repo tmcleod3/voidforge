@@ -82,7 +82,9 @@ This catches what static analysis misses: IPv6 binding, native module ABI compat
 - Nightwing (DC) — full regression
 - Samwise (Tolkien) — final a11y
 - Padmé (Star Wars) — critical path functional verification
-- Troi (Star Trek) — PRD compliance (prose-level)
+- Troi (Star Trek) — PRD compliance (prose-level) + **CLAUDE.md verification**: every slash command in the table has a `.claude/commands/*.md` file, every agent in the team table has a naming registry entry, every doc in the reference table exists at the stated path. (Field report #108: `/dangerroom` listed but no command file existed for 30 versions.)
+
+**Pattern auth completeness check (Kenobi, during Rounds 2-3):** When a pattern file defines an authentication flow, verify the auth checks perform actual value verification (compare against expected, call verify functions) — not just presence checks (`!!header`, `Boolean()`). Flag `!!` or truthiness checks on auth-related headers as suspicious. (Field report #109: daemon socket auth used `!!vaultHeader` which passed for any non-empty string.)
 
 **Total: 30+ unique agent deployments across 5 rounds.**
 
@@ -112,6 +114,8 @@ Fix batches happen between rounds:
 
 **Dimension 3 — Mutation parity:** Identify all routes/endpoints that mutate the same data. When fixing a safety mechanism (locking, transactions, version sync) in one mutation path, verify ALL other paths that write to the same table/store use identical mechanisms. (Field report #102: inline-edit route was missing optimistic locking, default version sync, and transactions that the chat service had — three rounds found three separate gaps in the same file.)
 
+**Dimension 4 — Output verification:** After modifying any function that produces output sent to clients or external APIs, verify the fix against 3+ samples of real output data. A pattern that passes logic review may fail on actual output keys. Specifically: if adding keyword filters (blocklists, sanitizers), test against the known output schema to check for false positives before applying. (Field report #148: secret stripping `_url`/`_uri` wildcards deleted `DEPLOY_URL`, `S3_WEBSITE_URL`, `CF_PROJECT_URL` from SSE output — caught by Council but cost an extra round.)
+
 **Concrete examples of sibling patterns to grep:**
 - Same ARIA attribute value in the same file (e.g., `role="option"` → grep for `"option"` in that file)
 - Same endpoint pattern in sibling router files (e.g., fixed `/api/trips/:id` → check `/api/places/:id`, `/api/bookings/:id`)
@@ -132,7 +136,9 @@ Fix batches happen between rounds:
 
 **Commit per fix batch:** After each fix batch, create a separate commit. This enables surgical revert if a fix introduces a regression — one 43-file commit is impossible to partially revert.
 
-**Real data smoke test:** For fixes that modify data transformation, sanitization, or rendering, test against actual project data (not just unit tests). If the project has AI-generated content, test with real LLM output. Unit tests pass ≠ production works.
+**Real data smoke test:** For fixes that modify data transformation, sanitization, or rendering, test against actual project data (not just unit tests). If the project has AI-generated content, test with real LLM output. Unit tests pass ≠ production works. **Security scanner mandatory:** When modifying security filters (isSafeForVM, sanitizeJsx, content validators), MUST compile 3+ real AI-generated files through the full pipeline and verify the output is correct. Security scanner false positives silently break production. This is not optional. (Field report #121: broad regex in isSafeForVM matched legitimate content, silently degrading all sites to client-side Babel fallback.)
+
+**Pass 2 false-positive severity:** When Pass 2 identifies a potential false-positive in a security pattern added during Pass 1, classify as **Must Fix**, not Medium. A false positive in a security scanner is functionally a regression — it degrades working features. Do not defer with "monitor in production" unless a monitoring mechanism actually exists and is configured. (Field report #121)
 
 ## Finding Format
 
