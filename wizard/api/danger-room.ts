@@ -180,7 +180,36 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
 });
 
 addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, { ok: true, message: 'Freeze command sent to daemon' });
+  // v17.0: Wire to daemon Unix socket instead of returning fake success.
+  try {
+    const net = await import('node:net');
+    const { SOCKET_PATH } = await import('../lib/daemon-core.js');
+    const { existsSync } = await import('node:fs');
+
+    if (!existsSync(SOCKET_PATH)) {
+      sendJson(res, 503, { ok: false, error: 'Heartbeat daemon not running. Start with: voidforge heartbeat start' });
+      return;
+    }
+
+    const response = await new Promise<string>((resolve, reject) => {
+      const socket = net.connect(SOCKET_PATH);
+      let data = '';
+      socket.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+      socket.on('end', () => resolve(data));
+      socket.on('error', (err: Error) => reject(err));
+      socket.setTimeout(5000, () => { socket.destroy(); reject(new Error('Daemon socket timeout')); });
+      socket.write('POST /freeze HTTP/1.0\r\nContent-Length: 0\r\n\r\n');
+    });
+
+    // Parse daemon response — expects JSON body after HTTP headers
+    const bodyStart = response.indexOf('\r\n\r\n');
+    const body = bodyStart >= 0 ? response.slice(bodyStart + 4) : response;
+    const parsed = JSON.parse(body) as { ok: boolean; message?: string };
+    sendJson(res, parsed.ok ? 200 : 500, parsed);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to contact daemon';
+    sendJson(res, 503, { ok: false, error: `Daemon communication failed: ${message}` });
+  }
 });
 
 // ── Deep Current endpoints (v12.x) ─────────────────

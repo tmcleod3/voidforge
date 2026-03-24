@@ -57,14 +57,9 @@ addRoute('POST', '/api/auth/setup', async (req: IncomingMessage, res: ServerResp
   }
 
   try {
-    // createUser is serialized — the hasUsers check inside it is atomic with creation.
-    // This prevents the TOCTOU race where two concurrent setup requests both pass hasUsers().
-    const existing = await hasUsers();
-    if (existing) {
-      sendJson(res, 409, { success: false, error: 'Admin user already exists' });
-      return;
-    }
-
+    // v17.0: Removed outer hasUsers() check — it was a TOCTOU race.
+    // createUser() has its own serialized hasUsers check that is atomic with creation.
+    // Two concurrent requests will serialize: the first creates, the second gets "already taken".
     const { totpSecret, totpUri } = await createUser(username.trim(), password);
     await audit('user_create', ip, username.trim(), { action: 'initial_setup' });
     sendJson(res, 201, {

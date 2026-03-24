@@ -105,8 +105,7 @@ function httpsGet(hostname: string, path: string, headers: Record<string, string
 }
 
 async function validateAws(accessKeyId: string, secretKey: string, region: string): Promise<{ valid: boolean; error?: string; identity?: string }> {
-  // AWS STS GetCallerIdentity with Signature V4 is complex without SDK.
-  // Instead, validate format and store — Phase 3 will do the real STS call with @aws-sdk.
+  // Format validation first
   if (!accessKeyId.startsWith('AKIA') || accessKeyId.length < 16) {
     return { valid: false, error: 'Access Key ID should start with AKIA and be at least 16 characters' };
   }
@@ -117,7 +116,24 @@ async function validateAws(accessKeyId: string, secretKey: string, region: strin
   if (region && !validRegions.includes(region)) {
     return { valid: false, error: `Unknown region "${region}". Common regions: us-east-1, us-west-2, eu-west-1` };
   }
-  return { valid: true };
+
+  // v17.0: Real STS validation — call GetCallerIdentity (zero-permission call that validates credentials)
+  try {
+    const { STSClient, GetCallerIdentityCommand } = await import('@aws-sdk/client-sts');
+    const sts = new STSClient({
+      region: region || 'us-east-1',
+      credentials: { accessKeyId, secretAccessKey: secretKey },
+    });
+    const identity = await sts.send(new GetCallerIdentityCommand({}));
+    return { valid: true, identity: identity.Arn ?? identity.Account ?? 'Verified' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'AWS credential validation failed';
+    if (message.includes('not authorized') || message.includes('InvalidClientTokenId') || message.includes('SignatureDoesNotMatch')) {
+      return { valid: false, error: `Invalid AWS credentials: ${message}` };
+    }
+    // Network errors — credentials might be valid but can't reach AWS
+    return { valid: false, error: `Could not reach AWS to validate: ${message}` };
+  }
 }
 
 async function validateVercel(token: string): Promise<{ valid: boolean; error?: string; identity?: string }> {
