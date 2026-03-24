@@ -15,6 +15,7 @@ export { TwitterSetup, TwitterAdapter } from './twitter.js';
 export { RedditSetup, RedditAdapter } from './reddit.js';
 export { SandboxSetup, SandboxAdapter } from './sandbox.js';
 export { SandboxBankAdapter } from './sandbox-bank.js';
+export { StripeAdapter } from './stripe.js';
 
 export type { AdPlatform } from './types.js';
 
