@@ -164,10 +164,16 @@ addRoute('GET', '/api/danger-room/drift', async (_req: IncomingMessage, res: Ser
 // ── Danger Room-specific endpoints ───────────────
 
 addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res: ServerResponse) => {
-  const treasuryVaultPath = join(homedir(), '.voidforge', 'treasury', 'vault.enc');
-  const heartbeatJsonPath = join(homedir(), '.voidforge', 'heartbeat.json');
+  const voidforgeDir = join(homedir(), '.voidforge');
+  const treasuryDir = join(voidforgeDir, 'treasury');
+  const treasuryVaultPath = join(treasuryDir, 'vault.enc');
+  const heartbeatJsonPath = join(voidforgeDir, 'heartbeat.json');
   let cultivationInstalled = false;
   let heartbeatData = null;
+  let campaigns: unknown[] = [];
+  let treasury: { revenue: number; spend: number; net: number; roas: number; budgetRemaining: number } = {
+    revenue: 0, spend: 0, net: 0, roas: 0, budgetRemaining: 0,
+  };
 
   try {
     // existsSync imported statically at top (Infinity Gauntlet ARCH-009)
@@ -176,7 +182,65 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
     if (raw) heartbeatData = JSON.parse(raw);
   } catch { /* no heartbeat data */ }
 
-  sendJson(res, 200, { cultivationInstalled, heartbeat: heartbeatData });
+  // Read campaigns from treasury/campaigns directory (mirrors heartbeat.ts readCampaigns)
+  try {
+    const campaignsDir = join(treasuryDir, 'campaigns');
+    if (existsSync(campaignsDir)) {
+      const files = await readdir(campaignsDir);
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+        try {
+          const content = await readFile(join(campaignsDir, file), 'utf-8');
+          campaigns.push(JSON.parse(content));
+        } catch { /* skip malformed campaign files */ }
+      }
+    }
+  } catch { /* no campaigns directory */ }
+
+  // Read treasury summary from spend/revenue logs (mirrors heartbeat.ts readTreasurySummary)
+  try {
+    const spendLog = join(treasuryDir, 'spend-log.jsonl');
+    const revenueLog = join(treasuryDir, 'revenue-log.jsonl');
+    let totalSpendCents = 0;
+    let totalRevenueCents = 0;
+
+    if (existsSync(spendLog)) {
+      const lines = (await readFile(spendLog, 'utf-8')).trim().split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as { amountCents?: number };
+          totalSpendCents += entry.amountCents ?? 0;
+        } catch { /* skip malformed lines */ }
+      }
+    }
+
+    if (existsSync(revenueLog)) {
+      const lines = (await readFile(revenueLog, 'utf-8')).trim().split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as { amountCents?: number };
+          totalRevenueCents += entry.amountCents ?? 0;
+        } catch { /* skip malformed lines */ }
+      }
+    }
+
+    const net = totalRevenueCents - totalSpendCents;
+    const roas = totalSpendCents > 0 ? totalRevenueCents / totalSpendCents : 0;
+
+    // Read budget if available
+    let budgetRemaining = 0;
+    const budgetsFile = join(treasuryDir, 'budgets.json');
+    if (existsSync(budgetsFile)) {
+      try {
+        const budgetData = JSON.parse(await readFile(budgetsFile, 'utf-8')) as { totalBudgetCents?: number };
+        budgetRemaining = (budgetData.totalBudgetCents ?? 0) - totalSpendCents;
+      } catch { /* skip malformed budgets */ }
+    }
+
+    treasury = { revenue: totalRevenueCents, spend: totalSpendCents, net, roas, budgetRemaining };
+  } catch { /* no treasury data */ }
+
+  sendJson(res, 200, { cultivationInstalled, heartbeat: heartbeatData, campaigns, treasury });
 });
 
 addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
