@@ -24,7 +24,7 @@
 
 ### What VoidForge Is
 
-VoidForge is a **methodology framework** for building full-stack applications with Claude Code. It's not a code template — it's a *process* template. Drop in a Product Requirements Document, and a named team of 170+ AI agents across 7 fictional universes builds your application through a 13-phase protocol.
+VoidForge is a **methodology framework** for building full-stack applications with Claude Code. It's not a code template — it's a *process* template. Drop in a Product Requirements Document, and a named team of 247 AI agents across 8 fictional universes builds your application through a 13-phase protocol.
 
 **From nothing, everything.**
 
@@ -47,7 +47,7 @@ npm run wizard
 **Best for:** Users who want the guided experience. Gandalf walks you through setup, Haku handles deployment. After creation, Avengers Tower gives you a full terminal in the browser — type `/build`, `/campaign`, SSH to production, all from one tab. The Lobby shows all your projects. The Penthouse adds team access.
 
 #### Scaffold (`scaffold` branch)
-The methodology without the tooling. CLAUDE.md, all 17 slash commands, all agent protocols, all code patterns, project scaffolding script. No wizard, no npm dependencies, no TypeScript compilation.
+The methodology without the tooling. CLAUDE.md, all 25 slash commands, all agent protocols, all code patterns, project scaffolding script. No wizard, no npm dependencies, no TypeScript compilation.
 
 ```bash
 mkdir my-app && cd my-app
@@ -60,7 +60,7 @@ git clone --branch scaffold https://github.com/tmcleod3/voidforge.git .
 **Best for:** Developers who know what they're doing and want to skip the wizard. You manage your own infrastructure. VoidForge manages your build process.
 
 #### Core (`core` branch)
-The lightest possible version. CLAUDE.md, all 17 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
+The lightest possible version. CLAUDE.md, all 25 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
 
 ```bash
 # Option A: Drop into an existing project
@@ -77,11 +77,11 @@ cp -r /tmp/vf/.claude /tmp/vf/CLAUDE.md /tmp/vf/docs your-project/
 
 Every tier includes:
 - **CLAUDE.md** — Root context loaded at every session start
-- **17 slash commands** — `/prd`, `/build`, `/qa`, `/test`, `/security`, `/ux`, `/review`, `/devops`, `/architect`, `/git`, `/void`, `/thumper`, `/assemble`, `/campaign`, `/imagine`, `/debrief`, `/gauntlet`
+- **25 slash commands** — `/prd`, `/build`, `/qa`, `/test`, `/security`, `/ux`, `/review`, `/deploy`, `/devops`, `/architect`, `/assess`, `/git`, `/void`, `/thumper`, `/assemble`, `/gauntlet`, `/campaign`, `/imagine`, `/debrief`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`
 - **13-phase build protocol** — PRD to production with verification gates
-- **14 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
-- **170+ named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, and Anime
-- **13 code patterns** — Reference implementations with framework adaptations
+- **17 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
+- **247 named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, Anime, and Cosmere
+- **20 code patterns** — Reference implementations with framework adaptations
 - **Meta-Workflow** — How VoidForge uses itself to develop itself (`docs/META_WORKFLOW.md`)
 - **This Holocron** — The guide you're reading now
 
@@ -270,7 +270,7 @@ Long builds span multiple Claude Code sessions. The build journal system handles
 
 ### How the Agent System Works
 
-VoidForge uses 14 lead agents across 7 fictional universes, each commanding a roster of themed sub-agents. This isn't decoration — it serves three purposes:
+VoidForge uses 17 lead agents across 8 fictional universes, each commanding a roster of themed sub-agents. This isn't decoration — it serves three purposes:
 
 1. **Scope boundaries.** When Stark is leading, you're doing backend work. When Galadriel takes over, you're doing frontend. The character tells you which domain you're in.
 2. **Scannable logs.** Build journal entries tagged with agent names are instantly searchable. "What did Batman find?" is faster than "What happened during QA?"
@@ -294,6 +294,9 @@ VoidForge uses 14 lead agents across 7 fictional universes, each commanding a ro
 | Campaign Command | **Sisko** | Star Trek | PRD-to-product campaign, mission sequencing | The builder, the prophet, the war commander. Reads the plan, picks the next fight. |
 | Forge Artist | **Celebrimbor** | Lord of the Rings | AI image generation from PRD descriptions | Hand of Silver. Greatest elven smith. Forges visual assets from prose. |
 | Field Medic | **Bashir** | Star Trek | Post-mortem analysis, upstream feedback | Genetically enhanced diagnostician. Traces root causes, sends field reports to Starfleet. |
+| Growth Strategist | **Kelsier** | Cosmere | Growth strategy, campaign orchestration, ad platforms, SEO | The Survivor. Burns metals to fuel growth. Always has another plan. |
+| Deep Current | **Tuvok** | Star Trek | Autonomous campaign intelligence — scan, analyze, propose | Vulcan logic applied to market signals. Processes data without emotional bias. |
+| Treasury | **Dockson** | Cosmere | Revenue ingest, budget allocation, spend execution | The crew's bookkeeper. Every boxing tracks, every ledger balances. |
 
 ### Sub-Agent Highlights
 
@@ -348,7 +351,7 @@ Each lead has a deep bench. Here are some standouts:
 - **Idaho** keeps the connection alive — the eternal ghola who always returns
 - **Thufir** parses every signal — Mentat precision, a million calculations per second
 
-The full roster of 170+ characters lives in `docs/NAMING_REGISTRY.md`.
+The full roster of 247 characters lives in `docs/NAMING_REGISTRY.md`.
 
 ### How Handoffs Work
 
@@ -377,7 +380,7 @@ When agents disagree (security vs. simplicity, architecture vs. implementation c
 
 ### Slash Commands
 
-Seventeen commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
+Twenty-five commands, each self-contained with inline execution steps. You don't need to read method docs first — the commands load what they need.
 
 #### `/prd` — Sisko's PRD Generator
 **When:** Starting a new project and you need a PRD. Or when the existing PRD needs a rewrite.
@@ -456,7 +459,7 @@ Setup: `/thumper setup` (one-time). Control: `/thumper on` / `/thumper off` / `/
 
 Fury assembles every agent in VoidForge and runs the complete pipeline: architecture review, full build, three rounds of code review, UX pass, two rounds of security audit, infrastructure review, QA, and test suite — then the Crossfire (adversarial agents from four universes attack each other's work) and the Council (domain specialists verify nobody broke anyone else's fixes).
 
-13 phases, all 7 universes, 40+ agents. Checkpoints after every phase so you can resume across sessions with `/assemble --resume`. Skip the build with `--skip-build` to re-run reviews on existing code. Skip the Crossfire and Council with `--fast` for lower-stakes projects.
+13 phases, all 8 universes, 40+ agents. Checkpoints after every phase so you can resume across sessions with `/assemble --resume`. Skip the build with `--skip-build` to re-run reviews on existing code. Skip the Crossfire and Council with `--fast` for lower-stakes projects.
 
 This is the nuclear option. Use it when quality is non-negotiable.
 
@@ -504,13 +507,65 @@ The feedback loop: `/void` (Bombadil) pulls updates DOWN from upstream. `/debrie
 
 Flags: `--submit` (create GitHub issue after review), `--campaign` (full campaign analysis), `--session` (just this session), `--dry-run` (generate without submitting).
 
+#### `/deploy` — Kusanagi's Deploy Agent
+**When:** You want to push code to production with health checks and rollback.
+
+Kusanagi detects your deploy target from PRD frontmatter or project structure, runs pre-flight checks, deploys, verifies health, and rolls back automatically if the health check fails. Integrates with `/campaign` for auto-deploy at mission victory.
+
+Flags: `--target <name>` (override detection), `--dry-run` (pre-flight only), `--rollback` (revert last deploy).
+
+#### `/assess` — Picard's Pre-Build Assessment
+**When:** Evaluating an existing codebase before building on it. Or when joining a project mid-stream.
+
+Picard runs an architecture review, pattern compliance check, and assessment gauntlet against the existing code. Produces a gap analysis comparing what exists against the PRD. Identifies tech debt, missing patterns, security gaps, and build readiness. Output: a structured assessment report with prioritized action items.
+
+Flags: `--quick` (architecture only), `--full` (all domains), `--prd` (gap analysis against PRD).
+
+#### `/dangerroom` — The Danger Room
+**When:** You want a live operations dashboard for build, deploy, and agent monitoring.
+
+An installable operations console (X-Men's Danger Room) that provides real-time visibility into build phases, deploy status, agent activity, and system health. Browser-based dashboard with SSE streaming.
+
+#### `/cultivation` — Cultivation Engine
+**When:** You want autonomous growth infrastructure — marketing, ads, creative, A/B testing, spend optimization.
+
+An installable autonomous growth engine inspired by Cosmere's Cultivation Shard. Manages marketing campaigns, ad platform integrations, creative generation, A/B testing, and spend optimization. Works with `/grow` for execution.
+
+#### `/grow` — Kelsier's Growth Protocol
+**When:** Running growth campaigns — initial setup within Cultivation, then autonomous loop.
+
+Kelsier's 6-phase growth protocol: audience analysis, channel selection, creative generation, campaign launch, performance monitoring, and optimization. Runs within the Cultivation engine. Each phase burns a different Allomantic metal.
+
+Flags: `--phase <n>` (jump to phase), `--channel <name>` (specific channel), `--budget <amount>` (set spend cap).
+
+#### `/current` — Tuvok's Deep Current
+**When:** You want autonomous campaign intelligence — scanning, analysis, proposals, cold start intake.
+
+Tuvok runs continuous market intelligence: scans competitor sites, analyzes campaign performance, proposes optimizations, and handles cold start intake for new markets. Vulcan logic applied to growth data.
+
+Flags: `--scan` (run scan cycle), `--analyze` (deep analysis), `--propose` (generate proposals), `--intake` (cold start for new market).
+
+#### `/treasury` — Dockson's Financial Operations
+**When:** Managing revenue, budgets, spend execution, and reconciliation.
+
+Dockson tracks every boxing. Revenue ingest from payment providers (Stripe, Paddle), budget allocation across campaigns, spend execution with approval gates, and reconciliation to ensure the books balance. Integrates with `/cultivation` for spend tracking.
+
+Flags: `--ingest` (pull revenue data), `--allocate` (set budgets), `--reconcile` (balance check), `--report` (financial summary).
+
+#### `/portfolio` — Steris's Cross-Project Financials
+**When:** Managing finances across multiple VoidForge projects.
+
+Steris aggregates spend and revenue across all projects in your VoidForge portfolio. Portfolio-level optimization, cross-project budget reallocation, and consolidated reporting.
+
+Flags: `--summary` (overview), `--optimize` (reallocation suggestions), `--export` (CSV/JSON).
+
 ---
 
 ## 6. The Craft
 
 ### Code Patterns
 
-Thirteen reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, FastAPI, and Rails. Mobile and game patterns added in v9.2-v9.3.
+Twenty reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, FastAPI, and Rails. Mobile and game patterns added in v9.2-v9.3. Financial, daemon, SSE, ad platform, and OAuth patterns added in v11-v15.
 
 | Pattern | File | What It Teaches |
 |---------|------|----------------|
@@ -527,6 +582,13 @@ Thirteen reference implementations live in `docs/patterns/`. Every pattern inclu
 | **Game Loop** | `game-loop.ts` | Fixed timestep with interpolation, pause/resume, frame budget |
 | **Game State** | `game-state.ts` | Hierarchical state machine with history, save/load |
 | **Game Entity** | `game-entity.ts` | Entity Component System with component stores and systems |
+| **SSE Endpoint** | `sse-endpoint.ts` | Server-Sent Events: lifecycle, keepalive, timeout, React hook (+ FastAPI, Django) |
+| **Ad Platform Adapter** | `ad-platform-adapter.ts` | Split interface: setup (interactive) + adapter (runtime) + read-only (daemon) |
+| **Financial Transaction** | `financial-transaction.ts` | Branded Cents type, hash-chained append log, atomic writes, number formatting |
+| **Daemon Process** | `daemon-process.ts` | PID management, Unix socket API, job scheduler, signal handling, sleep/wake recovery |
+| **Revenue Source Adapter** | `revenue-source-adapter.ts` | Read-only revenue interface with Stripe + Paddle reference implementations |
+| **OAuth Token Lifecycle** | `oauth-token-lifecycle.ts` | Refresh at 80% TTL, failure escalation, vault integration, session token rotation |
+| **Outbound Rate Limiter** | `outbound-rate-limiter.ts` | Token bucket with backpressure, per-provider limits, retry-after handling |
 
 ### Coding Standards
 
