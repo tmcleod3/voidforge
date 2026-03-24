@@ -2,10 +2,10 @@
 
 > The plan for the plan-maker.
 
-**Current:** v17.0.0 (2026-03-24)
-**Next:** v17.1 — The Gauntlet Cleanup (polish + type safety + test gaps)
-**Status:** v17.0 shipped. No Stubs Doctrine enforced. Cultivation functional.
-**167 tests**, 9 universes, 260+ agents, 26 slash commands, 30 code patterns.
+**Current:** v17.1.0 (2026-03-24)
+**Next:** Reassessment gate → determines v18.0 direction
+**Status:** v17.1 shipped. Gauntlet cleanup complete. TypeScript 0 errors. 193 tests.
+**193 tests**, 9 universes, 260+ agents, 26 slash commands, 30 code patterns.
 
 ---
 
