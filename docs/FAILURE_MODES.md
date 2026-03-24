@@ -1,7 +1,7 @@
 # VoidForge — Failure Mode Analysis
 
-**Version:** 8.0.0
-**Last reviewed:** 2026-03-16
+**Version:** 15.2.1
+**Last reviewed:** 2026-03-23
 
 ## Summary
 
@@ -17,6 +17,16 @@
 | Tower vault lock | Server restart clears in-memory password | Yes (inline unlock form) | — |
 | Thumper | Bot token invalid or webhook timeout | Partial (clear errors) | No auto-recovery |
 | Native modules | npm install changes .node while server runs | Yes (mtime detection + restart banner) | — |
+| Vault brute-force | Attacker guesses vault password | Yes (rate limit: 5/min, lockout after 10) | — |
+| Vault idle exposure | Vault stays unlocked indefinitely | Yes (auto-lock after 15 min idle) | — |
+| TOTP clock skew | System clock jump locks user out | Yes (prune usedCodes when drift > ±3 steps) | — |
+| Deploy SSH failure | SSH deploy fails mid-transfer | Yes (rollback via release-directory pattern) | — |
+| Danger Room WS | Dashboard WebSocket disconnects | Yes (reconnection with retry ceiling) | — |
+| Financial vault | Separate encrypted vault for financial data | Yes (scrypt KDF, 12-char minimum) | — |
+| Heartbeat daemon | Background daemon crashes or hangs | Partial (PID management, signal handling) | No auto-restart |
+| Autonomy controller | Kill switch or circuit breaker state lost | Yes (atomic write + serialization) | — |
+| Experiment data | A/B test results lost on crash | Yes (serialized queue + fsync) | — |
+| SSH security group | SSH open to internet after provision | Yes (restricted to deployer IP post-provision) | Non-fatal fallback |
 
 ## Detailed Analysis
 
@@ -134,3 +144,47 @@ GCM auth tag will detect corruption. Same recovery as lost password.
 If the restart banner appears in the Lobby:
 1. Click "Restart Now" — server gracefully shuts down and restarts
 2. Or manually: kill the VoidForge process and restart with `npx voidforge init`
+
+## v11.0+ Subsystems (added post-v8.0)
+
+### Vault Security (v15.1)
+
+| Scenario | What Happens | Mitigation |
+|----------|-------------|------------|
+| Brute-force vault password | Attacker rapid-fires unlock attempts | Rate limit: 5/min per IP, 30-min lockout after 10 consecutive failures |
+| Vault left unlocked overnight | Session password in memory indefinitely | Auto-lock after 15 minutes of no vault operations |
+| Terminal HMAC key leaked | Attacker forges terminal auth tokens | Per-boot random 32-byte key — server restart invalidates all tokens |
+| TOTP clock jumps forward then back | Used codes block future valid codes | Prune usedCodes when drift exceeds ±3 steps |
+
+### Deploy Engine (v15.0)
+
+| Scenario | What Happens | Mitigation |
+|----------|-------------|------------|
+| SSH deploy fails mid-rsync | Partial code on server | Release-directory pattern: atomic symlink swap, old release preserved |
+| Health check fails after deploy | New code is broken | Auto-rollback: restore previous release symlink |
+| SSH SG open to internet | Port 22 reachable globally | Post-provision IP restriction via checkip.amazonaws.com |
+
+### Danger Room Dashboard (v10.0+)
+
+| Scenario | What Happens | Mitigation |
+|----------|-------------|------------|
+| WebSocket disconnects | Dashboard shows stale data | Reconnection with exponential backoff, retry ceiling (2 min) |
+| WebSocket never connects | Dashboard uses HTTP polling fallback | 3 polling tiers: 5s (fast), 10s (campaign), 60s (slow) |
+| Agent activity file missing | No live feed in dashboard | Graceful empty state: "Run /campaign to see activity" |
+
+### Financial Vault + Treasury (v11.0+)
+
+| Scenario | What Happens | Mitigation |
+|----------|-------------|------------|
+| Financial vault corruption | Treasury data lost | Atomic write (scrypt + temp + fsync + rename) |
+| Kill switch reset on crash | Autonomy controller loses safety state | Atomic write + serialization queue (LOKI-001 fix) |
+| Spend exceeds budget | Platform charges beyond VoidForge cap | Platform daily cap set 10% below VoidForge hard stop |
+| Ad platform token expires | Campaign pauses with no refresh | Token health monitoring + refresh at 80% TTL |
+
+### Heartbeat Daemon (v11.1+)
+
+| Scenario | What Happens | Mitigation |
+|----------|-------------|------------|
+| Daemon PID stale after crash | Second instance can't start | PID file checked + stale detection (checkStalePid) |
+| SIGTERM during job execution | Job interrupted mid-operation | Signal handler: finish current job, then exit |
+| Laptop sleep during daemon run | Scheduled jobs missed | Sleep/wake detection on resume |
