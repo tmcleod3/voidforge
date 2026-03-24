@@ -231,7 +231,8 @@ The review phases use a double-pass pattern: find → fix → re-verify. This ca
 **Phase 12 — Kusanagi Deploys.**
 1. Execute `/docs/methods/DEVOPS_ENGINEER.md` full sequence
 2. Complete first-deploy pre-flight checklist (see `/devops` command)
-3. Log to `/logs/phase-12-deploy.md`
+3. **Docker smoke test (field report #147):** If the project uses Docker/docker-compose, verify the container entrypoint runs the NEW code, not a legacy file. Run `docker compose up --build` (or equivalent) and confirm the process that starts is the architecture you just built. A 39-mission campaign once shipped with the legacy entrypoint because nobody checked what `CMD` pointed to.
+4. Log to `/logs/phase-12-deploy.md`
 
 ### The Living PRD
 

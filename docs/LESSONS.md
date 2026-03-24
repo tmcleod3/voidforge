@@ -66,12 +66,54 @@
 **Action:** Document this limitation. For true isolation, use containerized environments or non-login shells with `--noprofile --norc`.
 **Promoted to:** Not yet
 
+### NextAuth v5 authorize() throws are wrapped — use side-channel for error reasons
+**Agent:** Batman (DC) | **Category:** gotcha
+**Context:** Kongo.io v3.12 — email verification gate (field report #115)
+**Lesson:** NextAuth v5 beta wraps all errors thrown from `authorize()` into a generic CredentialsSignin error. Custom error messages are lost. Auto-login after signup with verification required triggers duplicate emails. Verification redirects to authenticated routes can create apparent privilege escalation with existing sessions.
+**Action:** Never throw custom errors from authorize() expecting them to reach the client. Use a separate API endpoint for specific error reasons. Never auto-login when email verification is required. Never redirect verification links to authenticated routes.
+**Promoted to:** QA_ENGINEER.md (Nightwing auth flow end-to-end)
+
+### Chat edits are invisible to saved state — JSX is the source of truth
+**Agent:** Stark (Marvel) | **Category:** antipattern
+**Context:** Kongo.io v3.11 — designSystem stale after chat CSS edit (field report #111)
+**Lesson:** When any system stores a "snapshot" of generated output (designSystem, companyBrief), chat edits that modify the underlying JSX/HTML create a divergence. The saved snapshot is stale. Always extract from the current JSX (source of truth) rather than reading saved snapshots.
+**Action:** After chat edits that modify CSS vars or design tokens, extract and re-save the designSystem from the current DOM/JSX. Saved state is a cache, not the authority.
+**Promoted to:** CAMPAIGN.md (data source verification)
+
+### CLAUDE.md is a contract — every claim must have a backing file
+**Agent:** Troi (Star Trek) + Coulson (Marvel) | **Category:** antipattern
+**Context:** VoidForge v10.0-v12.4.0 — /dangerroom listed in CLAUDE.md but no command file existed (field report #108)
+**Lesson:** CLAUDE.md's slash command table, agent table, and docs reference table are contracts with the user. Every entry must have a corresponding file. The /dangerroom command was listed in the table for 30 versions and survived 3 Infinity Gauntlets undetected because no audit step verified table entries against actual files.
+**Action:** (1) /git Step 5.5 now includes a CLAUDE.md command table integrity check. (2) Gauntlet Council Troi now verifies CLAUDE.md claims (commands, agents, docs) against the filesystem.
+**Promoted to:** RELEASE_MANAGER.md (command table integrity check), GAUNTLET.md (Troi CLAUDE.md verification)
+
 ### Infrastructure credentials must survive .env edits
 **Agent:** Kusanagi (DevOps) + Kira (Campaign) | **Category:** antipattern
 **Context:** Dialog Travel Campaign 9 deploy failure (field report #103)
 **Lesson:** SSH_HOST was written to `.env` by the provisioner during initial setup but was lost during subsequent `.env` edits across 9 campaigns. No redundant storage existed for infrastructure credentials. The `rsync --delete` then destroyed 250 VPS-only avatar files, and the recovery attempt cleared 251 DB fields unnecessarily.
 **Action:** (1) Write deploy credentials to BOTH `.env` AND `~/.voidforge/projects.json`. (2) Validate SSH_HOST, SSH_KEY before any deploy. (3) NEVER `rsync --delete` without excluding VPS-only directories. (4) Before any destructive DB operation, check if the data can be restored from backup first.
 **Promoted to:** CAMPAIGN.md (Step 0 credential check), DEVOPS_ENGINEER.md (rsync exclusion + credential pre-flight), TROUBLESHOOTING.md (destructive DB recovery checklist)
+
+### Read the source before re-exporting from it
+**Agent:** Spock (Star Trek) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — proxy module creation for pattern extraction (field report #148)
+**Lesson:** When creating proxy/barrel re-export files, 4 phantom type names were exported that didn't exist in the source module (FinancialRecord, SpendRecord, refreshOAuthToken, checkTokenHealth). The re-exports were written from assumptions about what the pattern files exported, not from reading the actual export statements. TypeScript caught them, but they created noise in the Victory Gauntlet.
+**Action:** ALWAYS `grep '^export' <source-file>` before writing re-export lines. Do not assume what a module exports based on its usage in consumers — consumers may import a subset, and type names may differ.
+**Promoted to:** Not yet
+
+### Read the function before testing it
+**Agent:** Batman (DC) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — test suite creation (field report #148)
+**Lesson:** ~30% of test cases failed on first run when expectations were based on assumed behavior. parseFrontmatter() returns {frontmatter, body} not a flat object. classifyTier threshold is 10000 not 2500. isPrivateIp doesn't cover link-local. Tests written after reading the implementation had <5% first-run failure rate.
+**Action:** Every test case MUST be written after reading the function's implementation. Read signature, return type, and boundary conditions before the first expect().
+**Promoted to:** Not yet
+
+### Numeric context checks — cite the actual percentage
+**Agent:** Sisko (Star Trek) | **Category:** antipattern
+**Context:** VoidForge v15.1 Campaign 17 — blitz mode checkpoint at 27% (field report #148)
+**Lesson:** At 267k/1000k (27%), suggested stopping the blitz. The CAMPAIGN.md rule says only checkpoint above 70%. Self-imposed caution overrode the protocol, costing the user time until they corrected it. The 1M context window allows ~40 agent launches before reaching 70%.
+**Action:** Context checkpoint decisions MUST cite the actual percentage from /context. "Context is heavy" without a number is not valid justification.
+**Promoted to:** Not yet
 
 ### Iframe stacking context defeats z-index
 **Agent:** Galadriel (UX) | **Category:** gotcha
