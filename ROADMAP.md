@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v12.6.4 (2026-03-22)
-**Next:** v13.1 → v14.0 → v15.0
-**Status:** v13.0 shipped. Pipeline: v13.1 Dashboard Polish (1 session) → v14.0 Day-0 Engine (3-4 sessions) → v15.0 Deploy Command (2-3 sessions). Zero open issues.
+**Current:** v15.2.1 (2026-03-23)
+**Status:** All planned versions through v15.2 shipped. v4.0–v15.2 below are historical — completed work, not future plans. Zero open issues.
+**91 tests**, 8 universes, 247 agents, 25 slash commands.
 
 ---
 

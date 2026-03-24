@@ -1,6 +1,6 @@
 # VoidForge — Node.js Compatibility
 
-**Version:** 8.0.0
+**Version:** 15.2.1
 **Engines:** `>=20.11.0 <25.0.0`
 
 ## Tested Versions
@@ -43,9 +43,17 @@ The `engines` field in `package.json` defines the supported Node.js range:
 
 ```json
 "engines": {
-  "node": ">=20.0.0 <25.0.0"
+  "node": ">=20.11.0 <25.0.0"
 }
 ```
+
+### Dev Dependencies (v15.1+)
+
+| Package | Purpose | Required? |
+|---------|---------|-----------|
+| `vitest` | Test framework (91 tests, --pool forks) | Dev only |
+| `tsx` | TypeScript execution (no build step) | Dev only |
+| `typescript` | Type checking (`npm run typecheck`) | Dev only |
 
 **When to update:**
 1. When node-pty and ws both ship prebuilt binaries for a new Node.js major version

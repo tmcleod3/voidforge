@@ -1,38 +1,48 @@
 # VoidForge — Tech Debt Catalog
 
-**Version:** 2.7.0
-**Last reviewed:** 2026-03-12
+**Version:** 15.2.1
+**Last reviewed:** 2026-03-23
 
-## Resolved
+## Resolved (since v2.7.0)
 
-| Item | ADR | Resolved In |
-|------|-----|-------------|
-| No provision crash recovery | ADR-001 | v2.6.0 |
-| Non-atomic vault writes | ADR-002 | v2.6.0 |
-| Unvalidated API responses | ADR-003 | v2.7.0 |
-| No SSE keepalive | ADR-004 | v2.7.0 |
+| Item | Resolved In | How |
+|------|-------------|-----|
+| No provision crash recovery | v2.6.0 | ADR-001: provision manifests |
+| Non-atomic vault writes | v2.6.0 | ADR-002: temp+fsync+rename |
+| Unvalidated API responses | v2.7.0 | ADR-003: response validation |
+| No SSE keepalive | v2.7.0 | ADR-004: keepalive timer |
+| `sendJson` duplicated in 10 API files | v15.1.0 | Consolidated to http-helpers.ts |
+| Fallback model ID stale | v7.6.0 | Updated to claude-sonnet-4-6 |
+| Flat vault namespace | v7.5.0 | `env:` prefix scoping |
+| Native module restart detection | v7.7.0 | Mtime detection + restart banner |
+| Stale PTY session cleanup | v7.6.0 | Auto-cleanup on <2s failure |
+| Provisioner registry duplicated | v15.1.0 | provisioner-registry.ts |
+| tower-auth.ts God module (636 lines) | v15.2.0 | Split into 3 modules (424+149+87) |
+| No vault brute-force protection | v15.1.0 | Rate limiting (5/min, lockout after 10) |
+| Terminal HMAC keyed with vault password | v15.1.0 | Per-boot random 32-byte key |
+| Production code importing from docs/patterns/ | v15.1.0 | 6 proxy modules in wizard/lib/ |
+| experiment.ts no write serialization | v15.1.0 | serialized() queue + fsync |
+| provision-manifest.ts no atomic writes | v15.1.0 | atomicWriteManifest helper |
+| autonomy-controller.ts no atomic writes | v15.1.0 | temp+fsync+rename + serialization |
 
 ## Current
 
 | # | Item | Type | Impact | Effort | Urgency |
 |---|------|------|--------|--------|---------|
-| 1 | No truncated PRD detection | Missing check | Medium — user gets partial PRD without warning | Low | Next release |
-| 2 | No project creation rollback | Missing check | Low — partial directory on disk full/permissions error | Low | Next release |
-| 3 | `sendJson` duplicated in 6 API files | Missing abstraction | Low — maintenance | Low | Low |
-| 4 | `.env` append logic duplicated across provisioners | Missing abstraction | Low — maintenance | Low | Low |
-| 5 | `recordResourceCleaned` defined but never called | Dead code | Low — confusion | Trivial | Low |
-| 6 | Fallback model ID `claude-sonnet-4-5-20241022` | Deferred decision | Low — used only when models API unreachable | Trivial | Check periodically |
-| 7 | Flat vault namespace (no multi-project isolation) | Wrong abstraction | Medium — all projects share credentials | Medium | Later |
-| 8 | No vault schema versioning | Deferred decision | Medium — blocks schema changes | Low | Later |
-| 9 | Raw HTTPS vs AWS SDK inconsistency | Dependency debt | Low — two HTTP patterns to maintain | High | Later |
-| 10 | PBKDF2 vs Argon2id for key derivation | Deferred decision | Low — PBKDF2 is still safe at 100k iterations | Medium | Much later |
-| 11 | Native module updates require manual server restart | Missing capability | High — npm install updates disk but running process keeps old binary in memory. User must manually kill + restart. Terminal shows "Session ended" with no explanation. | Medium | v8.0 |
-| 12 | Stale PTY sessions not cleaned on page reload | Missing cleanup | Medium — old dead sessions count against MAX_SESSIONS limit and show "Session ended" in Tower. No auto-cleanup or "Retry" button. | Low | Next release |
+| 1 | No truncated PRD detection | Missing check | Medium — user gets partial PRD | Low | Low |
+| 2 | No project creation rollback | Missing check | Low — partial directory on error | Low | Low |
+| 3 | `.env` append logic duplicated | Missing abstraction | Low — maintenance | Low | Low |
+| 4 | `recordResourceCleaned` never called | Dead code | Low — confusion | Trivial | Low |
+| 5 | No vault schema versioning | Deferred decision | Medium — blocks schema changes | Low | Later |
+| 6 | Raw HTTPS vs AWS SDK inconsistency | Dependency debt | Low — two HTTP patterns | High | Later |
+| 7 | PBKDF2 100k iterations (vault) vs 210k (auth) | Inconsistency | Low — both safe, but vault is weaker | Low | Later |
+| 8 | heartbeat.ts handlers are stubs | Incomplete feature | Low — returns hardcoded 200 OK | High | When growth features are wired |
+| 9 | 8 ad platform adapters are stubs | Incomplete feature | Low — methods throw "not implemented" | High | When ad platforms are connected |
+| 10 | ARCHITECTURE.md stuck at v8.0.0 | Documentation debt | Medium — misleads contributors | Low | This version |
+| 11 | FAILURE_MODES.md stuck at v8.0.0 | Documentation debt | Medium — missing v11-v15 systems | Low | This version |
 
 ## Recommended Next Actions
 
-1. **#1 — Truncated PRD:** If SSE stream ends without `[DONE]` or content is suspiciously short (<500 chars), show a warning banner.
-2. **#2 — Project rollback:** On creation failure, attempt to delete the partially created directory.
-3. **#5 — Dead code:** Either call `recordResourceCleaned` during cleanup, or remove it.
-4. **#11 — Server auto-restart:** Detect when native modules change on disk (compare mtime of .node files at startup vs current). If mismatch, show banner in Lobby: "VoidForge updated — restart required. [Restart Now]". The restart button calls a server endpoint that executes graceful shutdown + re-exec (kills PTY sessions, then `process.execve()` to replace the process).
-5. **#12 — Stale session cleanup:** Tower `init()` should check if the auto-created session actually connected successfully. If "Session ended" appears within 2 seconds of creation, auto-close the tab and try again once. After 2 failures, show: "Terminal failed to start. The VoidForge server may need to restart." with a link to the Lobby.
+1. **#10, #11** — Documentation refresh is in progress (Campaign 19).
+2. **#7** — Consider raising vault PBKDF2 from 100k to 210k iterations with vault version migration.
+3. **#8, #9** — Leave as stubs until real platform integrations are needed. Testing stubs is waste.
