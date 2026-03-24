@@ -243,15 +243,33 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
   sendJson(res, 200, { cultivationInstalled, heartbeat: heartbeatData, campaigns, treasury });
 });
 
-addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
-  // v17.0: Wire to daemon Unix socket instead of returning fake success.
+addRoute('POST', '/api/danger-room/freeze', async (req: IncomingMessage, res: ServerResponse) => {
+  // VG-R1-002: RBAC — freeze requires 'deployer' role minimum
+  const roleHeader = req.headers['x-voidforge-role'] as string | undefined;
+  const allowedRoles = ['deployer', 'admin', 'owner'];
+  if (!roleHeader || !allowedRoles.includes(roleHeader)) {
+    sendJson(res, 403, { ok: false, error: 'Freeze requires deployer role or higher' });
+    return;
+  }
+
+  // v17.0: Wire to daemon Unix socket with auth token (VG-R1-002).
   try {
     const net = await import('node:net');
-    const { SOCKET_PATH } = await import('../lib/daemon-core.js');
+    const { readFile: fsReadFile } = await import('node:fs/promises');
+    const { SOCKET_PATH, TOKEN_FILE } = await import('../lib/daemon-core.js');
     const { existsSync } = await import('node:fs');
 
     if (!existsSync(SOCKET_PATH)) {
       sendJson(res, 503, { ok: false, error: 'Heartbeat daemon not running. Start with: voidforge heartbeat start' });
+      return;
+    }
+
+    // Read auth token from TOKEN_FILE
+    let authToken = '';
+    try {
+      authToken = (await fsReadFile(TOKEN_FILE, 'utf-8')).trim();
+    } catch {
+      sendJson(res, 503, { ok: false, error: 'Cannot read daemon auth token — heartbeat may not be running' });
       return;
     }
 
@@ -262,7 +280,7 @@ addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: S
       socket.on('end', () => resolve(data));
       socket.on('error', (err: Error) => reject(err));
       socket.setTimeout(5000, () => { socket.destroy(); reject(new Error('Daemon socket timeout')); });
-      socket.write('POST /freeze HTTP/1.0\r\nContent-Length: 0\r\n\r\n');
+      socket.write(`POST /freeze HTTP/1.0\r\nAuthorization: Bearer ${authToken}\r\nContent-Length: 0\r\n\r\n`);
     });
 
     // Parse daemon response — expects JSON body after HTTP headers

@@ -49,6 +49,7 @@ let vaultKey: string | null = null; // Vault password held in memory
 let sessionTokenState: SessionTokenState | null = null;
 let eventId = 0;
 const logger = createLogger(join(VOIDFORGE_DIR, 'heartbeat.log'));
+const daemonStartedAt = new Date().toISOString(); // Store once at module level (VG-R1-001)
 
 // Platform state tracking
 const platformFailures: Record<string, number> = {};
@@ -86,7 +87,7 @@ async function handleRequest(
   // ── Read operations ──────────────────
   if (method === 'GET') {
     if (path === '/status') {
-      return { status: 200, body: { ok: true, data: buildStateSnapshot() } };
+      return { status: 200, body: { ok: true, data: await buildStateSnapshot() } };
     }
     if (path === '/campaigns') {
       return { status: 200, body: { ok: true, data: await readCampaigns() } };
@@ -205,33 +206,49 @@ async function handleUnlock(body: { password?: string }): Promise<{ status: numb
 
 async function handleCampaignPause(id: string): Promise<{ status: number; body: unknown }> {
   logger.log(`Campaign ${id} pause requested`);
-  // In full implementation: call platform adapter pauseCampaign()
+  // VG-R1-006: Return 501 until platform adapters are wired
   eventId++;
-  return { status: 200, body: { ok: true, message: `Campaign ${id} paused` } };
+  return { status: 501, body: { ok: false, error: `Campaign pause requires platform adapters (not yet wired). Campaign: ${id}` } };
 }
 
 async function handleCampaignResume(id: string): Promise<{ status: number; body: unknown }> {
   logger.log(`Campaign ${id} resume requested`);
+  // VG-R1-006: Return 501 until platform adapters are wired
   eventId++;
-  return { status: 200, body: { ok: true, message: `Campaign ${id} resumed` } };
+  return { status: 501, body: { ok: false, error: `Campaign resume requires platform adapters (not yet wired). Campaign: ${id}` } };
 }
 
-async function handleCampaignLaunch(body: unknown): Promise<{ status: number; body: unknown }> {
+async function handleCampaignLaunch(_body: unknown): Promise<{ status: number; body: unknown }> {
   logger.log('Campaign launch requested');
+  // VG-R1-006: Return 501 until platform adapters are wired
   eventId++;
-  return { status: 200, body: { ok: true, message: 'Campaign launch processing' } };
+  return { status: 501, body: { ok: false, error: 'Campaign launch requires platform adapters (not yet wired)' } };
 }
 
-async function handleBudgetChange(body: unknown): Promise<{ status: number; body: unknown }> {
+async function handleBudgetChange(_body: unknown): Promise<{ status: number; body: unknown }> {
   logger.log('Budget change requested');
+  // VG-R1-006: Return 501 until platform adapters are wired
   eventId++;
-  return { status: 200, body: { ok: true, message: 'Budget updated' } };
+  return { status: 501, body: { ok: false, error: 'Budget changes require platform adapters (not yet wired)' } };
 }
 
 async function handleReconcile(): Promise<{ status: number; body: unknown }> {
   logger.log('Manual reconciliation requested');
   eventId++;
-  return { status: 200, body: { ok: true, message: 'Reconciliation started' } };
+  // VG-R1-006: Wire to real reconciliation module
+  try {
+    const { runReconciliation } = await import('./reconciliation.js');
+    const today = new Date().toISOString().slice(0, 10);
+    const hour = new Date().getUTCHours();
+    const type = hour >= 6 ? 'final' : 'preliminary';
+    // Run reconciliation with empty platform reports (manual trigger — platforms queried separately)
+    const report = await runReconciliation('default', today, type, new Map(), new Map());
+    return { status: 200, body: { ok: true, message: `Reconciliation (${type}) completed`, report } };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Reconciliation failed';
+    logger.log(`Reconciliation error: ${message}`);
+    return { status: 500, body: { ok: false, error: `Reconciliation failed: ${message}` } };
+  }
 }
 
 // ── State Management ──────────────────────────────────
@@ -245,7 +262,7 @@ async function buildStateSnapshot(): Promise<HeartbeatState> {
   return {
     pid: process.pid,
     state: daemonState,
-    startedAt: new Date().toISOString(),
+    startedAt: daemonStartedAt,
     lastHeartbeat: new Date().toISOString(),
     lastEventId: eventId,
     cultivationState: daemonState === 'starting' ? 'inactive' : 'active',
@@ -259,7 +276,7 @@ async function buildStateSnapshot(): Promise<HeartbeatState> {
 }
 
 async function writeCurrentState(): Promise<void> {
-  await writeState(buildStateSnapshot());
+  await writeState(await buildStateSnapshot());
 }
 
 async function readCampaigns(): Promise<unknown[]> {

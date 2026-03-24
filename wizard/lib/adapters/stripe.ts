@@ -10,7 +10,7 @@
  */
 
 import { request as httpsRequest } from 'node:https';
-import type { RevenueSourceAdapter, ConnectionResult, TransactionPage, BalanceResult, DateRange } from '../revenue-types.js';
+import type { RevenueSourceAdapter, RevenueCredentials, ConnectionResult, TransactionPage, BalanceResult, DateRange } from '../revenue-types.js';
 
 const STRIPE_HOST = 'api.stripe.com';
 
@@ -45,7 +45,7 @@ export class StripeAdapter implements RevenueSourceAdapter {
     this.apiKey = apiKey;
   }
 
-  async connect(): Promise<ConnectionResult> {
+  async connect(_credentials?: RevenueCredentials): Promise<ConnectionResult> {
     try {
       const { status, body } = await stripeGet('/account', this.apiKey);
       if (status === 200) {
@@ -65,14 +65,19 @@ export class StripeAdapter implements RevenueSourceAdapter {
           currency: (account.default_currency ?? 'usd').toUpperCase(),
         };
       }
-      const error = JSON.parse(body) as { error?: { message?: string } };
-      return { connected: false, error: error.error?.message ?? `HTTP ${status}` };
+      // VG-R1-005: Wrap error-path JSON.parse — response may be non-JSON (e.g., HTML from proxy 502)
+      try {
+        const error = JSON.parse(body) as { error?: { message?: string } };
+        return { connected: false, error: error.error?.message ?? `HTTP ${status}` };
+      } catch {
+        return { connected: false, error: `HTTP ${status}` };
+      }
     } catch (err: unknown) {
       return { connected: false, error: err instanceof Error ? err.message : 'Connection failed' };
     }
   }
 
-  async detectCurrency(): Promise<string> {
+  async detectCurrency(_credentials?: RevenueCredentials): Promise<string> {
     const result = await this.connect();
     return result.currency ?? 'USD';
   }
@@ -88,8 +93,13 @@ export class StripeAdapter implements RevenueSourceAdapter {
 
       const { status, body } = await stripeGet('/charges', this.apiKey, params);
       if (status !== 200) {
-        const error = JSON.parse(body) as { error?: { message?: string } };
-        throw new Error(error.error?.message ?? `HTTP ${status}`);
+        // VG-R1-005: Wrap error-path JSON.parse — response may be non-JSON (e.g., HTML from proxy 502)
+        let errorMsg = `HTTP ${status}`;
+        try {
+          const error = JSON.parse(body) as { error?: { message?: string } };
+          errorMsg = error.error?.message ?? errorMsg;
+        } catch { /* non-JSON response — use raw HTTP status */ }
+        throw new Error(errorMsg);
       }
 
       const data = JSON.parse(body) as {
@@ -108,14 +118,13 @@ export class StripeAdapter implements RevenueSourceAdapter {
       const transactions = data.data
         .filter(charge => charge.status === 'succeeded')
         .map(charge => ({
-          id: charge.id,
-          date: new Date(charge.created * 1000).toISOString().slice(0, 10),
-          amountCents: charge.amount, // Stripe amounts are already in cents
-          type: 'credit' as const,
-          description: charge.description ?? 'Stripe charge',
-          category: 'revenue',
-          currency: charge.currency.toUpperCase(),
           externalId: charge.id,
+          type: 'charge' as const,
+          amount: charge.amount as TransactionPage['transactions'][0]['amount'], // Stripe amounts are already in cents
+          currency: 'USD' as const,
+          description: charge.description ?? 'Stripe charge',
+          metadata: charge.metadata ?? {},
+          createdAt: new Date(charge.created * 1000).toISOString(),
         }));
 
       const lastId = data.data.length > 0 ? data.data[data.data.length - 1].id : undefined;
@@ -134,8 +143,13 @@ export class StripeAdapter implements RevenueSourceAdapter {
     try {
       const { status, body } = await stripeGet('/balance', this.apiKey);
       if (status !== 200) {
-        const error = JSON.parse(body) as { error?: { message?: string } };
-        throw new Error(error.error?.message ?? `HTTP ${status}`);
+        // VG-R1-005: Wrap error-path JSON.parse — response may be non-JSON (e.g., HTML from proxy 502)
+        let errorMsg = `HTTP ${status}`;
+        try {
+          const error = JSON.parse(body) as { error?: { message?: string } };
+          errorMsg = error.error?.message ?? errorMsg;
+        } catch { /* non-JSON response — use raw HTTP status */ }
+        throw new Error(errorMsg);
       }
 
       const data = JSON.parse(body) as {
@@ -144,14 +158,13 @@ export class StripeAdapter implements RevenueSourceAdapter {
       };
 
       // Sum across all currencies (convert to USD cents — in practice, most accounts use one currency)
-      const availableCents = data.available.reduce((sum, b) => sum + b.amount, 0);
-      const pendingCents = data.pending.reduce((sum, b) => sum + b.amount, 0);
+      const availableTotal = data.available.reduce((sum, b) => sum + b.amount, 0);
+      const pendingTotal = data.pending.reduce((sum, b) => sum + b.amount, 0);
 
       return {
-        availableCents,
-        pendingCents,
-        currency: data.available[0]?.currency?.toUpperCase() ?? 'USD',
-        asOf: new Date().toISOString(),
+        available: availableTotal as BalanceResult['available'],
+        pending: pendingTotal as BalanceResult['pending'],
+        currency: 'USD',
       };
     } catch (err: unknown) {
       throw new Error(`Stripe getBalance failed: ${err instanceof Error ? err.message : 'Unknown error'}`);

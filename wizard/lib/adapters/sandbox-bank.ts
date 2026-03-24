@@ -7,7 +7,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RevenueSourceAdapter, ConnectionResult, TransactionPage, BalanceResult, DateRange } from '../revenue-types.js';
+import type { RevenueSourceAdapter, RevenueCredentials, ConnectionResult, TransactionPage, BalanceResult, DateRange } from '../revenue-types.js';
+
+type Cents = number & { readonly __brand: 'Cents' };
 
 export class SandboxBankAdapter implements RevenueSourceAdapter {
   private accountName: string;
@@ -18,29 +20,22 @@ export class SandboxBankAdapter implements RevenueSourceAdapter {
     this.balanceCents = initialBalanceCents;
   }
 
-  async connect(credentials: Record<string, string>): Promise<ConnectionResult> {
+  async connect(credentials: RevenueCredentials): Promise<ConnectionResult> {
     return {
       connected: true,
-      accountName: credentials.accountName ?? this.accountName,
+      accountName: this.accountName,
       accountId: `sandbox_bank_${randomUUID().slice(0, 8)}`,
       currency: 'USD',
     };
   }
 
-  async getTransactions(dateRange: DateRange): Promise<TransactionPage> {
+  async getTransactions(dateRange: DateRange, cursor?: string): Promise<TransactionPage> {
     // Generate realistic transaction data
     const dayCount = Math.max(1, Math.ceil(
       (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) / (24 * 60 * 60 * 1000)
     ));
 
-    const transactions: Array<{
-      id: string;
-      date: string;
-      amountCents: number;
-      type: 'credit' | 'debit';
-      description: string;
-      category: string;
-    }> = [];
+    const transactions: TransactionPage['transactions'] = [];
 
     // Simulate 2-5 transactions per day
     for (let d = 0; d < dayCount; d++) {
@@ -53,15 +48,18 @@ export class SandboxBankAdapter implements RevenueSourceAdapter {
           ? Math.round(500 + Math.random() * 9500)  // $5-$100 revenue
           : -Math.round(100 + Math.random() * 5000); // $1-$50 expenses
 
+        const descriptions = isRevenue
+          ? ['Stripe payout', 'Customer payment', 'Subscription renewal', 'One-time purchase']
+          : ['Ad spend - Google', 'Ad spend - Meta', 'SaaS subscription', 'Domain renewal', 'Hosting'];
+
         transactions.push({
-          id: `txn_${randomUUID().slice(0, 12)}`,
-          date: date.toISOString().slice(0, 10),
-          amountCents,
-          type: amountCents > 0 ? 'credit' : 'debit',
-          description: isRevenue
-            ? ['Stripe payout', 'Customer payment', 'Subscription renewal', 'One-time purchase'][Math.floor(Math.random() * 4)]
-            : ['Ad spend - Google', 'Ad spend - Meta', 'SaaS subscription', 'Domain renewal', 'Hosting'][Math.floor(Math.random() * 5)],
-          category: isRevenue ? 'revenue' : 'expense',
+          externalId: `txn_${randomUUID().slice(0, 12)}`,
+          type: isRevenue ? 'charge' : 'refund',
+          amount: amountCents as Cents,
+          currency: 'USD',
+          description: descriptions[Math.floor(Math.random() * descriptions.length)],
+          metadata: { sandbox: 'true', category: isRevenue ? 'revenue' : 'expense' },
+          createdAt: date.toISOString(),
         });
       }
     }
@@ -77,14 +75,13 @@ export class SandboxBankAdapter implements RevenueSourceAdapter {
     // Slightly vary the balance to simulate real account activity
     this.balanceCents += Math.round((Math.random() - 0.3) * 10000);
     return {
-      availableCents: this.balanceCents,
-      pendingCents: Math.round(Math.random() * 50000),
+      available: this.balanceCents as Cents,
+      pending: Math.round(Math.random() * 50000) as Cents,
       currency: 'USD',
-      asOf: new Date().toISOString(),
     };
   }
 
-  async detectCurrency(): Promise<string> {
+  async detectCurrency(_credentials: RevenueCredentials): Promise<string> {
     return 'USD';
   }
 }

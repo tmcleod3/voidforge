@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   AdPlatformSetup, AdPlatformAdapter, OAuthTokens, ConnectionStatus,
   CampaignConfig, CampaignResult, CampaignUpdate, CreativeConfig,
-  SpendReport, PerformanceMetrics, InsightData, Cents,
+  SpendReport, PerformanceMetrics, InsightData, Cents, Percentage, Ratio,
 } from './types.js';
 import { toCents } from './types.js';
 
@@ -39,7 +39,8 @@ export class SandboxSetup implements AdPlatformSetup {
       accessToken: `sandbox_access_${randomUUID().slice(0, 8)}`,
       refreshToken: `sandbox_refresh_${randomUUID().slice(0, 8)}`,
       expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      scope: 'ads_management,ads_read',
+      platform: 'meta',
+      scopes: ['ads_management', 'ads_read'],
     };
   }
 
@@ -58,7 +59,7 @@ export class SandboxSetup implements AdPlatformSetup {
 }
 
 export class SandboxAdapter implements AdPlatformAdapter {
-  constructor(private accountId: string = 'sandbox', private tokens: OAuthTokens = { accessToken: '', refreshToken: '', expiresAt: '', scope: '' }) {}
+  constructor(private accountId: string = 'sandbox', private tokens: OAuthTokens = { accessToken: '', refreshToken: '', expiresAt: '', platform: 'meta', scopes: [] }) {}
 
   async refreshToken(token: OAuthTokens): Promise<OAuthTokens> {
     return {
@@ -74,21 +75,26 @@ export class SandboxAdapter implements AdPlatformAdapter {
       id,
       name: config.name,
       status: 'paused',
-      dailyBudgetCents: config.dailyBudgetCents ?? 1000,
+      dailyBudgetCents: (config.dailyBudget as number) ?? 1000,
       createdAt: new Date().toISOString(),
       totalSpendCents: 0,
       impressions: 0,
       clicks: 0,
       conversions: 0,
     });
-    return { campaignId: id, status: 'paused', platformResponse: { sandbox: true } };
+    return {
+      externalId: id,
+      platform: config.platform ?? 'meta',
+      status: 'created',
+      dashboardUrl: `https://sandbox.voidforge.dev/campaigns/${id}`,
+    };
   }
 
   async updateCampaign(id: string, changes: CampaignUpdate): Promise<void> {
     const camp = campaigns.get(id);
     if (camp) {
       if (changes.name) camp.name = changes.name;
-      if (changes.status) camp.status = changes.status as 'active' | 'paused';
+      if (changes.dailyBudget) camp.dailyBudgetCents = changes.dailyBudget as number;
     }
   }
 
@@ -127,27 +133,26 @@ export class SandboxAdapter implements AdPlatformAdapter {
       // Simulate realistic daily spend (~70-95% of budget)
       const spendFactor = 0.7 + Math.random() * 0.25;
       const dailySpend = Math.round(c.dailyBudgetCents * spendFactor);
-      const totalSpend = dailySpend * dayCount;
-      c.totalSpendCents += totalSpend;
-      c.impressions += Math.round(totalSpend / 2); // ~$0.02 CPM
+      const totalCampaignSpend = dailySpend * dayCount;
+      c.totalSpendCents += totalCampaignSpend;
+      c.impressions += Math.round(totalCampaignSpend / 2); // ~$0.02 CPM
       c.clicks += Math.round(c.impressions * (0.01 + Math.random() * 0.03)); // 1-4% CTR
       c.conversions += Math.round(c.clicks * (0.02 + Math.random() * 0.05)); // 2-7% CVR
 
       return {
-        campaignId: c.id,
-        campaignName: c.name,
-        spendCents: toCents(totalSpend / 100),
+        externalId: c.id,
+        spend: toCents(totalCampaignSpend / 100),
         impressions: c.impressions,
         clicks: c.clicks,
         conversions: c.conversions,
       };
     });
 
-    const totalSpendCents = campaignSpend.reduce((sum, c) => sum + (c.spendCents as number), 0);
+    const totalSpendValue = campaignSpend.reduce((sum, c) => sum + (c.spend as number), 0);
     return {
-      platform: 'sandbox',
+      platform: 'meta',
       dateRange,
-      totalSpendCents: toCents(totalSpendCents / 100),
+      totalSpend: toCents(totalSpendValue / 100),
       campaigns: campaignSpend,
     };
   }
@@ -157,27 +162,27 @@ export class SandboxAdapter implements AdPlatformAdapter {
     const impressions = camp?.impressions ?? Math.round(1000 + Math.random() * 9000);
     const clicks = camp?.clicks ?? Math.round(impressions * 0.025);
     const conversions = camp?.conversions ?? Math.round(clicks * 0.04);
-    const spendCents = camp?.totalSpendCents ?? Math.round(impressions * 2);
+    const spendCentsRaw = camp?.totalSpendCents ?? Math.round(impressions * 2);
 
     return {
+      campaignId,
       impressions,
       clicks,
       conversions,
-      spendCents: toCents(spendCents / 100),
-      ctr: clicks / Math.max(impressions, 1),
-      cpc: toCents((spendCents / Math.max(clicks, 1)) / 100),
-      cpa: toCents((spendCents / Math.max(conversions, 1)) / 100),
-      roas: conversions > 0 ? (conversions * 5000) / Math.max(spendCents, 1) : 0,
+      spend: toCents(spendCentsRaw / 100),
+      ctr: (clicks / Math.max(impressions, 1)) as Percentage,
+      cpc: toCents((spendCentsRaw / Math.max(clicks, 1)) / 100),
+      roas: (conversions > 0 ? (conversions * 5000) / Math.max(spendCentsRaw, 1) : 0) as Ratio,
     };
   }
 
   async getInsights(campaignId: string, metrics: string[]): Promise<InsightData> {
     const perf = await this.getPerformance(campaignId);
-    const data: Record<string, number | string> = {};
+    const data: Record<string, number> = {};
     for (const metric of metrics) {
-      if (metric in perf) data[metric] = (perf as Record<string, number>)[metric];
+      if (metric in perf) data[metric] = (perf as unknown as Record<string, number>)[metric];
       else data[metric] = 0;
     }
-    return { campaignId, metrics: data, dateRange: { start: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10), end: new Date().toISOString().slice(0, 10) } };
+    return { campaignId, metrics: data };
   }
 }
