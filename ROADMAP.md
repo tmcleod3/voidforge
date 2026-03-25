@@ -2,10 +2,61 @@
 
 > The plan for the plan-maker.
 
-**Current:** v18.1.0 (2026-03-25)
+**Current:** v18.2.0 (2026-03-25)
 **Next:** v19.0 — CLI Distribution (`npx voidforge init`)
-**Status:** v18.1 shipped. Agents can see running applications. Browser intelligence operational.
+**Status:** v18.2 shipped. Dogfood complete. Browser intelligence verified on our own wizard.
 **315 tests** (294 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 32 code patterns.
+
+---
+
+## v18.2 — The Dogfood
+
+*"Eat what you cook."*
+
+**The gap:** v18.0 added E2E infrastructure. v18.1 added browser intelligence methodology (console capture, behavioral walkthrough, security inspection). Neither has been exercised against VoidForge's own wizard pages. We teach these capabilities but haven't used them ourselves.
+
+**What this does:** Start the wizard server. Launch the review browser. Run the full `browser-review.ts` protocol against all 7 pages. Find what's broken. Fix it. Write E2E tests that encode the fixes as regression gates.
+
+### Mission 1 — Console Error Sweep + Behavioral Walkthrough
+
+Start the wizard server with `VOIDFORGE_TEST=1`. For each of the 7 pages:
+
+1. Navigate to the page
+2. Attach console error capture — log every `pageerror` and `console.error`
+3. Click every interactive element (buttons, tabs, links, modals)
+4. Fill every form field with test data
+5. Tab through the page, verify focus order
+6. Screenshot any page that has console errors or non-responsive elements
+
+**Output:** A findings list of real console errors + non-functional UI elements in VoidForge's own wizard.
+
+### Mission 2 — Security Inspection
+
+Run the security helpers from `browser-review.ts` on VoidForge:
+
+1. `inspectCookies()` — check session cookies for HttpOnly/Secure/SameSite
+2. `captureCORSHeaders()` — verify API responses don't have wildcard CORS
+3. `captureCSPViolations()` — monitor for CSP violations during page loads
+4. Auth redirect test — navigate to protected pages without session, verify redirect behavior
+
+### Mission 3 — Fix All Findings
+
+Fix every console error, non-functional element, security gap, and a11y violation found in Missions 1-2. Write E2E tests that verify the fixes.
+
+### Mission 4 — Version Bump + Push
+
+Update version files, push all 3 branches.
+
+### Campaign Structure
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 1 | Console sweep + behavioral walkthrough | Test + findings | 1.5 |
+| 2 | Security inspection | Test + findings | 1 |
+| 3 | Fix all findings + regression tests | Code + tests | 2 |
+| 4 | Version bump + push | Release | 0.5 |
+
+**Version bump:** PATCH (v18.2.0) — bug fixes found by dogfooding, no new features.
 
 ---
 
