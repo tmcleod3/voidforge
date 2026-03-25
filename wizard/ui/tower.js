@@ -264,6 +264,15 @@
   // ── Init ───────────────────────────────────────────
 
   async function init() {
+    // CDN fallback — if xterm.js failed to load (offline, blocked, etc.), show a helpful message
+    if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
+      container.innerHTML =
+        '<div style="padding: 24px; color: var(--text-dim); text-align: center;">' +
+        '<p>Terminal requires xterm.js which is loaded from CDN.</p>' +
+        '<p>Check your network connection or configure a local xterm.js installation.</p></div>';
+      return;
+    }
+
     if (!projectDir) {
       loadingState.textContent = 'No project directory specified. Launch Avengers Tower from Gandalf.';
       return;

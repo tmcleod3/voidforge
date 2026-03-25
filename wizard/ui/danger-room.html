@@ -233,7 +233,7 @@
           </div>
           <!-- Agent Activity (live ticker — was at bottom, now prominent) -->
           <div class="panel" role="region" aria-label="Agent Activity" aria-live="polite">
-            <div class="panel-title">Agent Activity</div>
+            <h2 class="panel-title">Agent Activity</h2>
             <div id="agent-ticker-panel" style="font-size:12px;min-height:60px;">
               <span class="ticker-item"><span class="ticker-agent">Sisko</span> standing by...</span>
               <div class="empty-guidance">Run <code>/assemble</code> or <code>/campaign</code> to see live agent activity</div>
@@ -248,7 +248,7 @@
         <div class="tier-content">
           <!-- Campaign Timeline -->
           <div class="panel panel-full" role="region" aria-label="Campaign Timeline">
-            <div class="panel-title" id="title-timeline">Campaign Timeline</div>
+            <h2 class="panel-title" id="title-timeline">Campaign Timeline</h2>
             <div class="timeline" id="campaign-timeline" aria-labelledby="title-timeline">
               <div class="timeline-item timeline-pending">—</div>
             </div>
@@ -256,7 +256,7 @@
 
           <!-- Phase Pipeline -->
           <div class="panel" role="region" aria-label="Phase Pipeline">
-            <div class="panel-title" id="title-pipeline">Phase Pipeline</div>
+            <h2 class="panel-title" id="title-pipeline">Phase Pipeline</h2>
             <div class="pipeline" id="phase-pipeline">
               <div class="pipeline-phase"><span class="pipeline-dot pending"></span><span class="pipeline-label">No active build</span></div>
             </div>
@@ -264,7 +264,7 @@
 
           <!-- Finding Scoreboard -->
           <div class="panel" role="region" aria-label="Finding Scoreboard">
-            <div class="panel-title" id="title-findings">Open Findings</div>
+            <h2 class="panel-title" id="title-findings">Open Findings</h2>
             <div class="scoreboard" id="finding-scoreboard" aria-labelledby="title-findings" role="group">
               <div class="score-item score-critical"><div class="score-count" id="score-critical">0</div><div class="score-label">Critical</div></div>
               <div class="score-item score-high"><div class="score-count" id="score-high">0</div><div class="score-label">High</div></div>
@@ -275,13 +275,13 @@
 
           <!-- PRD Coverage -->
           <div class="panel panel-full" role="region" aria-label="PRD Coverage">
-            <div class="panel-title" id="title-prd">PRD Coverage</div>
+            <h2 class="panel-title" id="title-prd">PRD Coverage</h2>
             <div id="prd-coverage" style="font-size:13px;color:var(--text-dim);">No campaign active</div>
           </div>
 
           <!-- Prophecy Graph -->
           <div class="panel panel-full" role="region" aria-label="Prophecy Graph">
-            <div class="panel-title" id="title-prophecy">Prophecy Graph</div>
+            <h2 class="panel-title" id="title-prophecy">Prophecy Graph</h2>
             <div id="prophecy-graph" style="min-height:100px;"></div>
             <div id="prophecy-detail" style="font-size:12px;margin-top:6px;min-height:40px;color:var(--text-dim);"></div>
           </div>
@@ -293,20 +293,20 @@
         <div class="tier-label">System Status</div>
         <div class="tier-content">
           <div class="panel" role="region" aria-label="Version">
-            <div class="panel-title">Version</div>
+            <h2 class="panel-title">Version</h2>
             <div class="version-badge" id="version-badge">—</div>
             <div class="branch-status" id="branch-status">—</div>
           </div>
           <div class="panel" role="region" aria-label="Deploy">
-            <div class="panel-title">Deploy</div>
+            <h2 class="panel-title">Deploy</h2>
             <div class="deploy-badge" id="deploy-status"><span class="deploy-dot unknown"></span><span>No deploy data</span></div>
           </div>
           <div class="panel" role="region" aria-label="Tests">
-            <div class="panel-title">Tests</div>
+            <h2 class="panel-title">Tests</h2>
             <div id="test-status" style="font-size:12px;color:var(--text-dim);">No test data</div>
           </div>
           <div class="panel" role="region" aria-label="Experiments">
-            <div class="panel-title" id="title-experiments">Experiments</div>
+            <h2 class="panel-title" id="title-experiments">Experiments</h2>
             <div id="experiment-dashboard" aria-labelledby="title-experiments" style="font-size:12px;color:var(--text-dim);">No experiments</div>
           </div>
         </div>
@@ -349,19 +349,19 @@
 
         <!-- ROAS by Platform (placeholder) -->
         <div class="panel panel-full" id="growth-roas-panel" style="display:none;" role="region" aria-label="ROAS by Platform">
-          <div class="panel-title">ROAS by Platform</div>
+          <h2 class="panel-title">ROAS by Platform</h2>
           <div style="font-size:13px;color:var(--text-dim);">No platform data</div>
         </div>
 
         <!-- Traffic Sources (placeholder) -->
         <div class="panel" id="growth-traffic-panel" style="display:none;" role="region" aria-label="Traffic Sources">
-          <div class="panel-title">Traffic Sources</div>
+          <h2 class="panel-title">Traffic Sources</h2>
           <div style="font-size:13px;color:var(--text-dim);">No traffic data</div>
         </div>
 
         <!-- Conversion Funnel (placeholder) -->
         <div class="panel" id="growth-funnel-panel" style="display:none;" role="region" aria-label="Conversion Funnel">
-          <div class="panel-title">Conversion Funnel</div>
+          <h2 class="panel-title">Conversion Funnel</h2>
           <div style="font-size:13px;color:var(--text-dim);">No conversion data</div>
         </div>
       </div><!-- /panel-growth -->
@@ -376,7 +376,7 @@
 
         <!-- Campaign Table (hidden until data — becomes card layout on mobile §9.15.6) -->
         <div class="panel panel-full" id="campaigns-table-panel" style="display:none;" role="region" aria-label="Ad Campaigns">
-          <div class="panel-title">Active Campaigns</div>
+          <h2 class="panel-title">Active Campaigns</h2>
           <table style="width:100%;font-size:12px;border-collapse:collapse;" aria-label="Ad campaign performance">
             <thead>
               <tr style="text-align:left;color:var(--text-dim);border-bottom:1px solid var(--border);">
@@ -396,13 +396,13 @@
 
         <!-- A/B Test Groups (§9.20.3) -->
         <div class="panel" id="campaigns-ab-panel" style="display:none;" role="region" aria-label="A/B Test Groups">
-          <div class="panel-title">A/B Tests</div>
+          <h2 class="panel-title">A/B Tests</h2>
           <div id="campaigns-ab-tests" style="font-size:13px;color:var(--text-dim);">No active tests</div>
         </div>
 
         <!-- Agent Recommendations (§9.20.6) -->
         <div class="panel" id="campaigns-recommendations-panel" style="display:none;" role="region" aria-label="Agent Recommendations">
-          <div class="panel-title">Recommendations</div>
+          <h2 class="panel-title">Recommendations</h2>
           <div id="campaigns-recommendations" style="font-size:13px;color:var(--text-dim);">No recommendations</div>
         </div>
       </div><!-- /panel-campaigns -->
@@ -437,7 +437,7 @@
 
         <!-- Budget Utilization -->
         <div class="panel panel-full" id="treasury-budget-panel" style="display:none;" role="region" aria-label="Budget Utilization">
-          <div class="panel-title">Budget</div>
+          <h2 class="panel-title">Budget</h2>
           <div style="background:var(--bg);border-radius:4px;height:24px;overflow:hidden;position:relative;">
             <div id="treasury-budget-bar" style="height:100%;background:var(--fin-positive);width:0%;transition:width 0.5s;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="0% of budget used"></div>
           </div>
@@ -449,13 +449,13 @@
 
         <!-- Platform Connections -->
         <div class="panel" id="treasury-connections-panel" style="display:none;" role="region" aria-label="Platform Connections">
-          <div class="panel-title">Connections</div>
+          <h2 class="panel-title">Connections</h2>
           <div id="treasury-connections" style="font-size:13px;"></div>
         </div>
 
         <!-- Reconciliation Status -->
         <div class="panel" id="treasury-reconciliation-panel" style="display:none;" role="region" aria-label="Reconciliation">
-          <div class="panel-title">Reconciliation</div>
+          <h2 class="panel-title">Reconciliation</h2>
           <div id="treasury-reconciliation" style="font-size:13px;color:var(--text-dim);">No reconciliation data</div>
         </div>
       </div><!-- /panel-treasury -->
@@ -470,7 +470,7 @@
 
         <!-- Daemon Status (hidden until data) -->
         <div class="panel panel-full" id="heartbeat-status-panel" style="display:none;" role="region" aria-label="Daemon Status" aria-live="polite">
-          <div class="panel-title">Status</div>
+          <h2 class="panel-title">Status</h2>
           <div style="display:flex;gap:24px;font-size:13px;">
             <div><span style="color:var(--text-dim);">State:</span> <span id="hb-state">—</span></div>
             <div><span style="color:var(--text-dim);">PID:</span> <span id="hb-pid">—</span></div>
@@ -481,7 +481,7 @@
 
         <!-- Token Health -->
         <div class="panel" id="heartbeat-tokens-panel" style="display:none;" role="region" aria-label="Token Health">
-          <div class="panel-title">Token Health</div>
+          <h2 class="panel-title">Token Health</h2>
           <div id="hb-token-list" style="font-size:13px;">
             <!-- Dynamically populated: platform + status + expiry -->
           </div>
@@ -489,7 +489,7 @@
 
         <!-- Scheduled Jobs -->
         <div class="panel" id="heartbeat-jobs-panel" style="display:none;" role="region" aria-label="Scheduled Jobs">
-          <div class="panel-title">Next Scheduled Jobs</div>
+          <h2 class="panel-title">Next Scheduled Jobs</h2>
           <div id="hb-jobs-list" style="font-size:13px;color:var(--text-dim);">
             <!-- Dynamically populated: job name + next run time -->
           </div>
@@ -497,7 +497,7 @@
 
         <!-- Anomaly Alerts (aria-live="assertive" for financial alerts §9.15.8) -->
         <div class="panel panel-full" id="heartbeat-alerts-panel" style="display:none;" role="region" aria-label="Alerts" aria-live="assertive">
-          <div class="panel-title">Alerts</div>
+          <h2 class="panel-title">Alerts</h2>
           <div id="hb-alerts" style="font-size:13px;">No alerts</div>
         </div>
       </div><!-- /panel-heartbeat -->
@@ -512,7 +512,7 @@
 
         <!-- Situation Model (5-dimension radar display) -->
         <div class="panel panel-full" id="current-situation-panel" style="display:none;" role="region" aria-label="Situation Model">
-          <div class="panel-title">Situation Model</div>
+          <h2 class="panel-title">Situation Model</h2>
           <div style="display:flex;gap:16px;flex-wrap:wrap;" id="current-dimensions">
             <div class="kpi-card" style="flex:1;min-width:120px;">
               <div class="kpi-value" id="dim-feature">—</div>
@@ -539,7 +539,7 @@
 
         <!-- Active Proposal -->
         <div class="panel panel-full" id="current-proposal-panel" style="display:none;" role="region" aria-label="Campaign Recommendation">
-          <div class="panel-title">Tuvok Recommends</div>
+          <h2 class="panel-title">Tuvok Recommends</h2>
           <div id="current-proposal-name" style="font-size:16px;font-weight:700;margin-bottom:8px;"></div>
           <div id="current-proposal-case" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;"></div>
           <div id="current-proposal-impact" style="font-size:13px;color:var(--fin-positive);margin-bottom:12px;"></div>
@@ -551,13 +551,13 @@
 
         <!-- Prediction History -->
         <div class="panel" id="current-predictions-panel" style="display:none;" role="region" aria-label="Prediction Accuracy">
-          <div class="panel-title">Prediction Accuracy</div>
+          <h2 class="panel-title">Prediction Accuracy</h2>
           <div id="current-predictions" style="font-size:13px;color:var(--text-dim);">No campaigns with tracked predictions yet.</div>
         </div>
 
         <!-- Autonomy Status -->
         <div class="panel" id="current-autonomy-panel" style="display:none;" role="region" aria-label="Autonomy Status">
-          <div class="panel-title">Autonomy</div>
+          <h2 class="panel-title">Autonomy</h2>
           <div style="font-size:13px;">
             <span style="color:var(--text-dim);">Tier:</span> <span id="current-tier">1 (Advisor)</span><br>
             <span style="color:var(--text-dim);">Campaigns run:</span> <span id="current-campaign-count">0</span><br>
@@ -571,14 +571,14 @@
     <aside class="sidebar">
       <!-- Session Cost (compact — data from Status Line bridge) -->
       <div class="panel">
-        <div class="panel-title">Session Cost</div>
+        <h2 class="panel-title">Session Cost</h2>
         <div id="cost-display" style="font-size:18px;font-weight:700;color:var(--text);">—</div>
         <div class="empty-guidance" id="cost-empty">Wired via Status Line bridge</div>
       </div>
 
       <!-- Quick Links -->
       <div class="panel">
-        <div class="panel-title">Quick Actions</div>
+        <h2 class="panel-title">Quick Actions</h2>
         <div style="font-size:11px;color:var(--text-dim);line-height:1.8;">
           <code>/campaign --blitz</code> — Build everything<br>
           <code>/gauntlet</code> — Full review<br>
