@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v17.2.0 (2026-03-24)
-**Next:** v17.3 — The Muster + Flag Nomenclature (--muster flag, standardized flags across commands)
-**Status:** v17.2 shipped. Foundation verified. Flag audit identified 8 inconsistencies.
+**Current:** v17.3.0 (2026-03-24)
+**Next:** v18.0 — The Proving Ground (E2E testing with Playwright)
+**Status:** v17.3 shipped. Muster protocol + flag standardization complete.
 **294 tests**, 9 universes, 260+ agents, 26 slash commands, 30 code patterns.
 
 ---
