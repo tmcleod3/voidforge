@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [18.2.0] - 2026-03-25
+
+### Fixed
+- **A11y heading hierarchy** — `<h3>` → `<h2>` in index.html (3 headings) and deploy.html (2 headings) to maintain proper hierarchy under `<h1>`
+- **Semantic headings in dashboards** — 40 `.panel-title` divs changed to `<h2>` in danger-room.html (29) and war-room.html (11) for screen reader navigation landmarks
+- **Tower CDN fallback** — When xterm.js fails to load from CDN (offline/air-gapped), tower page now shows a helpful message instead of silently breaking
+
+### Security (verified clean)
+- All 7 pages return correct security headers (CSP, X-Frame-Options, CORS, Referrer-Policy, Permissions-Policy)
+- CSRF protection verified: POST without X-VoidForge-Request returns 403
+- Directory traversal verified: `../../etc/passwd` returns 404
+- No stack traces or internal paths exposed on any page
+
 ## [18.1.0] - 2026-03-25
 
 ### Added

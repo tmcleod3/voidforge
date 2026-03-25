@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v18.1.0 (2026-03-25)
-**Next:** v18.2 — The Dogfood (browser intelligence on VoidForge's own wizard)
-**Status:** v18.1 shipped. Agents can see running applications. Now prove it on ourselves.
+**Current:** v18.2.0 (2026-03-25)
+**Next:** v19.0 — CLI Distribution (`npx voidforge init`)
+**Status:** v18.2 shipped. Dogfood complete. Browser intelligence verified on our own wizard.
 **315 tests** (294 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 32 code patterns.
 
 ---
