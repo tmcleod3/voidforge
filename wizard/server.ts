@@ -69,6 +69,8 @@ const ROUTE_ROLES: Array<{ prefix: string; minRole: UserRole }> = [
   { prefix: '/api/deploys', minRole: 'deployer' },
   { prefix: '/api/project/validate', minRole: 'deployer' },
   { prefix: '/api/project/defaults', minRole: 'deployer' },
+  // Deployer+: freeze spending (safety-critical operation)
+  { prefix: '/api/danger-room/freeze', minRole: 'deployer' },
   // Viewer: read-only endpoints (GET /api/projects, GET /api/auth/session, /api/danger-room/*) — no entry needed
 ];
 

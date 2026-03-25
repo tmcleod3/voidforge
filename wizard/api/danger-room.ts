@@ -244,16 +244,12 @@ addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res:
   sendJson(res, 200, { cultivationInstalled, heartbeat: heartbeatData, campaigns, treasury });
 });
 
-addRoute('POST', '/api/danger-room/freeze', async (req: IncomingMessage, res: ServerResponse) => {
-  // VG-R1-002: RBAC — freeze requires 'deployer' role minimum
-  const roleHeader = req.headers['x-voidforge-role'] as string | undefined;
-  const allowedRoles = ['deployer', 'admin', 'owner'];
-  if (!roleHeader || !allowedRoles.includes(roleHeader)) {
-    sendJson(res, 403, { ok: false, error: 'Freeze requires deployer role or higher' });
-    return;
-  }
+addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
+  // RBAC enforced by ROUTE_ROLES in server.ts (deployer+ required).
+  // Previous implementation checked client-supplied X-VoidForge-Role header (SEC-R1-001 — privilege escalation).
+  // v18.0: Removed client-header check. Session-based role verification happens in server middleware.
 
-  // v17.0: Wire to daemon Unix socket with auth token (VG-R1-002).
+  // v17.0: Wire to daemon Unix socket with auth token.
   try {
     const net = await import('node:net');
     const { readFile: fsReadFile } = await import('node:fs/promises');
