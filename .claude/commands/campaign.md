@@ -147,7 +147,7 @@ After every 4th mission (missions 4, 8, 12, etc.), run a Gauntlet checkpoint bef
 
 **ENFORCEMENT:** After committing each mission, increment your mission counter. Check: if completedMissionsThisCampaign is divisible by 4, trigger the checkpoint. In blitz mode, this check is mandatory and automatic — do not skip or defer it. Log the count in campaign-state.md after each mission: "Missions completed: N. Next checkpoint at: N+X."
 
-2. **Run `/gauntlet --quick`** (3 rounds: Discovery → First Strike → Second Strike). This catches cross-module integration bugs that individual `/assemble` runs miss — each `/assemble` only reviews its own changeset, but the Gauntlet reviews the **combined system**.
+2. **Run `/gauntlet --fast`** (3 rounds: Discovery → First Strike → Second Strike). This catches cross-module integration bugs that individual `/assemble` runs miss — each `/assemble` only reviews its own changeset, but the Gauntlet reviews the **combined system**.
 3. **Fix all Critical and High findings** before proceeding to the next mission.
 4. **Commit fixes** via `/git` with message: `Gauntlet checkpoint after mission N: X fixes`
 5. If `$ARGUMENTS` includes `--fast`, skip the checkpoint gauntlets (but NOT the final gauntlet in Step 6).

@@ -110,6 +110,9 @@ For specific conflicts:
 5. FAILURE_MODES.md
 6. All findings logged to appropriate `/logs/` file
 
+## Arguments
+- `--plan [description]` → Planning mode: analyze and recommend without executing. Present findings and proposed changes for review.
+
 ## Handoffs
 - API/DB implementation → Stark, log to `/logs/handoffs.md`
 - UI impacts → Galadriel, log to `/logs/handoffs.md`

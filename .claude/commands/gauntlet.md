@@ -113,7 +113,7 @@ Present them with severity and recommendation. The user decides whether to ship 
 
 ## Arguments
 - No arguments → full 5-round gauntlet
-- `--quick` → 3 rounds only (skip Round 4 Crossfire + Round 5 Council)
+- `--fast` → 3 rounds only (skip Round 4 Crossfire + Round 5 Council). (formerly `--quick` — renamed v17.3 for cross-command consistency)
 - `--security-only` → 4 rounds of security only (Kenobi marathon)
 - `--ux-only` → 4 rounds of UX only (Galadriel marathon)
 - `--qa-only` → 4 rounds of QA only (Batman marathon)
