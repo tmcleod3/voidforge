@@ -321,19 +321,26 @@ See `ROADMAP.md` for the full plan. Summary of shipped and upcoming versions:
 
 See ROADMAP.md for full 10-mission campaign structure.
 
-### Future: v17.1+ — Platform Adapters (as developer accounts become available)
+### Next: v19.0 — The Funding Rail (Stablecoin Treasury → Ad Platform Billing)
+
+Extends Cultivation with a stablecoin-funded treasury rail: USDC → Circle off-ramp → Mercury bank → Google/Meta billing. Two new adapter categories, 8 new heartbeat jobs, 3 new patterns, 16 missions across 4 phases. Phase 0 (architecture + docs) buildable immediately. Phase 1+ requires API accounts.
+
+Full PRD: `/docs/Stablecoin Ads.md` (785 lines). Campaign plan in ROADMAP.md.
+
+### Future: Platform Adapters (as developer accounts become available)
 
 | Adapter | Blocked By | Ships When |
 |---------|-----------|------------|
-| Google Ads | MCC + developer token | Account created |
-| Meta Marketing | Business Manager app review | Account created |
-| TikTok Marketing | Developer account | Account created |
-| LinkedIn Marketing | Campaign Manager API | Account created |
-| Twitter/X Ads | Developer account | Account created |
-| Reddit Ads | Developer account | Account created |
-| Mercury | Business banking API | Account exists |
-| Brex | Business banking OAuth | Account exists |
-| Paddle | Paddle account | Account created |
+| Circle (stablecoin off-ramp) | Circle developer account | v19.0 Phase 1 |
+| Google Ads Billing | Google Ads account with monthly invoicing | v19.0 Phase 1 |
+| Meta Ads Billing | Meta Business account with payment method | v19.0 Phase 1 |
+| Google Ads Campaign | MCC + developer token | v19.0+ |
+| Meta Marketing Campaign | Business Manager app review | v19.0+ |
+| Mercury Banking | Mercury API key | v19.0 Phase 1 |
+| Bridge (secondary off-ramp) | Bridge developer account | v19.1+ |
+| TikTok/LinkedIn/Twitter/Reddit | Developer accounts | v19.1+ |
+| Brex | Business banking OAuth | v19.1+ |
+| Paddle | Paddle account | v19.1+ |
 
 Per the No Stubs Doctrine (v17.0): no stub code will be committed for these adapters. Each ships as a fully-implemented, tested adapter only when real API testing is possible.
 

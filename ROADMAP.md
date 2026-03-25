@@ -3,9 +3,114 @@
 > The plan for the plan-maker.
 
 **Current:** v18.2.0 (2026-03-25)
-**Next:** v19.0 — CLI Distribution (`npx voidforge init`)
-**Status:** v18.2 shipped. Dogfood complete. Browser intelligence verified on our own wizard.
+**Next:** v19.0 — The Funding Rail (Stablecoin Treasury → Ad Platform Billing)
+**Status:** v18.2 shipped. Stablecoin Ads PRD accepted. Phase 0 buildable immediately.
 **315 tests** (294 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 32 code patterns.
+
+---
+
+## v19.0 — The Funding Rail
+
+*"Cultivation does not pay Google or Meta in crypto. It converts approved stablecoin balances into compliant fiat rails, then keeps your ad billing systems funded, monitored, and reconciled."*
+
+**Designed by: Full Muster. PRD: `/docs/Stablecoin Ads.md` (785 lines)**
+
+**What this does:** Adds a first-class stablecoin-funded treasury rail to Cultivation: USDC → Circle off-ramp → Mercury bank → Google/Meta billing. Two new adapter categories (StablecoinTreasuryAdapter, AdBillingAdapter), 8 new heartbeat daemon jobs, 3 new patterns, extended treasury/cultivation/grow commands, and Danger Room dashboard updates.
+
+**4-phase rollout (16 missions):**
+
+### Phase 0 — Architecture and Docs (3 missions, buildable NOW)
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 1 | Patterns: `stablecoin-adapter.ts`, `ad-billing-adapter.ts`, `funding-plan.ts` | Pattern | 2 |
+| 2 | Method docs: TREASURY.md, HEARTBEAT.md, GROWTH_STRATEGIST.md + command docs | Methodology | 2 |
+| 3 | Data models + directory structure: `wizard/lib/financial/` with interfaces, enums, registries, treasury planner (pure logic), funding policy engine | Code + Tests | 2 |
+
+### Phase 1 — Read-Only Treasury Intelligence (4 missions, needs API accounts)
+
+| # | Mission | Type | Effort | Blocked By |
+|---|---------|------|--------|------------|
+| 4 | Circle adapter (read-only): connect, verify, get balances, list transfers | Code + Tests | 2.5 | Circle API account |
+| 5 | Mercury balance adapter (read-only): balance, transactions | Code + Tests | 2 | Mercury API account |
+| 6 | Google/Meta billing capability classification (FULLY_FUNDABLE / MONITORED_ONLY / UNSUPPORTED) | Code + Tests | 2.5 | Google/Meta dev accounts |
+| 7 | Danger Room extensions: Growth (runway, funding risk), Treasury (stablecoin balance, pending transfers), Heartbeat (provider sync) | Code | 2 | M4+M5 |
+
+### Phase 2 — Assisted Funding (5 missions, needs Phase 1 + write API access)
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 8 | Treasury planner: runway forecasting, funding plan generation, buffer maintenance | Code + Tests | 2.5 |
+| 9 | Circle off-ramp (write): initiate, poll, idempotency, WAL | Code + Tests | 3 |
+| 10 | Heartbeat new jobs: 8 scheduled jobs (balance check, off-ramp poll, settlement monitor, invoice scan, runway forecast, reconciliation, stale detector) | Code + Tests | 3 |
+| 11 | Reconciliation extension: provider → bank → platform matching, variance detection, freeze triggers | Code + Tests | 2.5 |
+| 12 | Freeze/unfreeze controls: 6 circuit breakers, manual approval gates, TOTP on unfreeze, treasury API routes | Code + Tests | 2 |
+
+### Phase 3 — Policy-Driven Execution (3 missions)
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 13 | Funding policy engine: deterministic rules (V1 rule set), auto-off-ramp, daily cap enforcement | Code + Tests | 2.5 |
+| 14 | Platform-specific funding planner: Google invoice lifecycle, Meta debit protection, portfolio rebalancing | Code + Tests | 2.5 |
+| 15 | Reporting + export: daily treasury report, monthly ledger, per-platform reliability, funding simulation | Code + Tests | 2 |
+
+### Release
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 16 | Version bump + Victory Gauntlet + branch sync | Release | 1.5 |
+
+**Version bump:** MAJOR (v19.0.0) — new adapter categories, new financial directory structure, new heartbeat jobs, new patterns, new treasury commands.
+
+### BLOCKED Items (Phase 1+)
+
+| Item | Blocker | Unblock By |
+|------|---------|------------|
+| Circle adapter | No Circle API account | Sign up at circle.com/developers |
+| Mercury balance reads | No Mercury API key | Generate API key from existing account |
+| Google billing classification | No Google Ads dev account with billing setup | Create account + enable monthly invoicing |
+| Meta billing classification | No Meta ad account with payment method | Create Meta Business account |
+| Bridge adapter | No Bridge API account | Sign up at bridge.xyz (secondary, defer) |
+
+**Phase 0 ships immediately (zero external dependencies). Phase 1+ ships when API accounts are created.**
+
+### Architecture (Muster-designed)
+
+**New directory: `wizard/lib/financial/`**
+```
+wizard/lib/financial/
+  stablecoin/
+    base.ts           # Interface (Phase 0)
+    circle.ts          # Implementation (Phase 1, when API account exists)
+    bridge.ts          # Implementation (deferred, when account exists)
+  billing/
+    base.ts           # Interface (Phase 0)
+    google-billing.ts  # Implementation (Phase 1, when account exists)
+    meta-billing.ts    # Implementation (Phase 1, when account exists)
+  treasury-planner.ts  # Pure logic (Phase 0)
+  funding-policy.ts    # Pure logic (Phase 0)
+  reconciliation-engine.ts  # Pure logic (Phase 0)
+```
+
+Per No Stubs Doctrine: interface files ship in Phase 0. Implementation files ship only when real API testing is possible. Planned adapters listed in registries with `implemented: false`.
+
+### Security (Kenobi-verified)
+
+All existing security infrastructure extends cleanly:
+- Financial vault (scrypt, AES-256-GCM) for new credentials
+- TOTP on all write operations (off-ramp, invoice settlement, unfreeze)
+- WAL with idempotency keys for all financial mutations
+- Hash-chained append-only logs for audit trail
+- Single-writer (Heartbeat daemon only)
+- Circuit breakers: 6 automatic freeze triggers
+- Manual approval gates: first live off-ramp, first invoice settlement, first FULLY_FUNDABLE activation
+
+### After v19.0
+
+| Version | Direction |
+|---------|-----------|
+| **v20.0** | CLI Distribution — `npx voidforge init` global installer |
+| **v19.1+** | Bridge adapter, additional platform billing rails (TikTok, LinkedIn) |
 
 ---
 
