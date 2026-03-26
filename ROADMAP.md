@@ -2,10 +2,10 @@
 
 > The plan for the plan-maker.
 
-**Current:** v19.0.0 (2026-03-26)
-**Next:** v19.1 — The Live Wire (production intelligence for the Funding Rail)
-**Status:** v19.0 shipped. Muster audit: 55% production-ready. 9 gaps identified. v19.1 fixes all.
-**335 tests** (314 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 35 code patterns.
+**Current:** v19.1.0 (2026-03-26)
+**Next:** v19.2 — Bridge adapter + additional billing rails
+**Status:** v19.1 shipped. All 9 Muster gaps resolved. Funding Rail production-intelligent.
+**401 tests** (380 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 35 code patterns.
 
 ---
 
