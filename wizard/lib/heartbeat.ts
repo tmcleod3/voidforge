@@ -39,6 +39,11 @@ import type { SessionTokenState } from './oauth-core.js';
 
 import { appendToLog, atomicWrite, SPEND_LOG, REVENUE_LOG, TREASURY_DIR } from './financial-core.js';
 
+import {
+  registerTreasuryJobs, handleTreasuryRequest, executeTreasuryFreeze,
+  getTreasuryStateSnapshot, isStablecoinConfigured,
+} from './treasury-heartbeat.js';
+
 const PENDING_OPS = join(TREASURY_DIR, 'pending-ops.jsonl');
 const VOIDFORGE_DIR = join(homedir(), '.voidforge');
 
@@ -86,6 +91,26 @@ async function handleRequest(
     try {
       totpVerified = await totpVerify(auth.totpCode);
     } catch { /* TOTP not configured — treat as false */ }
+  }
+
+  // ── Treasury routes (delegated to treasury-heartbeat module) ──
+  const treasuryFreeze = async (reason: string): Promise<void> => {
+    await executeTreasuryFreeze(reason, logger);
+    daemonState = 'degraded';
+    eventId++;
+    await writeCurrentState();
+  };
+
+  if (path.startsWith('/treasury/')) {
+    const treasuryResult = await handleTreasuryRequest(
+      method, path, body,
+      { vaultVerified, totpVerified },
+      logger, treasuryFreeze,
+    );
+    if (treasuryResult) {
+      eventId++;
+      return treasuryResult;
+    }
   }
 
   // ── Read operations ──────────────────
@@ -263,6 +288,15 @@ async function buildStateSnapshot(): Promise<HeartbeatState> {
   const activeCampaigns = campaigns.filter((c: unknown) => (c as { status?: string }).status === 'active').length;
   const summary = await readTreasurySummary() as { spend: number; revenue: number };
 
+  // v19.0: Include treasury state when stablecoin is configured
+  const treasurySnapshot = isStablecoinConfigured()
+    ? getTreasuryStateSnapshot()
+    : undefined;
+  const alerts: string[] = [];
+  if (treasurySnapshot?.fundingFrozen) {
+    alerts.push(`Funding frozen: ${treasurySnapshot.freezeReason ?? 'unknown reason'}`);
+  }
+
   return {
     pid: process.pid,
     state: daemonState,
@@ -274,8 +308,16 @@ async function buildStateSnapshot(): Promise<HeartbeatState> {
     activeCampaigns,
     todaySpend: summary.spend as Cents,
     dailyBudget: 0 as Cents,
-    alerts: [],
+    alerts,
     tokenHealth: platformHealth,
+    // Treasury state fields (v19.0 — written to heartbeat.json for Danger Room)
+    ...(treasurySnapshot ? {
+      stablecoinBalanceCents: treasurySnapshot.stablecoinBalanceCents,
+      bankBalanceCents: treasurySnapshot.bankBalanceCents,
+      runwayDays: treasurySnapshot.runwayDays,
+      fundingFrozen: treasurySnapshot.fundingFrozen,
+      pendingTransferCount: treasurySnapshot.pendingTransferCount,
+    } : {}),
   };
 }
 
@@ -525,6 +567,16 @@ export async function startHeartbeat(vaultPassword: string): Promise<void> {
   // Step 10: Start job scheduler
   const scheduler = new JobScheduler();
   registerJobs(scheduler);
+
+  // Step 10b: Register treasury heartbeat jobs (conditional on stablecoin config)
+  const treasuryFreeze = async (reason: string): Promise<void> => {
+    await executeTreasuryFreeze(reason, logger);
+    daemonState = 'degraded';
+    eventId++;
+    await writeCurrentState();
+  };
+  registerTreasuryJobs(scheduler, logger, writeCurrentState, treasuryFreeze);
+
   scheduler.start();
 
   // Transition to healthy
