@@ -2,10 +2,10 @@
 
 > The plan for the plan-maker.
 
-**Current:** v19.1.0 (2026-03-26)
-**Next:** v19.2 — The Wider Net (TikTok billing + adapter extensibility)
-**Status:** v19.1 shipped. Funding Rail production-intelligent. TikTok is next.
-**401 tests** (380 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 35 code patterns.
+**Current:** v19.2.0 (2026-03-26)
+**Next:** v20.0 — CLI Distribution (`npx voidforge init`)
+**Status:** v19.2 shipped. TikTok billing live. Adapter extensibility proven. Ready for CLI.
+**406 tests** (385 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 35 code patterns.
 
 ---
 
