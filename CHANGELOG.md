@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [19.2.0] - 2026-03-26
+
+### Added
+- **TikTok billing adapter** — spend monitoring, debit projection, MONITORED_ONLY classification via Marketing API
+- **AdPlatform type widened** — `google | meta` → 7-platform union (future-proof)
+- **5 new TikTok billing tests** — capability detection, spend projection, normalized state
+
+### Changed
+- **Adapter extensibility proven** — adding a new billing platform: 3 files, same pattern every time
+
 ## [19.1.0] - 2026-03-26
 
 ### Added
