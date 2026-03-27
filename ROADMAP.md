@@ -3,8 +3,8 @@
 > The plan for the plan-maker.
 
 **Current:** v19.1.0 (2026-03-26)
-**Next:** v19.2 — Bridge adapter + additional billing rails
-**Status:** v19.1 shipped. All 9 Muster gaps resolved. Funding Rail production-intelligent.
+**Next:** v19.2 — The Wider Net (TikTok billing + adapter extensibility)
+**Status:** v19.1 shipped. Funding Rail production-intelligent. TikTok is next.
 **401 tests** (380 unit + 21 E2E), 9 universes, 260+ agents, 26 slash commands, 35 code patterns.
 
 ---
@@ -159,12 +159,30 @@ All existing security infrastructure extends cleanly:
 
 **After v19.1:** Plugging in real Circle + Mercury API keys should produce a system that automatically monitors stablecoin balances, forecasts runway, triggers off-ramps when the buffer is low, monitors bank settlement, tracks Google invoices and Meta debits, reconciles daily, and freezes autonomously when something goes wrong.
 
-### After v19.1
+### v19.2 — The Wider Net
+
+*"TikTok is 6% of global ad spend and growing 25% YoY. If Cultivation talks to Google and Meta but not TikTok, it's missing the fastest-growing channel."*
+
+**Designed by: Full Muster. Riker's assessment: Bridge deferred (0 users need it), LinkedIn deferred (niche B2B). TikTok is the clear next target. Then v20.0 CLI immediately.**
+
+| # | Mission | Type | Effort |
+|---|---------|------|--------|
+| 1 | Widen AdPlatform type + billing factory extensibility | Code | 1 |
+| 2 | TikTok billing adapter: spend monitoring, capability classification, billing mode detection | Code + Tests | 2 |
+| 3 | Version bump + push all branches | Release | 1 |
+
+**Version bump:** MINOR (v19.2.0).
+
+**Deferred:**
+- Bridge stablecoin adapter → v19.3+ (secondary per PRD, slot reserved in registry)
+- LinkedIn billing → v19.3+ (niche B2B, build when a user needs it)
+
+### After v19.2
 
 | Version | Direction |
 |---------|-----------|
-| **v19.2** | Bridge adapter (secondary off-ramp), TikTok/LinkedIn billing rails |
-| **v20.0** | CLI Distribution — `npx voidforge init` global installer |
+| **v20.0** | CLI Distribution — `npx voidforge init` global installer (highest strategic priority) |
+| **v19.3+** | Bridge adapter, LinkedIn billing, Snap billing (on demand) |
 
 ---
 
