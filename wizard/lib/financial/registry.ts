@@ -24,7 +24,7 @@ export const BANK_ADAPTERS: Record<string, ProviderEntry> = {
 export const BILLING_ADAPTERS: Record<string, ProviderEntry> = {
   google: { name: 'Google Ads Billing', implemented: true },
   meta:   { name: 'Meta Ads Billing', implemented: true },
-  tiktok: { name: 'TikTok Ads Billing', implemented: false },
+  tiktok: { name: 'TikTok Ads Billing', implemented: true },
 } as const;
 
 export type StablecoinProviderId = keyof typeof STABLECOIN_PROVIDERS;
@@ -37,3 +37,4 @@ export { CircleSetup, CircleAdapter } from './stablecoin/circle.js';
 export { MercuryBankAdapter } from './stablecoin/mercury.js';
 export { GoogleBillingSetup, GoogleBillingAdapter } from './billing/google-billing.js';
 export { MetaBillingSetup, MetaBillingAdapter } from './billing/meta-billing.js';
+export { TikTokBillingSetup, TikTokBillingAdapter } from './billing/tiktok-billing.js';

@@ -193,7 +193,6 @@ export async function getBillingAdapter(
         return null;
       }
 
-      // @ts-expect-error — tiktok-billing.ts created in Mission 2; remove this comment then
       const { TikTokBillingAdapter } = await import('./billing/tiktok-billing.js');
       logger.log('Adapter factory: using TikTok billing adapter');
       return new TikTokBillingAdapter({ appId, accessToken });
