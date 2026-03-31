@@ -23,6 +23,8 @@ import { SandboxBankAdapter } from '../adapters/sandbox-bank.js';
 import type { StablecoinAdapter } from './stablecoin/base.js';
 import type { RevenueSourceAdapter } from '../revenue-types.js';
 import type { AdBillingAdapter, AdPlatform } from './billing/base.js';
+import type { AdPlatformAdapter } from './campaign/base.js';
+import { SandboxCampaignAdapter } from './campaign/sandbox-campaign.js';
 
 // ── Internal Types ───────────────────────────────────
 
@@ -203,4 +205,70 @@ export async function getBillingAdapter(
   }
 
   return null;
+}
+
+// ── Campaign Adapter Factory ────────────────────────
+
+/**
+ * Returns an AdPlatformAdapter for campaign CRUD on the given platform.
+ * If credentials are missing or platform is unrecognized, returns SandboxCampaignAdapter.
+ * Sandbox adapter provides full lifecycle demo without API keys.
+ */
+export async function getCampaignAdapter(
+  platform: AdPlatform,
+  vaultKey: string | null,
+  logger: FactoryLogger = noopLogger,
+): Promise<AdPlatformAdapter> {
+  if (!vaultKey) {
+    logger.log(`Adapter factory: no vault key — using sandbox campaign adapter for ${platform}`);
+    return new SandboxCampaignAdapter();
+  }
+
+  try {
+    if (platform === 'google') {
+      const accessToken = await financialVaultGet(vaultKey, 'google-ads-token');
+      const developerToken = await financialVaultGet(vaultKey, 'google-developer-token');
+      const customerId = await financialVaultGet(vaultKey, 'google-customer-id');
+      if (!accessToken || !developerToken || !customerId) {
+        logger.log('Adapter factory: Google Ads credentials incomplete — falling back to sandbox campaign adapter');
+        return new SandboxCampaignAdapter();
+      }
+
+      const { GoogleCampaignAdapter } = await import('./campaign/google-campaign.js');
+      logger.log('Adapter factory: using Google campaign adapter');
+      return new GoogleCampaignAdapter({ customerId, accessToken, developerToken });
+    }
+
+    if (platform === 'meta') {
+      const accessToken = await financialVaultGet(vaultKey, 'meta-access-token');
+      const adAccountId = await financialVaultGet(vaultKey, 'meta-ad-account-id');
+      if (!accessToken || !adAccountId) {
+        logger.log('Adapter factory: Meta Ads credentials incomplete — falling back to sandbox campaign adapter');
+        return new SandboxCampaignAdapter();
+      }
+
+      const { MetaCampaignAdapter } = await import('./campaign/meta-campaign.js');
+      logger.log('Adapter factory: using Meta campaign adapter');
+      return new MetaCampaignAdapter({ adAccountId, accessToken });
+    }
+
+    if (platform === 'tiktok') {
+      const accessToken = await financialVaultGet(vaultKey, 'tiktok-access-token');
+      const appId = await financialVaultGet(vaultKey, 'tiktok-app-id');
+      if (!accessToken || !appId) {
+        logger.log('Adapter factory: TikTok credentials incomplete — falling back to sandbox campaign adapter');
+        return new SandboxCampaignAdapter();
+      }
+
+      const { TikTokCampaignAdapter } = await import('./campaign/tiktok-campaign.js');
+      logger.log('Adapter factory: using TikTok campaign adapter');
+      return new TikTokCampaignAdapter({ appId, accessToken });
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    logger.log(`Adapter factory: ${platform} campaign adapter creation failed (${msg}) — falling back to sandbox`);
+  }
+
+  logger.log(`Adapter factory: unrecognized platform '${platform}' — using sandbox campaign adapter`);
+  return new SandboxCampaignAdapter();
 }
