@@ -44,7 +44,13 @@ import {
   getTreasuryStateSnapshot, isStablecoinConfigured,
 } from './treasury-heartbeat.js';
 
+import { getCampaignAdapter } from './financial/adapter-factory.js';
+import { transition } from './campaign-state-machine.js';
+import type { CampaignStatus } from './campaign-state-machine.js';
+import type { AdPlatformAdapter, CampaignConfig, AdPlatform } from './financial/campaign/base.js';
+
 const PENDING_OPS = join(TREASURY_DIR, 'pending-ops.jsonl');
+const CAMPAIGNS_DIR = join(TREASURY_DIR, 'campaigns');
 const VOIDFORGE_DIR = join(homedir(), '.voidforge');
 
 // ── Daemon State ──────────────────────────────────────
@@ -157,7 +163,7 @@ async function handleRequest(
     // Campaign creative update — session token only for non-URL changes (§9.20.11)
     if (path.match(/^\/campaigns\/[^/]+\/creative$/)) {
       const id = path.split('/')[2];
-      return { status: 501, body: { ok: false, error: `Creative updates require ad platform adapters (v11.2). Campaign: ${id}` } };
+      return await handleCreativeUpdate(id, body);
     }
 
     // Campaign resume — requires vault password
@@ -196,24 +202,121 @@ async function handleRequest(
   return { status: 405, body: { ok: false, error: 'Method not allowed' } };
 }
 
+// ── Campaign Persistence ─────────────────────────────
+
+interface CampaignRecord {
+  campaignId: string;
+  externalId: string;
+  platform: AdPlatform;
+  status: CampaignStatus;
+  name: string;
+  dailyBudgetCents: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+async function writeCampaignRecord(record: CampaignRecord): Promise<void> {
+  await mkdir(CAMPAIGNS_DIR, { recursive: true });
+  const filePath = join(CAMPAIGNS_DIR, `${record.campaignId}.json`);
+  await atomicWrite(filePath, JSON.stringify(record, null, 2));
+}
+
+async function readCampaignRecord(campaignId: string): Promise<CampaignRecord | null> {
+  const filePath = join(CAMPAIGNS_DIR, `${campaignId}.json`);
+  try {
+    const content = await readFile(filePath, 'utf-8');
+    return JSON.parse(content) as CampaignRecord;
+  } catch { return null; }
+}
+
+async function getActiveCampaignRecords(): Promise<CampaignRecord[]> {
+  const campaigns = await readCampaigns() as CampaignRecord[];
+  return campaigns.filter(c => c.status === 'active');
+}
+
+async function getSuspendedCampaignRecords(): Promise<CampaignRecord[]> {
+  const campaigns = await readCampaigns() as CampaignRecord[];
+  return campaigns.filter(c => c.status === 'suspended');
+}
+
+async function getAdapterForPlatform(platform: AdPlatform): Promise<AdPlatformAdapter> {
+  return getCampaignAdapter(platform, vaultKey, logger);
+}
+
 // ── Command Handlers ──────────────────────────────────
 
 async function handleFreeze(): Promise<{ status: number; body: unknown }> {
-  logger.log('FREEZE command received');
-  daemonState = 'degraded'; // Will be 'frozen' after platforms are paused
+  logger.log('FREEZE command received — pausing all active campaigns');
+  const activeCampaigns = await getActiveCampaignRecords();
+  let pausedCount = 0;
+  const errors: string[] = [];
+
+  for (const campaign of activeCampaigns) {
+    try {
+      const adapter = await getAdapterForPlatform(campaign.platform);
+      await adapter.pauseCampaign(campaign.externalId);
+      const event = transition(campaign.status, 'suspended', 'cli', 'freeze');
+      campaign.status = event.newStatus as CampaignStatus;
+      campaign.updatedAt = new Date().toISOString();
+      await writeCampaignRecord(campaign);
+      pausedCount++;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${campaign.campaignId}: ${msg}`);
+      logger.log(`Freeze: failed to pause campaign ${campaign.campaignId}: ${msg}`);
+    }
+  }
+
+  daemonState = 'degraded';
   eventId++;
-  // In full implementation: iterate all platforms, pause campaigns
-  // For now: update state
   await writeCurrentState();
-  return { status: 200, body: { ok: true, message: 'Freeze initiated' } };
+  logger.log(`Freeze complete: ${pausedCount}/${activeCampaigns.length} campaigns paused`);
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      message: `Freeze initiated: ${pausedCount} campaigns paused`,
+      pausedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    },
+  };
 }
 
 async function handleUnfreeze(): Promise<{ status: number; body: unknown }> {
-  logger.log('UNFREEZE command received');
+  logger.log('UNFREEZE command received — resuming suspended campaigns');
+  const suspendedCampaigns = await getSuspendedCampaignRecords();
+  let resumedCount = 0;
+  const errors: string[] = [];
+
+  for (const campaign of suspendedCampaigns) {
+    try {
+      const adapter = await getAdapterForPlatform(campaign.platform);
+      await adapter.resumeCampaign(campaign.externalId);
+      const event = transition(campaign.status, 'active', 'cli', 'unfreeze');
+      campaign.status = event.newStatus as CampaignStatus;
+      campaign.updatedAt = new Date().toISOString();
+      await writeCampaignRecord(campaign);
+      resumedCount++;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${campaign.campaignId}: ${msg}`);
+      logger.log(`Unfreeze: failed to resume campaign ${campaign.campaignId}: ${msg}`);
+    }
+  }
+
   daemonState = 'healthy';
   eventId++;
   await writeCurrentState();
-  return { status: 200, body: { ok: true, message: 'Spending resumed' } };
+  logger.log(`Unfreeze complete: ${resumedCount}/${suspendedCampaigns.length} campaigns resumed`);
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      message: `Spending resumed: ${resumedCount} campaigns unfrozen`,
+      resumedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    },
+  };
 }
 
 async function handleUnlock(body: { password?: string }): Promise<{ status: number; body: unknown }> {
@@ -236,36 +339,217 @@ async function handleUnlock(body: { password?: string }): Promise<{ status: numb
 
 async function handleCampaignPause(id: string): Promise<{ status: number; body: unknown }> {
   logger.log(`Campaign ${id} pause requested`);
-  // VG-R1-006: Return 501 until platform adapters are wired
-  eventId++;
-  return { status: 501, body: { ok: false, error: `Campaign pause requires platform adapters (not yet wired). Campaign: ${id}` } };
+  const record = await readCampaignRecord(id);
+  if (!record) {
+    return { status: 404, body: { ok: false, error: `Campaign not found: ${id}` } };
+  }
+
+  try {
+    const adapter = await getAdapterForPlatform(record.platform);
+    await adapter.pauseCampaign(record.externalId);
+    const event = transition(record.status, 'paused', 'cli', 'user_paused');
+    record.status = event.newStatus as CampaignStatus;
+    record.updatedAt = new Date().toISOString();
+    await writeCampaignRecord(record);
+    eventId++;
+    await appendToLog(SPEND_LOG, { type: 'campaign_pause', campaignId: id, timestamp: record.updatedAt });
+    logger.log(`Campaign ${id} paused on ${record.platform}`);
+    return { status: 200, body: { ok: true, campaignId: id, status: 'paused' } };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.log(`Campaign ${id} pause failed: ${msg}`);
+    return { status: 500, body: { ok: false, error: `Pause failed: ${msg}` } };
+  }
 }
 
 async function handleCampaignResume(id: string): Promise<{ status: number; body: unknown }> {
   logger.log(`Campaign ${id} resume requested`);
-  // VG-R1-006: Return 501 until platform adapters are wired
-  eventId++;
-  return { status: 501, body: { ok: false, error: `Campaign resume requires platform adapters (not yet wired). Campaign: ${id}` } };
+  const record = await readCampaignRecord(id);
+  if (!record) {
+    return { status: 404, body: { ok: false, error: `Campaign not found: ${id}` } };
+  }
+
+  try {
+    const adapter = await getAdapterForPlatform(record.platform);
+    await adapter.resumeCampaign(record.externalId);
+    const event = transition(record.status, 'active', 'cli', 'user_resumed');
+    record.status = event.newStatus as CampaignStatus;
+    record.updatedAt = new Date().toISOString();
+    await writeCampaignRecord(record);
+    eventId++;
+    await appendToLog(SPEND_LOG, { type: 'campaign_resume', campaignId: id, timestamp: record.updatedAt });
+    logger.log(`Campaign ${id} resumed on ${record.platform}`);
+    return { status: 200, body: { ok: true, campaignId: id, status: 'active' } };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.log(`Campaign ${id} resume failed: ${msg}`);
+    return { status: 500, body: { ok: false, error: `Resume failed: ${msg}` } };
+  }
 }
 
-async function handleCampaignLaunch(_body: unknown): Promise<{ status: number; body: unknown }> {
+async function handleCampaignLaunch(body: unknown): Promise<{ status: number; body: unknown }> {
   logger.log('Campaign launch requested');
-  // VG-R1-006: Return 501 until platform adapters are wired
-  eventId++;
-  return { status: 501, body: { ok: false, error: 'Campaign launch requires platform adapters (not yet wired)' } };
+  const config = body as {
+    name?: string; platform?: AdPlatform; objective?: string;
+    dailyBudgetCents?: number; idempotencyKey?: string;
+    targeting?: CampaignConfig['targeting']; creative?: CampaignConfig['creative'];
+  };
+
+  // Validate required fields
+  if (!config.name || !config.platform || !config.dailyBudgetCents || !config.idempotencyKey) {
+    return { status: 400, body: { ok: false, error: 'Missing required fields: name, platform, dailyBudgetCents, idempotencyKey' } };
+  }
+
+  // Safety tier check (SEC-004)
+  const tier = classifyTier(config.dailyBudgetCents as Cents, DEFAULT_TIERS);
+  if (!isAutonomouslyAllowed(tier)) {
+    logger.log(`Campaign launch blocked: budget $${(config.dailyBudgetCents / 100).toFixed(2)} requires manual approval (tier: ${tier.name})`);
+    return { status: 403, body: { ok: false, error: `Budget exceeds autonomous tier. Tier: ${tier.name}. Requires manual approval.` } };
+  }
+
+  try {
+    const adapter = await getAdapterForPlatform(config.platform);
+    const campaignConfig: CampaignConfig = {
+      name: config.name,
+      platform: config.platform,
+      objective: (config.objective as CampaignConfig['objective']) ?? 'traffic',
+      dailyBudget: config.dailyBudgetCents as Cents,
+      targeting: config.targeting ?? { audiences: [], locations: [] },
+      creative: config.creative ?? { headlines: [], descriptions: [], callToAction: '', landingUrl: '' },
+      idempotencyKey: config.idempotencyKey,
+      complianceStatus: 'passed',
+    };
+
+    // WAL entry before platform call
+    await writePendingOp({
+      intentId: config.idempotencyKey,
+      operation: 'campaign_launch',
+      platform: config.platform,
+      params: campaignConfig,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    });
+
+    const result = await adapter.createCampaign(campaignConfig);
+
+    // Transition state: creating → active (or pending_review → creating based on platform)
+    const campaignId = config.idempotencyKey;
+    const now = new Date().toISOString();
+    const record: CampaignRecord = {
+      campaignId,
+      externalId: result.externalId,
+      platform: config.platform,
+      status: result.status === 'pending_review' ? 'pending_approval' : 'active',
+      name: config.name,
+      dailyBudgetCents: config.dailyBudgetCents,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await writeCampaignRecord(record);
+
+    // Log spend event
+    await appendToLog(SPEND_LOG, {
+      type: 'campaign_launch',
+      campaignId,
+      externalId: result.externalId,
+      platform: config.platform,
+      dailyBudgetCents: config.dailyBudgetCents,
+      timestamp: now,
+    });
+
+    eventId++;
+    logger.log(`Campaign launched: ${campaignId} → ${result.externalId} on ${config.platform} (status: ${record.status})`);
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        campaignId,
+        externalId: result.externalId,
+        platform: config.platform,
+        status: record.status,
+        dashboardUrl: result.dashboardUrl,
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.log(`Campaign launch failed: ${msg}`);
+    return { status: 500, body: { ok: false, error: `Launch failed: ${msg}` } };
+  }
 }
 
-async function handleBudgetChange(_body: unknown): Promise<{ status: number; body: unknown }> {
+async function handleBudgetChange(body: unknown): Promise<{ status: number; body: unknown }> {
   logger.log('Budget change requested');
-  // VG-R1-006: Return 501 until platform adapters are wired
-  eventId++;
-  return { status: 501, body: { ok: false, error: 'Budget changes require platform adapters (not yet wired)' } };
+  const params = body as { campaignId?: string; newBudgetCents?: number };
+
+  if (!params.campaignId || params.newBudgetCents === undefined) {
+    return { status: 400, body: { ok: false, error: 'Missing required fields: campaignId, newBudgetCents' } };
+  }
+
+  // Safety tier check (SEC-004)
+  const tier = classifyTier(params.newBudgetCents as Cents, DEFAULT_TIERS);
+  if (!isAutonomouslyAllowed(tier)) {
+    return { status: 403, body: { ok: false, error: `Budget exceeds autonomous tier. Tier: ${tier.name}.` } };
+  }
+
+  const record = await readCampaignRecord(params.campaignId);
+  if (!record) {
+    return { status: 404, body: { ok: false, error: `Campaign not found: ${params.campaignId}` } };
+  }
+
+  try {
+    const adapter = await getAdapterForPlatform(record.platform);
+    await adapter.updateBudget(record.externalId, params.newBudgetCents as Cents);
+
+    const oldBudget = record.dailyBudgetCents;
+    record.dailyBudgetCents = params.newBudgetCents;
+    record.updatedAt = new Date().toISOString();
+    await writeCampaignRecord(record);
+
+    await appendToLog(SPEND_LOG, {
+      type: 'budget_change',
+      campaignId: params.campaignId,
+      oldBudgetCents: oldBudget,
+      newBudgetCents: params.newBudgetCents,
+      timestamp: record.updatedAt,
+    });
+
+    eventId++;
+    logger.log(`Budget changed: ${params.campaignId} $${(oldBudget / 100).toFixed(2)} → $${(params.newBudgetCents / 100).toFixed(2)}`);
+    return { status: 200, body: { ok: true, campaignId: params.campaignId, newBudgetCents: params.newBudgetCents } };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.log(`Budget change failed: ${msg}`);
+    return { status: 500, body: { ok: false, error: `Budget change failed: ${msg}` } };
+  }
+}
+
+async function handleCreativeUpdate(id: string, body: unknown): Promise<{ status: number; body: unknown }> {
+  logger.log(`Creative update for campaign ${id}`);
+  const record = await readCampaignRecord(id);
+  if (!record) {
+    return { status: 404, body: { ok: false, error: `Campaign not found: ${id}` } };
+  }
+
+  const creative = body as { headlines?: string[]; descriptions?: string[]; callToAction?: string; landingUrl?: string; imageUrls?: string[] };
+
+  try {
+    const adapter = await getAdapterForPlatform(record.platform);
+    await adapter.updateCreative(record.externalId, creative);
+    record.updatedAt = new Date().toISOString();
+    await writeCampaignRecord(record);
+    eventId++;
+    logger.log(`Creative updated for campaign ${id} on ${record.platform}`);
+    return { status: 200, body: { ok: true, campaignId: id, message: 'Creative updated' } };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.log(`Creative update failed for ${id}: ${msg}`);
+    return { status: 500, body: { ok: false, error: `Creative update failed: ${msg}` } };
+  }
 }
 
 async function handleReconcile(): Promise<{ status: number; body: unknown }> {
   logger.log('Manual reconciliation requested');
   eventId++;
-  // VG-R1-006: Wire to real reconciliation module
   try {
     const { runReconciliation } = await import('./reconciliation.js');
     const today = new Date().toISOString().slice(0, 10);
