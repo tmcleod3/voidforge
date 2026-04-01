@@ -26,6 +26,10 @@
 
 **Need more?** Pull from Star Wars pool: Luke, Han, Qui-Gon, Din Djarin, Cassian, Sabine. See NAMING_REGISTRY.md.
 
+## Pre-Audit: Load Operational Learnings (optional)
+
+If `docs/LEARNINGS.md` exists, check for entries in the `security`, `vendor`, or `api-behavior` categories that may affect the audit scope — known auth quirks, credential constraints, or API behaviors that impact the security posture. (ADR-035)
+
 ## Goal
 
 OWASP Top 10 evaluation. Find misconfigurations, missing protections, insecure defaults. Prioritized findings with specific remediation. Harden to production baseline.
@@ -194,6 +198,10 @@ Verify that user-controlled data is never injected into HTTP response headers wi
 
 **Ahsoka — Access:** Every endpoint verifies ownership (no IDOR). UUIDs not sequential IDs. Admin verified server-side. Tier features verified server-side. User A can't access User B's anything. Rate limiting per-user and per-IP. **Auth framework rate limiting:** Auth frameworks (NextAuth, Passport, Auth.js, Supabase Auth, etc.) may handle login routing internally. Verify that rate limiting is applied inside the framework's `authorize`/`verify` callback, not just at the API route level. The framework's handler may bypass route-level middleware entirely. (Field report #38: NextAuth's `authorize()` callback ran inside its own handler — route-level rate limiting never saw login attempts.)
 
+### Read-Operation Guards
+
+Read operations leak data too — apply deleted/revoked/suspended guards to ALL entity-returning methods, not just writes. `getPerformance()`, `getInsights()`, `GET /entity/{id}` on a soft-deleted record still returns data unless explicitly guarded. Check every method that returns entity data for status guards, not just mutations. (Field report #258: `requireNotDeleted` added to write operations but not to `getPerformance`/`getInsights` — deleted campaigns still returned metrics.)
+
 ### Direct-ID Entity Access
 
 For every `GET /{entity}/{id}` endpoint, verify it checks BOTH ownership/org_id AND visibility/permissions. Direct-ID access without filtering is always **High severity minimum** — never defer. An attacker who guesses or enumerates IDs can access any record. This applies to every entity, not just "sensitive" ones. (Field report #28: `GET /notes/{note_id}` returned any note by ID with no org check — caught by Gauntlet, not per-mission review.)
@@ -259,9 +267,10 @@ When E2E test infrastructure exists, Kenobi verifies in a real browser:
 1. **Cookie inspection:** After authenticating, dump all cookies via `context.cookies()`. Flag: session cookies missing `HttpOnly`, missing `Secure`, missing `SameSite`. Use `inspectCookies()` from `browser-review.ts`.
 2. **CORS verification:** Intercept API responses via `page.route()`. Check `Access-Control-Allow-Origin` headers. Flag wildcard `*` on authenticated endpoints. Use `captureCORSHeaders()`.
 3. **CSP violation capture:** Monitor `securitypolicyviolation` events. Report each violation with the directive, blocked URI, and source. Use `captureCSPViolations()`.
-4. **Auth redirect verification:** Navigate to protected routes without session. Verify: redirect to login page (not 403 with content leak), no partial content rendered before redirect.
-5. **Mixed content detection:** Monitor console for `Mixed Content` warnings during HTTPS navigation.
-6. **Session fixation** — capture session token before login, complete login, verify a new session token is issued (old token invalidated)
+4. **CSP execution verification:** After CSP headers are confirmed present, verify scripts actually *execute* under the policy. Navigate to a page with interactive functionality (form submission, client-side routing, dynamic content) and confirm it works — don't just check that the header exists. A nonce-based CSP that generates nonces in middleware but never passes them to the rendering framework produces correct headers with zero working scripts. Blank pages in production with no console errors (because CSP blocks silently) are the symptom. (Field report #259: nonce-based CSP wired in middleware but Next.js rendering never received nonces — every script blocked, blank pages in production.)
+5. **Auth redirect verification:** Navigate to protected routes without session. Verify: redirect to login page (not 403 with content leak), no partial content rendered before redirect.
+6. **Mixed content detection:** Monitor console for `Mixed Content` warnings during HTTPS navigation.
+7. **Session fixation** — capture session token before login, complete login, verify a new session token is issued (old token invalidated)
 
 These checks complement static code analysis — CSP and cookie attributes are often set by middleware/framework configuration that is invisible to grep-based auditing.
 

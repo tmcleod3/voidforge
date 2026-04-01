@@ -85,6 +85,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `execution-safety.ts` — Trading execution: order validation, position limits, exchange precision, paper/live toggle
 - `browser-review.ts` — Browser intelligence: console errors, behavioral walkthroughs, a11y audit, visual inspection
 - `e2e-test.ts` — Playwright E2E + axe-core a11y: page objects, auth helpers, network mocks, CWV measurement
+- `combobox.tsx` — Accessible combobox with value source management, keyboard nav, async search (+ HTMX)
 
 ## Slash Commands
 
@@ -195,6 +196,7 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **PRD Generator** | `/docs/methods/PRD_GENERATOR.md` | Sisko — when generating a PRD from scratch |
 | **Meta-Workflow** | `/docs/META_WORKFLOW.md` | How to use VoidForge to develop VoidForge — campaigns on self, anti-patterns, feedback loop |
 | **AI Intelligence** | `/docs/methods/AI_INTELLIGENCE.md` | When project uses LLM/AI features |
+| **Learnings** | `/docs/LEARNINGS.md` | Project-scoped operational knowledge — read at session start if exists |
 | **The Muster** | `/docs/methods/MUSTER.md` | When using `--muster` flag on any command |
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
 | **Patterns** | `/docs/patterns/` | When writing code (35 reference implementations) |

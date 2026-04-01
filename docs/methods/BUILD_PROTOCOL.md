@@ -140,6 +140,7 @@ Every phase produces a log file in `/logs/`. See `/docs/methods/BUILD_JOURNAL.md
 4. Flag missing items — list each gap explicitly with "inferred [assumption]" or "BLOCKED — needs answer"
 5. Check for VoidForge vault (`~/.voidforge/vault.enc`). If present, cross-reference env vars from the PRD against vault contents and provisioning state (`~/.voidforge/runs/*.json`). Distinguish "missing credential" (truly BLOCKED) from "vault-available credential" (resolvable via `voidforge deploy`). (Field report #40)
 6. **Wong loads lessons:** Read `/docs/LESSONS.md`. For each entry matching the current project's framework, database, auth pattern, or integration stack, note it: "Lesson from prior build: [summary]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+. Log matched lessons in phase-00-orient.md.
+6a. **Wong loads operational learnings:** If `docs/LEARNINGS.md` exists, read it. For each entry, note the constraint it implies for this build. Entries with `verified` older than 90 days are flagged as potentially stale — note them but verify before relying on them. Learnings inform Phase 2+ decisions: known API quirks prevent repeated dead ends, decision rationale prevents re-evaluation, root causes prevent re-investigation. Log matched learnings in phase-00-orient.md alongside lessons. (ADR-035)
 7. **Troi confirms PRD extraction:** Troi reads the PRD prose and verifies that Picard's extraction (routes, schema, features, integrations) matches what the PRD actually says. Catches misinterpretations before they propagate through 8+ build phases. Log discrepancies in phase-00-orient.md.
 8. **Historical validation for data-dependent systems.** If the project involves trading, financial analysis, pricing, or any domain where the business case depends on real-world data patterns: validate the strategy against historical data BEFORE building infrastructure. Pull trailing 3+ weeks of data from venue/provider APIs, run the analysis, and produce regression tests against historical data points. These regression tests become the ongoing validation suite — re-run weekly (or per-campaign) to detect edge decay. If regression tests start failing mid-campaign, flag dependent strategies for re-evaluation. Do NOT default to "monitor live data for N weeks" when historical data is available — that blocks the entire campaign unnecessarily. (Field report #126)
 9. Produce initial ADRs in `/docs/adrs/`
@@ -175,8 +176,9 @@ This catches architecture mistakes that currently escape until Phase 9-11 review
 **Phase 2 — Kusanagi Infrastructure.**
 1. Database (Banner assists) -> Redis -> Environment
 2. **Schema-first:** Read the full schema (Prisma schema, Django models, Rails migrations, SQL DDL) for ALL target models before writing any database scripts, seed files, or migration code. Check required fields, unique constraints, foreign keys, default values, and enum types. A migration that misses a NOT NULL constraint or a unique index creates data integrity bugs that compound across every subsequent phase. (Triage fix from field report batch #149-#153.)
-3. Verify: dev server starts, build passes, lint passes, typecheck passes, `npm test` passes
-4. Log to `/logs/phase-02-infrastructure.md`
+3. **Signature-first:** Read actual function signatures before writing inter-module calls — don't rely on memory or pattern-matching. Open the target file and check parameter names, types, and order. A call that type-checks but passes the wrong value (e.g., a config object where a number was expected) can silently produce incorrect behavior. (Field report #258: `classifyTier()` called with config object as aggregate spend — NaN comparisons fell through to auto_approve.)
+4. Verify: dev server starts, build passes, lint passes, typecheck passes, `npm test` passes
+5. Log to `/logs/phase-02-infrastructure.md`
 
 **Migration Safety Gate (conditional — if database migrations exist):**
 Before applying any migration to a production database, verify:
@@ -276,6 +278,9 @@ The review phases use a double-pass pattern: find → fix → re-verify. This ca
 *Fix batch:*
 5. Resolve all critical/high findings across all three audits. Where findings conflict between agents (e.g., security fix degrades UX), apply conflict resolution from SUB_AGENTS.md.
 
+**Build artifact verification (conditional — if project has a separate build step for workers/scripts):**
+After running any build command (`build:workers`, `tsc --build`, webpack, etc.), verify the compiled output contains the expected code. Grep the output directory for key exports, function names, or registrations that were added since the last build. Tests run against source files — a stale `dist/` that's missing your new code will pass all tests but fail in production. (Field report #263: `dist/workers/index.js` was stale, missing 4 new worker registrations — cron jobs never fired despite source being correct.)
+
 *Pass 2 — Re-Verify (parallel):*
 6. Batman: Nightwing re-runs test suite + Red Hood re-probes fixed areas + Deathstroke re-tests authorization boundaries.
 7. Galadriel: Samwise re-audits a11y on modified components + Radagast re-checks edge cases.
@@ -285,10 +290,11 @@ The review phases use a double-pass pattern: find → fix → re-verify. This ca
 **Phase 12 — Kusanagi Deploys.**
 1. Execute `/docs/methods/DEVOPS_ENGINEER.md` full sequence
 2. Complete first-deploy pre-flight checklist (see `/devops` command)
-3. **Docker smoke test (field report #147):** If the project uses Docker/docker-compose, verify the container entrypoint runs the NEW code, not a legacy file. Run `docker compose up --build` (or equivalent) and confirm the process that starts is the architecture you just built. A 39-mission campaign once shipped with the legacy entrypoint because nobody checked what `CMD` pointed to.
-4. **Schema.sql sync gate:** After applying any migrations, regenerate `schema.sql` from the live database (e.g., `sqlite3 db.sqlite3 .schema > schema.sql`). Post-process the output: add `IF NOT EXISTS` to all `CREATE TABLE` and `CREATE INDEX` statements, remove `sqlite_sequence` (cannot be created manually). Commit the updated schema.sql. Stale schema.sql files cause false findings in `/assess` and mislead downstream consumers. (Field reports #232, #242)
-5. **Reference file freshness:** Before running `/assess` on an existing codebase, regenerate reference files (schema.sql, API docs, type exports) from the live system. Stale reference files generate false findings that waste triage time — the v7.0 assessment over-reported multi-tenant gaps because schema.sql showed 20 tables vs 52 actual. (Field report #232)
-6. Log to `/logs/phase-12-deploy.md`
+3. **Route registration check:** Verify all new API/route files are imported in the server entry point. Grep the entry point (e.g., `server.ts`, `app.ts`, `urls.py`) for imports of every new route file created during this build. An exported handler that isn't imported is a silent 404. (Field report #258: blueprint API routes exported but never registered via `addRoute()` in `server.ts` — wizard UI silently 404'd.)
+4. **Docker smoke test (field report #147):** If the project uses Docker/docker-compose, verify the container entrypoint runs the NEW code, not a legacy file. Run `docker compose up --build` (or equivalent) and confirm the process that starts is the architecture you just built. A 39-mission campaign once shipped with the legacy entrypoint because nobody checked what `CMD` pointed to.
+5. **Schema.sql sync gate:** After applying any migrations, regenerate `schema.sql` from the live database (e.g., `sqlite3 db.sqlite3 .schema > schema.sql`). Post-process the output: add `IF NOT EXISTS` to all `CREATE TABLE` and `CREATE INDEX` statements, remove `sqlite_sequence` (cannot be created manually). Commit the updated schema.sql. Stale schema.sql files cause false findings in `/assess` and mislead downstream consumers. (Field reports #232, #242)
+6. **Reference file freshness:** Before running `/assess` on an existing codebase, regenerate reference files (schema.sql, API docs, type exports) from the live system. Stale reference files generate false findings that waste triage time — the v7.0 assessment over-reported multi-tenant gaps because schema.sql showed 20 tables vs 52 actual. (Field report #232)
+7. Log to `/logs/phase-12-deploy.md`
 
 ### The Living PRD
 

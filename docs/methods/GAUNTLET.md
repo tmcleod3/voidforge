@@ -89,6 +89,8 @@ This catches what static analysis misses: IPv6 binding, native module ABI compat
 
 **Defense-first rule:** Before claiming a bypass or missing defense, read the FULL function/module that implements the defense. Quote the defensive code. Then explain why the defense is insufficient. If you cannot find defensive code, state 'No defense found at [file:line range]' — do not assume it's missing without reading.
 
+**Semantic verification rule:** Verify semantic correctness of arguments, not just type correctness. Ask: is this the RIGHT value, not just a valid type? A function call that compiles and passes type-checking can still be fundamentally wrong if the wrong variable is passed. Check that each argument carries the intended meaning, not just a compatible shape. (Field report #258: aggregate spend parameter received a config object — type-compatible but semantically meaningless, causing NaN comparisons that silently fell through.)
+
 **Round 5 — The Council (convergence):**
 - Spock (Star Trek) — code quality after fixes
 - Ahsoka (Star Wars) — access control integrity

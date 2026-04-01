@@ -113,6 +113,10 @@ When using HTML sanitizers (DOMPurify, bleach, sanitize-html), verify they prese
 
 When processing user-uploaded content (PDFs, images, CSVs), process items individually with per-item timeouts and adaptive parameters — not as a batch. One item failing should not kill the entire batch. Pattern: iterate items, wrap each in try/catch with timeout, collect results + errors, report both. For media: use adaptive quality (DPI fallback: 200→150→100). (Field report #27: PDF conversion failed on 41MB files in batch mode.)
 
+### Enrichment Upstream Correction
+
+When an enrichment pipeline fetches data from an authoritative external source (Google Places, Clearbit, OpenAI, etc.), the canonical values it returns must flow back upstream to correct AI-extracted or user-submitted data — not just sit alongside it. If enrichment fetches a `displayName` that differs from the AI-extracted name, the enrichment result should overwrite the original. Pattern: after enrichment, compare each enriched field against the existing value; if the authoritative source disagrees, update the original field and log the correction. Enrichment that fetches but doesn't correct is a read with no write — the data quality improvement never reaches the user. (Field report #263: Google Places returned canonical `displayName` during enrichment but it was never written back — AI-extracted typo "San Vincent" persisted despite correct "San Vicente" being available.)
+
 ### Cache AI Agent Outputs
 
 In multi-output AI pipelines, cache intermediate results on the entity model. Running the AI fresh for every output produces random drift (different design choices each time). Make "reuse cached output" the default with an explicit opt-out (e.g., "Regenerate" checkbox). One cache miss costs one API call; uncached outputs cost drift across every generation. (Field report #27: Design Agent ran fresh for every version, producing inconsistent designs.)
