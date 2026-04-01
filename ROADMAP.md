@@ -3,9 +3,126 @@
 > The plan for the plan-maker.
 
 **Current:** v19.4.0 (2026-03-30)
-**Next:** v20.0 — CLI Distribution (`npx voidforge init`)
+**Next:** v19.5.0 — The Blueprint Path (pre-written spec → full pipeline)
 **Status:** v19.4 shipped (The Last Mile — campaign execution wiring). Cultivation is fully executable. All stubs eliminated.
-**454 tests** (433 unit + 21 E2E), 9 universes, 260+ agents, 27 slash commands, 35 code patterns.
+**454 tests** (433 unit + 21 E2E), 9 universes, 260+ agents, 28 slash commands, 35 code patterns.
+
+---
+
+## v19.5.0 — The Blueprint Path
+
+*"You've done the thinking. The forge does the building."*
+
+**Source: `/docs/RFC-blueprint-path.md`. Campaign: 6 missions, 0 stubs.**
+
+**What this does:** Adds the missing fourth entry path to VoidForge. Users with pre-written PRDs (from Claude chat, consultants, or previous iterations) can skip Sisko's interview and go straight to validation → provisioning → campaign. New `/blueprint` command orchestrates Picard (validate) → Wong (discover docs) → Boromir (challenge) → Kusanagi (provision) → Sisko (build). Wizard auto-detects existing PRDs and offers the shortcut.
+
+**The gap:** Today, users with complete specs must either: (1) endure the wizard interview saying "skip, I have a PRD" at every step, (2) use scaffold and lose provisioners, or (3) manually replace the generated PRD afterwards. None are clean.
+
+**ALL 6 MISSIONS BUILDABLE.** Frontmatter parser exists (`wizard/lib/frontmatter.ts`). Provisioning pipeline proven (6 providers). Boromir exists in `/prd --challenge`. Wizard UI is a modular state machine (`wizard/ui/app.js`). Infrastructure is ready — the blueprint-specific logic needs to be wired together.
+
+### Mission 1 — Document Discovery + CLAUDE.md Merge
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | Reusable document discovery module + safe CLAUDE.md merge utility |
+| **New files** | `wizard/lib/document-discovery.ts` — scan for supporting docs (OPERATIONS.md, ADR/, reference/, PROJECT-DIRECTIVES.md) |
+| | `wizard/lib/claude-merge.ts` — append project directives to CLAUDE.md (never replace, idempotent) |
+| **Tests** | `wizard/__tests__/document-discovery.test.ts` — 8+ tests |
+| **Prereqs** | None (foundation) |
+| **Effort** | ~300 lines + 8 tests |
+
+**Discovery convention:** `docs/PRD.md` (required), `docs/PROJECT-DIRECTIVES.md` or `docs/PROJECT-CLAUDE.md` (optional), `docs/OPERATIONS.md` (optional), `docs/ADR/*.md` (optional), `docs/reference/*` (optional).
+
+### Mission 2 — Enhanced PRD Validation
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | Expand frontmatter schema + structural validation (Troi compliance) |
+| **Modified** | `wizard/lib/frontmatter.ts` — nested `stack` and `deploy` objects per RFC spec |
+| **New files** | `wizard/lib/prd-validator.ts` — structural checks (sections present, cross-refs valid) |
+| **Tests** | `wizard/__tests__/prd-validator.test.ts` — 12+ tests |
+| **Prereqs** | None (independent of M1) |
+| **Effort** | ~400 lines + 12 tests |
+
+**Validation rules:** Required fields (name, stack.runtime, stack.framework, deploy.target). Structural checks (OVERVIEW section, feature sections, DATA MODELS if database set, DEPLOYMENT if deploy set). Warnings not blockers — user can proceed.
+
+### Mission 3 — `/blueprint` Command + `/prd --import`
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | New slash command + import flag on existing /prd |
+| **New files** | `.claude/commands/blueprint.md` — orchestrates validate → discover → merge → conflict-scan → challenge → provision → campaign handoff |
+| **Modified** | `.claude/commands/prd.md` — add `--import path/to/PRD.md` flag |
+| **Prereqs** | Missions 1-2 (discovery + validation) |
+| **Effort** | ~200 lines |
+
+**`/blueprint` flow:** (1) Picard validates frontmatter, (2) Troi checks structure, (3) Wong discovers supporting docs, (4) Wong merges project directives into CLAUDE.md, (5) Picard runs conflict scan, (6) Boromir challenges (if `--challenge`), (7) Kusanagi provisions (unless `--no-provision`), (8) Hand off to `/campaign`.
+
+### Mission 4 — Wizard Auto-Detection + Tutorial Hub
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | Wizard detects existing PRD, offers blueprint shortcut. Tutorial hub updated. |
+| **Modified** | `wizard/ui/app.js` — fork point after Step 3 detecting `docs/PRD.md` |
+| | `wizard/ui/index.html` — tutorial hub 4-card layout (Wizard, Blueprint, Scaffold, Import) |
+| **New files** | `wizard/api/blueprint.ts` — API endpoint for blueprint validation from wizard UI |
+| **Tests** | E2E test for wizard blueprint detection flow |
+| **Prereqs** | Mission 3 (command exists) |
+| **Effort** | ~400 lines |
+
+### Mission 5 — PRD Template + Documentation
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | Reference template, command docs, tutorial page, HOLOCRON update |
+| **New files** | `docs/templates/PRD-TEMPLATE.md` — complete frontmatter field reference with examples |
+| **Modified** | `CLAUDE.md` — add `/blueprint` to Slash Commands table (28th command) |
+| | `HOLOCRON.md` — add Blueprint Path section |
+| **Prereqs** | Missions 1-4 complete |
+| **Effort** | ~300 lines documentation |
+
+### Mission 6 — Victory Gauntlet + Release
+
+| Aspect | Detail |
+|--------|--------|
+| **Objective** | Full 5-round Gauntlet, version bump, branch sync |
+| **Version** | v19.5.0 (MINOR — new command, new entry path) |
+| **Branch sync** | main → scaffold → core (shared methodology files) |
+| **Effort** | 1 session |
+
+### Architecture
+
+```
+New files:
+  wizard/lib/document-discovery.ts    # Wong's doc scanner
+  wizard/lib/claude-merge.ts          # Safe CLAUDE.md append
+  wizard/lib/prd-validator.ts         # Troi's structural checks
+  wizard/api/blueprint.ts             # Wizard UI API endpoint
+  .claude/commands/blueprint.md       # The slash command
+  docs/templates/PRD-TEMPLATE.md      # Frontmatter reference
+
+Modified files:
+  wizard/lib/frontmatter.ts           # Expanded schema
+  wizard/ui/app.js                    # Auto-detection fork point
+  wizard/ui/index.html                # Tutorial hub cards
+  .claude/commands/prd.md             # --import flag
+  CLAUDE.md                           # Command table (28th entry)
+  HOLOCRON.md                         # Blueprint Path docs
+```
+
+**Dependency chain:** M1 + M2 (parallel) → M3 → M4 → M5 → M6. Missions 1 and 2 can be parallelized — discovery and validation are independent.
+
+### What Changes at the End
+
+| Before (v19.4) | After (v19.5) |
+|----------------|---------------|
+| 3 entry paths (Wizard, Scaffold, Import) | 4 entry paths (+Blueprint) |
+| Pre-written PRDs require manual setup | `/blueprint` validates + provisions automatically |
+| No supporting doc discovery | Wong scans for OPERATIONS.md, ADR/, reference/ |
+| CLAUDE.md merge is manual and error-prone | Automatic append with idempotency |
+| 27 slash commands | 28 slash commands |
+| No PRD template reference | `docs/templates/PRD-TEMPLATE.md` with all fields |
 
 ---
 
