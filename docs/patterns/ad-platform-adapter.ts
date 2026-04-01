@@ -201,6 +201,14 @@ type ReadOnlyAdapter = Pick<AdPlatformAdapter,
 >;
 
 // Authenticated external commands receive the full AdPlatformAdapter
+//
+// ── Adapter Caching Rule (field report #258) ────────────
+// Stateful adapters (in-memory campaign store, e.g. sandbox) MUST be cached
+// per platform — one instance per platform key. Creating a new instance per
+// call loses state between operations (campaigns created become invisible).
+// Stateless adapters (HTTP clients calling external APIs) can be created per
+// call since they hold no local state. Use a module-level Map<string, Adapter>
+// for caching when the adapter's constructor initializes mutable collections.
 
 // ── Reference Implementation: Meta Marketing API ──────
 

@@ -141,6 +141,7 @@ This step runs AFTER Step 0 (vault status known) and BEFORE Step 1 (so Dax's ful
 
 Dax reads the Prophets' plan:
 
+0. **Load operational learnings:** If `docs/LEARNINGS.md` exists, read it before analyzing the PRD. Known API behaviors, prior decision rationale, and root-caused issues inform mission scoping — a mission that touches a component with known constraints should account for them. Flag entries with `verified` older than 90 days as potentially stale. (ADR-035)
 1. Read the PRD — check `/PRD-VOIDFORGE.md` first (root-level, VoidForge's own), fall back to `/docs/PRD.md`
 2. **Frontmatter validation (before analysis):** Check the PRD for a YAML frontmatter block (opening `---` within the first 5 lines). If missing, Sisko offers to add it via a focused 5-question interview: (a) project type? (b) auth needed? (c) payments? (d) deploy target? (e) key integrations? Write the frontmatter block and continue. A PRD without frontmatter cannot be parsed by `/campaign` — skip flags, conditional phases, and project sizing all depend on it. The PRD generator (`/prd`) produces proper frontmatter, but user-written PRDs bypass it. (Field report #125: 1,957-line PRD with no frontmatter, no acceptance criteria, no mission decomposition.)
 3. Scan the codebase — what routes, schema, components, tests exist?
@@ -386,7 +387,8 @@ All PRD requirements are COMPLETE or explicitly BLOCKED:
 6. **Run `/debrief --submit`** — mandatory end-of-campaign post-mortem covering all missions together. Captures cross-cutting learnings that per-mission debriefs miss. This runs BEFORE the sign-off so learnings are captured while context is fresh. (Field reports #31, #53)
 7. **PRD sync check:** Before declaring victory, compare PRD numeric claims (agent counts, feature counts, route counts, component counts) against the actual codebase for this campaign's domain. Stale PRD claims erode trust and compound across campaigns. (Field report #119)
 7a. **Tenant isolation completeness (conditional):** If the campaign touched auth, multi-tenant, or user-scoped data, grep ALL tables for `org_id` (or equivalent ownership column). Every table must be classified as either "tenant-scoped" (has org_id) or "global by design" (with documented justification). Tables without org_id and without justification are IDOR risks. This catches incomplete tenant migrations that survive per-phase sweeps — the per-phase check (BUILD_PROTOCOL Phase 4) only covers tables modified in that phase. (Field reports #229, #231)
-8. **Victory Checklist** — ALL must be true before sign-off:
+8. **Entity selector completeness** — for every user-facing selector (dropdown, combobox, autocomplete) that selects from a database-backed list: verify the selector can handle entities that don't exist yet. If a user can only pick from existing DB records, the feature is incomplete — the selector needs a creation flow or an external lookup fallback. Common examples: city selector (needs geocoding fallback), category picker (needs "Other" or custom entry), user selector (needs invite flow). (Field report #263: city selector only searched existing DB cities — users couldn't set homebase to any city not already in the database.)
+9. **Victory Checklist** — ALL must be true before sign-off:
    - [ ] Gauntlet Council signed off (6/6 or all domains pass)
    - [ ] All BLOCKED items acknowledged by user
    - [ ] PRD claims verified against codebase

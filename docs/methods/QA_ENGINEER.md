@@ -184,6 +184,10 @@ For systems with safety-critical operations (stop-loss placement, circuit breake
 
 **Where to check:** Any state machine transition that follows a safety-critical call. Grep for state assignments (`self.state =`, `setState(`, `status =`) and trace backwards — is the preceding safety call's return value checked? (Field report #139: funding_capture strategy opened positions without verifying stop-loss succeeded. Could hold $2K unprotected.)
 
+## Step 1.5 — Load Operational Learnings (optional)
+
+If `docs/LEARNINGS.md` exists, scan entries scoped to the components under investigation. Known root causes, API quirks, and prior bug patterns inform targeted testing — but read entries filtered by component scope, not the full file, to avoid confirmation bias. (ADR-035)
+
 ## Step 2 — Baseline Repro Harness
 
 Get the project running. Create repeatable manual validation: app starts, primary flow works, auth works, data persists, error states display, mobile works. Document exact commands.
@@ -202,6 +206,7 @@ This is a HARD GATE, not a suggestion. Actually execute runtime tests:
    - If yes → infinite render loop. Must fix before proceeding.
    - Check for `.focus()` calls in effects — do they need ref guards?
 5. **Verify primary user flow** — trace from user action → handler → store → render → what the user sees
+6. **Data-UI enum consistency** — for every UI filter, dropdown, category selector, or status badge: extract the set of values used in the UI and compare against the canonical source (Prisma enum, DB CHECK constraint, TypeScript union, Python Enum). Flag mismatches. A single-character difference (e.g., `SHOPPING` in UI vs `SHOP` in enum) causes silent total failure — zero results, zero errors, zero log entries. This check must compare string values, not just count them. Also verify that new enum values added to the schema have corresponding UI representations. (Field report #263: category filter used `SHOPPING` but Prisma enum was `SHOP` — filter showed zero results for ~5 days with no errors.)
 
 If the server cannot be started (methodology-only project, missing dependencies), document why and skip with a note.
 
