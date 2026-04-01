@@ -176,6 +176,25 @@
       return;
     }
 
+    // Blueprint auto-detection: when moving from Step 3 → Step 4,
+    // check if docs/PRD.md already exists in the project directory
+    if (currentStep === 3 && state.projectDir) {
+      try {
+        const detectRes = await fetch('/api/blueprint/detect');
+        const detectData = await detectRes.json();
+        if (detectData.detected) {
+          const blueprintBanner = $('#blueprint-detection');
+          if (blueprintBanner) {
+            $('#blueprint-project-name').textContent = detectData.name || 'your project';
+            blueprintBanner.classList.remove('hidden');
+            // User clicks "Use my blueprint" → redirect to /blueprint flow
+            // User clicks "Start fresh" → continue to Step 4 normally
+            return; // Pause navigation until user decides
+          }
+        }
+      } catch { /* detection failed — proceed normally */ }
+    }
+
     if (currentStep < TOTAL_STEPS) {
       const nextStepNum = currentStep + 1;
       if (nextStepNum === 5) await loadDeployTargets();
@@ -1138,6 +1157,43 @@
       } finally {
         document.body.removeChild(ta);
       }
+    });
+  }
+
+  // Blueprint detection handlers
+  const btnUseBlueprint = $('#btn-use-blueprint');
+  const btnStartFresh = $('#btn-start-fresh');
+
+  if (btnUseBlueprint) {
+    btnUseBlueprint.addEventListener('click', async () => {
+      // User chose blueprint path — validate and proceed
+      const blueprintBanner = $('#blueprint-detection');
+      if (blueprintBanner) blueprintBanner.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/blueprint/validate');
+        const data = await res.json();
+
+        if (data.valid) {
+          // Show success and suggest running /blueprint in Claude Code
+          const msg = `Blueprint validated: ${data.summary}. ` +
+            'Run /blueprint in Claude Code to provision and build.';
+          alert(msg);
+        } else {
+          alert('Blueprint has validation errors: ' + data.frontmatterErrors.join(', '));
+        }
+      } catch {
+        alert('Run /blueprint in Claude Code to use the blueprint path.');
+      }
+    });
+  }
+
+  if (btnStartFresh) {
+    btnStartFresh.addEventListener('click', () => {
+      const blueprintBanner = $('#blueprint-detection');
+      if (blueprintBanner) blueprintBanner.classList.add('hidden');
+      // Continue to Step 4 (PRD interview) normally
+      showStep(4);
     });
   }
 
