@@ -66,12 +66,12 @@ When running `/architect` or Phase 0.5 of `/build`, check every combination. Fla
 
 ## Sequence
 
-**Step 0 — System Discovery:** System identity, component inventory, data flow diagram, dependency graph.
+**Step 0 — System Discovery:** System identity, component inventory, data flow diagram, dependency graph. **Load operational learnings:** If `docs/LEARNINGS.md` exists, read it before analysis. Prior decision rationale ("we rejected X because Y"), known API constraints, and root-caused issues prevent re-evaluation of settled questions and inform architectural recommendations. Flag entries with `verified` older than 90 days as potentially stale. (ADR-035)
 
 **Step 1 — Parallel Analysis (Spock + Uhura + Worf):**
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 - **Spock's Schema Review:** Normalization, relationships, indexes match queries, nullable intentional, audit fields, PII isolation, data lifecycle, backup/recovery plan.
-- **Uhura's Integration Review:** External service matrix (purpose, failure mode, fallback, cost, lock-in). API versions pinned. Responses validated. Abstraction layer exists.
+- **Uhura's Integration Review:** External service matrix (purpose, failure mode, fallback, cost, lock-in). API versions pinned. Responses validated. Abstraction layer exists. **Geographic test matrix:** If the system resolves locations (city names, regions, addresses), test against a 5-country matrix: JP (Tokyo — `administrative_area_level_1` is the city), US (California — state-level), UK (England — country constituent), FR (Île-de-France — region), AU (New South Wales — state). No single resolution rule works globally — Google Places `administrative_area_level_1` means fundamentally different things per country. Require database-aware fallback with fuzzy matching for location features. (Field report #259: city resolution required 3 iterations to handle geographic edge cases.)
 - **Worf's Security Implications:** For each architectural decision (schema, service boundaries, data flows), flag security implications. "This schema stores PII in the same table as public data — separate." "This service boundary allows unauthenticated access to internal state." Different from Kenobi (who audits code); Worf audits *design*.
 
 Synthesize findings from all three agents.
