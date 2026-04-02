@@ -15,6 +15,7 @@
 import { KongoClient } from './client.js';
 import { getGrowthSignal } from './analytics.js';
 import { batchGetCampaignStatuses } from './campaigns.js';
+import { getVariant } from './variants.js';
 import { createWebhookRouter } from './webhooks.js';
 import type { ComputedGrowthSignal, WebhookPayload } from './types.js';
 
@@ -31,7 +32,7 @@ export interface KongoJobContext {
 
 export interface KongoJobHandlers {
   readonly signalPoll: () => Promise<KongoSignalResult>;
-  readonly seedPush: (campaignId: string, winningVariantId: string) => Promise<void>;
+  readonly seedPush: (campaignId: string, winningVariantId: string) => Promise<Record<string, string> | null>;
   readonly webhookHandle: (rawBody: string, signature: string) => Promise<void>;
 }
 
@@ -106,24 +107,24 @@ export function createKongoJobs(ctx: KongoJobContext): KongoJobHandlers {
      * kongo-seed: Push winning variant copy back to Kongo as seed for next iteration.
      * Triggered externally when Wayne's A/B evaluation declares a winner.
      */
-    async seedPush(campaignId: string, winningVariantId: string): Promise<void> {
+    async seedPush(campaignId: string, winningVariantId: string): Promise<Record<string, string> | null> {
       ctx.logger(`Kongo seed push: campaign=${campaignId}, winner=${winningVariantId}`);
 
-      // Get the winning variant's details to extract its copy
-      const { getVariant } = await import('./variants.js');
       const variant = await getVariant(ctx.client, campaignId, winningVariantId);
 
       if (!variant.slotValues) {
         ctx.logger(`Kongo seed push: no slot values on variant ${winningVariantId}, skipping`);
-        return;
+        return null;
       }
 
       ctx.logger(
         `Kongo seed push: extracted ${Object.keys(variant.slotValues).length} slot values from winner "${variant.label}"`,
       );
 
-      // The winning copy is now available for the next createPageFromPrd cycle.
-      // The orchestrator (/grow Phase 3.5) will use this to generate improved pages.
+      // Return winning copy for the orchestrator to persist and use in next cycle.
+      // The caller (heartbeat daemon or /grow Phase 3.5) stores this in heartbeat state
+      // and feeds it into the next createPageFromPrd() cycle.
+      return variant.slotValues;
     },
 
     /**

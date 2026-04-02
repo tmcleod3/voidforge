@@ -157,7 +157,7 @@ describe('signalPoll', () => {
 });
 
 describe('seedPush', () => {
-  it('logs seed push with variant details', async () => {
+  it('returns winning slot values', async () => {
     const ctx = createMockContext();
     const client = ctx.client as unknown as { get: ReturnType<typeof vi.fn> };
 
@@ -171,13 +171,14 @@ describe('seedPush', () => {
     });
 
     const jobs = createKongoJobs(ctx);
-    await jobs.seedPush('camp_abc', 'var_winner');
+    const result = await jobs.seedPush('camp_abc', 'var_winner');
 
+    expect(result).toEqual({ headline: 'Winning Headline', cta_text: 'Buy Now' });
     expect(ctx.logger).toHaveBeenCalledWith(expect.stringContaining('seed push'));
     expect(ctx.logger).toHaveBeenCalledWith(expect.stringContaining('2 slot values'));
   });
 
-  it('skips push when variant has no slot values', async () => {
+  it('returns null when variant has no slot values', async () => {
     const ctx = createMockContext();
     const client = ctx.client as unknown as { get: ReturnType<typeof vi.fn> };
 
@@ -190,8 +191,9 @@ describe('seedPush', () => {
     });
 
     const jobs = createKongoJobs(ctx);
-    await jobs.seedPush('camp_abc', 'var_empty');
+    const result = await jobs.seedPush('camp_abc', 'var_empty');
 
+    expect(result).toBeNull();
     expect(ctx.logger).toHaveBeenCalledWith(expect.stringContaining('no slot values'));
   });
 });

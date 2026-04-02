@@ -50,23 +50,25 @@ PRD YAML frontmatter → `POST /engine/pages/from-prd` → Kongo page provisione
 | Wayne (A/B) | `testLayer: 'page'` added alongside existing `'ad'` layer. Never run both simultaneously. |
 | Vin (Analytics) | Kongo conversion data + ad platform spend → true end-to-end ROAS |
 
-### Kongo API Extensions (to be built on Kongo side)
+### Kongo API Extensions — Implementation Status
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /engine/pages/from-prd` | PRD YAML → landing page (structured input, not free-text) |
-| `POST /engine/variants/bulk` | Per-platform variant matrix in one call |
-| `POST /engine/campaigns/batch-status` | Multi-campaign status polling for daemon |
-| `POST /engine/campaigns/:id/bandit/start\|status\|apply` | A/B automation lifecycle |
-| `GET /engine/analytics/:id/growth-signal` | Structured signal for Vin (CTR, bounce, scroll, CVR, trending/underperforming sections) |
-| 4 webhook events | bandit.winner_declared, campaign.conversion_milestone, analytics.weekly_digest, page.slots_updated |
+The following endpoints were planned before reviewing the actual Kongo API. The existing API covered all requirements, so no Kongo-side work was needed.
+
+| Planned Endpoint | Status | Actual Implementation |
+|---|---|---|
+| `POST /engine/pages/from-prd` | NOT NEEDED | Use existing `POST /engine/pages` with `brief` field + `template: 'landing-page'` |
+| `POST /engine/variants/bulk` | NOT NEEDED | Use existing `POST /engine/campaigns/:id/variants/generate` (AI generation) |
+| `POST /engine/campaigns/batch-status` | NOT NEEDED | Paginate via `GET /engine/campaigns` list endpoint |
+| `POST /engine/campaigns/:id/bandit/*` | DEFERRED | Rotation strategy set via `PUT /engine/campaigns/:id` with `rotationStrategy: 'bandit'` |
+| `GET /engine/analytics/:id/growth-signal` | NOT NEEDED | Computed client-side from `GET /engine/campaigns/:id/analytics` using two-proportion z-test |
+| 4 webhook events | PARTIAL | Only `page.completed` + `page.failed` exist via `callbackUrl`. Winner detection uses polling. |
 
 ### Bundling
 
 | VoidForge Tier | Kongo Access |
 |---|---|
 | scaffold (free) | Referral link at /build Phase 8 |
-| main | Auto-provisioned during /cultivation install (OAuth → vault) |
+| main | API key provisioned during /cultivation install (manual entry, stored in financial vault) |
 | Direct Kongo | 20% VoidForge user discount |
 
 ### SEO Constraint (Navani)

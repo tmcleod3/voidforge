@@ -32,7 +32,8 @@ import type {
 // ── Page Operations ──────────────────────────────────────
 
 const DEFAULT_POLL_INTERVAL_MS = 3_000;
-const DEFAULT_POLL_TIMEOUT_MS = 120_000;
+// Kongo page generation takes 2-10 minutes. Default timeout covers the full range.
+const DEFAULT_POLL_TIMEOUT_MS = 660_000; // 11 minutes (10 min upper bound + 1 min buffer)
 
 /**
  * Create a page from raw configuration.

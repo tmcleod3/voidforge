@@ -75,10 +75,26 @@ export function computeGrowthSignal(
     };
   }
 
-  // Sort by CVR descending to find the best performer
-  const sorted = [...variants].sort((a, b) => b.cvr - a.cvr);
-  const best = sorted[0];
-  const control = sorted[sorted.length - 1]; // Worst performer as baseline
+  // Control = first variant by creation order (the original, pre-variation baseline).
+  // NOT the worst performer — using worst inflates z-scores and causes false positives.
+  const control = [...variants].sort((a, b) => a.order - b.order)[0];
+  const challengers = variants.filter(v => v.variantId !== control.variantId);
+
+  if (challengers.length === 0) {
+    return {
+      campaignId,
+      timestamp,
+      winningVariantId: null,
+      confidence: 0,
+      conversionRateDelta: 0,
+      recommendation: 'wait',
+      reasoning: 'Only the control variant exists — need at least one challenger',
+      sampleSize: { control: control.views, variant: 0 },
+    };
+  }
+
+  // Find best challenger by CVR
+  const best = challengers.sort((a, b) => b.cvr - a.cvr)[0];
 
   // Check minimum sample sizes
   if (best.views < MIN_SAMPLE_SIZE || control.views < MIN_SAMPLE_SIZE) {
@@ -94,12 +110,15 @@ export function computeGrowthSignal(
     };
   }
 
-  // Two-proportion z-test
-  const { zScore, confidence } = twoProportionZTest(
+  // Two-proportion z-test (one-tailed: is best better than control?)
+  const { zScore, pValue } = twoProportionZTest(
     best.conversions, best.views,
     control.conversions, control.views,
   );
 
+  // Confidence = 1 - p_value (one-tailed). For two-tailed 95%, need p < 0.025.
+  // We use one-tailed because we have a directional hypothesis (best > control).
+  const confidence = 1 - pValue;
   const conversionRateDelta = best.cvr - control.cvr;
   const recommendation = computeRecommendation(confidence, conversionRateDelta, analytics.summary.totalViews);
 
@@ -132,19 +151,19 @@ export async function getGrowthSignal(
 function twoProportionZTest(
   successA: number, nA: number,
   successB: number, nB: number,
-): { zScore: number; confidence: number } {
+): { zScore: number; pValue: number } {
   const pA = successA / nA;
   const pB = successB / nB;
   const pPooled = (successA + successB) / (nA + nB);
   const se = Math.sqrt(pPooled * (1 - pPooled) * (1 / nA + 1 / nB));
 
-  if (se === 0) return { zScore: 0, confidence: 0 };
+  if (se === 0) return { zScore: 0, pValue: 1 };
 
   const zScore = (pA - pB) / se;
-  // Convert z-score to approximate confidence using normal CDF
-  const confidence = normalCdf(zScore);
+  // One-tailed p-value: P(Z >= z) = 1 - CDF(z)
+  const pValue = 1 - normalCdf(zScore);
 
-  return { zScore, confidence };
+  return { zScore, pValue };
 }
 
 /**
@@ -175,8 +194,8 @@ function computeRecommendation(
   // Moderate confidence, positive trend — keep iterating
   if (confidence >= 0.80 && conversionRateDelta > 0) return 'iterate';
 
-  // High confidence that the campaign underperforms (negative delta with data)
-  if (confidence >= 0.95 && conversionRateDelta <= 0 && totalViews > 500) return 'kill';
+  // High confidence that all challengers underperform the control
+  if (confidence >= 0.95 && conversionRateDelta < 0 && totalViews > 500) return 'kill';
 
   // Not enough signal yet
   return 'wait';

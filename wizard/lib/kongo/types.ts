@@ -259,6 +259,7 @@ export interface CampaignAnalytics {
   readonly byVariant: Array<{
     variantId: string;
     label: string;
+    order: number;
     views: number;
     conversions: number;
     cvr: number;

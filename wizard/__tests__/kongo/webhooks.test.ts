@@ -66,6 +66,14 @@ describe('verifyWebhookSignature', () => {
     expect(result.reason).toContain('too old');
   });
 
+  it('rejects future timestamp', () => {
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 3600; // 1 hour ahead
+    const signature = createSignature(samplePayload, WEBHOOK_SECRET, futureTimestamp);
+    const result = verifyWebhookSignature(samplePayload, signature, WEBHOOK_SECRET);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain('future');
+  });
+
   it('rejects missing signature', () => {
     const result = verifyWebhookSignature(samplePayload, '', WEBHOOK_SECRET);
     expect(result.valid).toBe(false);

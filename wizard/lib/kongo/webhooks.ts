@@ -66,6 +66,9 @@ export function verifyWebhookSignature(
   }
 
   const age = Date.now() - timestampMs;
+  if (age < -60_000) {
+    return { valid: false, reason: 'Webhook timestamp is in the future' };
+  }
   if (age > MAX_WEBHOOK_AGE_MS) {
     return { valid: false, reason: `Webhook too old: ${Math.round(age / 1000)}s (max ${MAX_WEBHOOK_AGE_MS / 1000}s)` };
   }
