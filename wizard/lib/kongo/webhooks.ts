@@ -18,6 +18,8 @@ import type { WebhookPayload, WebhookEventType } from './types.js';
 
 // Maximum age for webhook timestamp (5 minutes)
 const MAX_WEBHOOK_AGE_MS = 5 * 60 * 1000;
+// Maximum webhook body size (1 MB — defense in depth, HTTP layer should also limit)
+const MAX_WEBHOOK_BODY_BYTES = 1 * 1024 * 1024;
 
 export interface WebhookVerificationResult {
   readonly valid: boolean;
@@ -41,6 +43,10 @@ export function verifyWebhookSignature(
 ): WebhookVerificationResult {
   if (!signature || !rawBody || !secret) {
     return { valid: false, reason: 'Missing signature, body, or secret' };
+  }
+
+  if (Buffer.byteLength(rawBody) > MAX_WEBHOOK_BODY_BYTES) {
+    return { valid: false, reason: 'Webhook body too large' };
   }
 
   // Parse signature: t=timestamp,v1=hash

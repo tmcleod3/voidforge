@@ -196,9 +196,18 @@ export class KongoClient {
 
       const payload = body ? JSON.stringify(body) : undefined;
 
+      // Sanitize extraHeaders: strip any auth-related keys (case-insensitive)
+      const safeExtra: Record<string, string> = {};
+      if (extraHeaders) {
+        for (const [key, val] of Object.entries(extraHeaders)) {
+          if (key.toLowerCase() !== 'authorization') {
+            safeExtra[key] = val;
+          }
+        }
+      }
+
       const headers: Record<string, string> = {
-        ...extraHeaders,
-        // Authorization set AFTER extraHeaders to prevent override
+        ...safeExtra,
         'Authorization': `Bearer ${this.apiKey}`,
         'Accept': 'application/json',
       };
@@ -215,9 +224,12 @@ export class KongoClient {
         (res) => {
           const chunks: Buffer[] = [];
           let totalBytes = 0;
+          let settled = false;
           res.on('data', (chunk: Buffer) => {
+            if (settled) return;
             totalBytes += chunk.length;
             if (totalBytes > MAX_RESPONSE_BYTES) {
+              settled = true;
               req.destroy();
               reject(new KongoApiError('RESPONSE_TOO_LARGE', 'Response exceeded 10 MB limit', 502));
               return;
@@ -225,6 +237,7 @@ export class KongoClient {
             chunks.push(chunk);
           });
           res.on('end', () => {
+            if (settled) return;
             const raw = Buffer.concat(chunks).toString('utf-8');
 
             // HTML endpoint returns raw HTML, not JSON
