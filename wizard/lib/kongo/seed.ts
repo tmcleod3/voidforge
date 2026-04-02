@@ -86,14 +86,21 @@ export function parsePrdContent(raw: string): PrdContent {
   // Try ```yaml fenced block
   if (lines[0]?.trim() === '```yaml' || lines[0]?.trim() === '---') {
     const delimiter = lines[0].trim() === '```yaml' ? '```' : '---';
-    const startLine = delimiter === '```' ? 1 : 1;
+    let found = false;
 
-    for (let i = startLine; i < lines.length; i++) {
+    for (let i = 1; i < lines.length; i++) {
       if (lines[i].trim() === delimiter) {
         bodyStart = i + 1;
+        found = true;
         break;
       }
       frontmatterStr += lines[i] + '\n';
+    }
+
+    // No closing delimiter — treat as no frontmatter
+    if (!found) {
+      frontmatterStr = '';
+      bodyStart = 0;
     }
   }
 

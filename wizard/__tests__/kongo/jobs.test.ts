@@ -52,8 +52,8 @@ describe('signalPoll', () => {
       period: '30d',
       summary: { totalViews: 500, totalConversions: 50, cvr: 10 },
       byVariant: [
-        { variantId: 'var_a', label: 'A', views: 250, conversions: 30, cvr: 12, weight: 1 },
-        { variantId: 'var_b', label: 'B', views: 250, conversions: 20, cvr: 8, weight: 1 },
+        { variantId: 'var_a', label: 'A', order: 0, views: 250, conversions: 20, cvr: 8, weight: 1 },
+        { variantId: 'var_b', label: 'B', order: 1, views: 250, conversions: 30, cvr: 12, weight: 1 },
       ],
       bySource: [],
       byDay: [],
@@ -64,7 +64,7 @@ describe('signalPoll', () => {
       period: '30d',
       summary: { totalViews: 100, totalConversions: 5, cvr: 5 },
       byVariant: [
-        { variantId: 'var_c', label: 'C', views: 100, conversions: 5, cvr: 5, weight: 1 },
+        { variantId: 'var_c', label: 'C', order: 0, views: 100, conversions: 5, cvr: 5, weight: 1 },
       ],
       bySource: [],
       byDay: [],
@@ -92,8 +92,8 @@ describe('signalPoll', () => {
       period: '30d',
       summary: { totalViews: 300, totalConversions: 20, cvr: 6.67 },
       byVariant: [
-        { variantId: 'var_a', label: 'A', views: 150, conversions: 12, cvr: 8, weight: 1 },
-        { variantId: 'var_b', label: 'B', views: 150, conversions: 8, cvr: 5.3, weight: 1 },
+        { variantId: 'var_a', label: 'A', order: 0, views: 150, conversions: 8, cvr: 5.3, weight: 1 },
+        { variantId: 'var_b', label: 'B', order: 1, views: 150, conversions: 12, cvr: 8, weight: 1 },
       ],
       bySource: [],
       byDay: [],
@@ -125,8 +125,8 @@ describe('signalPoll', () => {
       period: '30d',
       summary: { totalViews: 300, totalConversions: 20, cvr: 6.67 },
       byVariant: [
-        { variantId: 'var_a', label: 'A', views: 200, conversions: 12, cvr: 6, weight: 1 },
-        { variantId: 'var_b', label: 'B', views: 100, conversions: 8, cvr: 8, weight: 1 },
+        { variantId: 'var_a', label: 'A', order: 0, views: 200, conversions: 12, cvr: 6, weight: 1 },
+        { variantId: 'var_b', label: 'B', order: 1, views: 100, conversions: 8, cvr: 8, weight: 1 },
       ],
       bySource: [],
       byDay: [],

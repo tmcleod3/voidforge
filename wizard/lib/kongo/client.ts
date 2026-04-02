@@ -197,21 +197,33 @@ export class KongoClient {
       const payload = body ? JSON.stringify(body) : undefined;
 
       const headers: Record<string, string> = {
+        ...extraHeaders,
+        // Authorization set AFTER extraHeaders to prevent override
         'Authorization': `Bearer ${this.apiKey}`,
         'Accept': 'application/json',
-        ...extraHeaders,
       };
       if (payload) {
         headers['Content-Type'] = 'application/json';
         headers['Content-Length'] = String(Buffer.byteLength(payload));
       }
 
+      const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
+
       const req = httpsRequest(
         url,
         { method, headers, timeout: this.timeoutMs },
         (res) => {
           const chunks: Buffer[] = [];
-          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          let totalBytes = 0;
+          res.on('data', (chunk: Buffer) => {
+            totalBytes += chunk.length;
+            if (totalBytes > MAX_RESPONSE_BYTES) {
+              req.destroy();
+              reject(new KongoApiError('RESPONSE_TOO_LARGE', 'Response exceeded 10 MB limit', 502));
+              return;
+            }
+            chunks.push(chunk);
+          });
           res.on('end', () => {
             const raw = Buffer.concat(chunks).toString('utf-8');
 
@@ -227,7 +239,7 @@ export class KongoClient {
             } catch {
               reject(new KongoApiError(
                 'UNKNOWN',
-                `Failed to parse Kongo response: ${raw.slice(0, 200)}`,
+                `Failed to parse Kongo response (status=${res.statusCode}, content-type=${res.headers['content-type'] ?? 'unknown'})`,
                 res.statusCode ?? 500,
               ));
               return;

@@ -120,13 +120,17 @@ export async function unpublishCampaign(
  * Get statuses for all active campaigns.
  * Uses the list endpoint since Kongo doesn't have a batch-status endpoint.
  */
+const MAX_BATCH_PAGES = 20;
+
 export async function batchGetCampaignStatuses(
   client: KongoClient,
 ): Promise<CampaignDetail[]> {
   const results: CampaignDetail[] = [];
   let cursor: string | undefined;
+  let pageCount = 0;
 
   do {
+    if (++pageCount > MAX_BATCH_PAGES) break;
     const page = await listCampaigns(client, { cursor, limit: 100 });
     results.push(...page.items);
     cursor = page.hasMore ? page.cursor : undefined;

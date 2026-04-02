@@ -77,7 +77,10 @@ export function computeGrowthSignal(
 
   // Control = first variant by creation order (the original, pre-variation baseline).
   // NOT the worst performer — using worst inflates z-scores and causes false positives.
-  const control = [...variants].sort((a, b) => a.order - b.order)[0];
+  // Tiebreaker by variantId for deterministic selection across JS engines.
+  const control = [...variants].sort(
+    (a, b) => a.order - b.order || a.variantId.localeCompare(b.variantId),
+  )[0];
   const challengers = variants.filter(v => v.variantId !== control.variantId);
 
   if (challengers.length === 0) {
@@ -93,8 +96,23 @@ export function computeGrowthSignal(
     };
   }
 
-  // Find best challenger by CVR
-  const best = challengers.sort((a, b) => b.cvr - a.cvr)[0];
+  // Find best challenger by CVR (guard against NaN from 0-view variants)
+  const best = challengers
+    .filter(v => v.views > 0)
+    .sort((a, b) => b.cvr - a.cvr)[0];
+
+  if (!best) {
+    return {
+      campaignId,
+      timestamp,
+      winningVariantId: null,
+      confidence: 0,
+      conversionRateDelta: 0,
+      recommendation: 'wait',
+      reasoning: 'No challengers with traffic data yet',
+      sampleSize: { control: control.views, variant: 0 },
+    };
+  }
 
   // Check minimum sample sizes
   if (best.views < MIN_SAMPLE_SIZE || control.views < MIN_SAMPLE_SIZE) {
@@ -157,7 +175,7 @@ function twoProportionZTest(
   const pPooled = (successA + successB) / (nA + nB);
   const se = Math.sqrt(pPooled * (1 - pPooled) * (1 / nA + 1 / nB));
 
-  if (se === 0) return { zScore: 0, pValue: 1 };
+  if (nA === 0 || nB === 0 || se === 0) return { zScore: 0, pValue: 1 };
 
   const zScore = (pA - pB) / se;
   // One-tailed p-value: P(Z >= z) = 1 - CDF(z)
