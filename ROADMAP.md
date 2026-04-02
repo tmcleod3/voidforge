@@ -30,7 +30,52 @@
 7. GTM Content Engine codification (3-phase activation, integration classification)
 8. Pattern + documentation (kongo-integration.ts, CLAUDE.md, HOLOCRON.md)
 
-**Key PRD adjustments:** No Kongo-side API work needed — existing Kongo API covers all requirements. OAuth replaced with manual API key entry (Kongo uses ke_live_ keys). Growth signal computed client-side from analytics data instead of hypothetical endpoint. Total: 8 modules, 118 tests, ~4200 lines.
+**Key PRD adjustments:** No Kongo-side API work needed — existing Kongo API covers all requirements. OAuth replaced with manual API key entry (Kongo uses ke_live_ keys). Growth signal computed client-side from analytics data instead of hypothetical endpoint. Total: 10 modules, 119 tests, ~4200 lines.
+
+**Infinity Gauntlet (10 rounds, 2 passes): PASSED.** 3 Critical + 10 High + 14 Medium findings fixed. Remaining items tracked below.
+
+**v20.1.1 — Gauntlet follow-up (unfixed findings):**
+
+Integration wiring (High — deferred, requires daemon changes):
+- [ ] Wire `registerKongoJobs()` into `heartbeat.ts` `startHeartbeat()` — conditional on vault key
+- [ ] Decide webhook ingress architecture: HTTP listener on daemon, tunnel, or polling-only
+
+Code quality (Medium):
+- [ ] Move `setRotation()` from `variants.ts` to `campaigns.ts` (module boundary violation)
+- [ ] Remove unused types: `BatchGenerateRequest`, `ConversionEvent`, `ConversionEventType`
+- [ ] Add barrel file `wizard/lib/kongo/index.ts` with public API surface
+- [ ] Extract duplicate `sleep()` helper from `client.ts` + `pages.ts` to shared util
+- [ ] Extract duplicate `createMockClient()` from 6 test files to shared test helper
+- [ ] Add `KongoClientErrorCode` union (`NETWORK_ERROR`, `TIMEOUT`, `UNKNOWN`, `GENERATION_FAILED`) — replace `| string` escape hatch
+- [ ] Add structured logging to `KongoJobContext.logger` (action, campaignId, level fields)
+- [ ] Add circuit breaker to `signalPoll` — skip polls after N consecutive failures
+
+Seed extraction (Medium):
+- [ ] Document YAML parser limitation (flat key:value only, no nested objects) in Phase 3.5 docs
+- [ ] Strip markdown formatting from extracted headlines (`**bold**`, `[link](url)`)
+- [ ] Replace hardcoded fallback value props with warning log when PRD lacks Features section
+- [ ] Validate `ctaUrl` against PRD frontmatter `url` field instead of defaulting to `#signup`
+
+Validation (Low):
+- [ ] Validate API key minimum length beyond `ke_live_` prefix (e.g., 16+ chars after prefix)
+- [ ] Validate webhook secret format (non-empty, no control chars, 32-128 chars)
+- [ ] Validate `baseUrl` starts with `https://` and matches `*.kongo.io` (SSRF prevention)
+- [ ] Validate API key has no CRLF/null bytes (defense-in-depth, Node.js already blocks)
+- [ ] Add explicit hex validation for webhook `v1=` hash before `Buffer.from`
+- [ ] Add `awaitPage` polling backoff (start 3s, cap 30s) to reduce request waste on long generations
+- [ ] Log warning when `batchGetCampaignStatuses` hits 20-page truncation limit
+
+Test gaps (Low):
+- [ ] Add boundary tests for batch size 1 and 50, variant count 1 and 20
+- [ ] Add test for client timeout event (`req.on('timeout')`)
+- [ ] Add deterministic analytics test (exact confidence value, not multi-match)
+- [ ] Verify `VariantDetail` extra fields (`views`, `cvr`, `weight` etc.) exist in real Kongo API responses
+
+Documentation (Low):
+- [ ] Verify `CampaignDetail` extra fields (`accessGate`, `metadata`, `sourceRules`, `updatedAt`) against real API
+- [ ] Verify `PageTemplate` casing — `'PITCH'` vs kebab-case siblings — against real API
+- [ ] Verify unpublish endpoint: `DELETE /publish` (code) vs `POST /unpublish` (PRD) — which is correct?
+- [ ] Verify rotation strategy values: `'equal'` (types.ts) vs `'even'` (PRD) — which does the real API use?
 
 ---
 
