@@ -52,6 +52,7 @@
 - Galadriel team: Elrond, Arwen, Samwise, Bilbo, Legolas, Gimli, Radagast, Éowyn
 - Kenobi team: Leia, Chewie, Rex, Maul, Yoda, Windu, Ahsoka, Padmé
 - Stark: integration tracing (solo — follows data across all modules)
+- Agent 10: **Vin** (Statistical Review) — if the codebase contains statistical analysis (z-tests, confidence intervals, A/B test evaluation, Bayesian inference), Vin verifies: correct baseline/control selection, appropriate statistical test for the hypothesis, confidence threshold interpretation (one-tailed vs two-tailed, p-value vs CDF), sample size adequacy, and NaN/edge case guards. Tests that validate buggy statistical code will pass — Vin reasons about the math, not just the test results. (Field report #265: growth signal z-test shipped with wrong control selection, inverted confidence, and insufficient timeout — all tests passed.)
 - Agent 11: **Hari Seldon** (AI Audit) — Salvor Hardin, Gaal Dornick, Hober Mallow, Bel Riose, Bliss, The Mule, Ducem Barr, Bayta Darell, Dors Venabili (full Foundation team)
 
 **Step 2.5 — Runtime Smoke Test (Hawkeye):**
