@@ -233,3 +233,10 @@
 **Lesson:** Changing a function from sync to async is a breaking API change that cascades to every call site. Grep all callers before making the change; expect test file updates proportional to call-site count.
 **Action:** Before converting sync → async: grep for all call sites, count the blast radius, and budget the test updates into the mission scope.
 **Promoted to:** Not yet
+
+### Muster agents find what you ask them to find — brief for semantic checks, not just structural
+**Agent:** Picard (Architecture Muster) | **Category:** antipattern
+**Context:** VoidForge marketing site v7 — 8-agent muster after void sync. All agents checked structural presence (slug counts, file existence) but none checked semantic accuracy (do descriptions match current method doc steps). 9 commands had outdated descriptions — the biggest feature in the sync was invisible on the site.
+**Lesson:** Briefing muster agents to "compare data files against upstream" produces structural comparison only. It does NOT produce semantic comparison. After a void sync that adds capabilities to existing commands, you must explicitly brief agents to compare description text against upstream method doc steps.
+**Action:** When briefing architect muster agents after a void sync, include BOTH structural checks ("does the data entry exist?") AND semantic checks ("compare description arrays against upstream method doc steps and flag discrepancies"). (Field report #267)
+**Promoted to:** Not yet
