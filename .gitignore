@@ -60,6 +60,9 @@ logs/
 # VoidForge runtime data (personal, never committed)
 .voidforge/
 
+# Wizard (not on core — prevent phantom directories)
+wizard/
+
 # Claude Code user config (not shared per branch sync rules)
 .claude/settings.json
 
