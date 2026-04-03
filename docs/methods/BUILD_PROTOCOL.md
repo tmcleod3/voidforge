@@ -25,6 +25,10 @@ Full character pools: `/docs/NAMING_REGISTRY.md`
 
 ---
 
+## Dispatch Model
+
+Build phases that involve code generation, testing, or review SHOULD dispatch to sub-agents per `SUB_AGENTS.md` "Parallel Agent Standard." Independent phases (e.g., Phase 4 Core Feature + Phase 5 Supporting Features if they touch different domains) can run as parallel agents. The main thread sequences phases, applies cross-phase gates, and manages the build journal. (Field report #270)
+
 ## Project Sizing — Read BEFORE Starting
 
 Not every project needs all 13 phases. Read the PRD frontmatter (the YAML block at the top of `/docs/PRD.md`) to determine which phases apply.

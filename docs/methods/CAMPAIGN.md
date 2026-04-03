@@ -239,6 +239,8 @@ User confirms, redirects, or overrides. On confirm → Step 4.
 
 **Post-infrastructure enforcement gate:** For infrastructure campaigns (deploy targets, CI/CD, monitoring, staging environments): after the infrastructure is provisioned, run `/architect --plan` to verify workflow enforcement gates exist — not just infrastructure existence. Infrastructure without process gates is incomplete.
 
+**Dispatch model:** Per-mission `/assemble` runs SHOULD dispatch phases to sub-agents per `SUB_AGENTS.md` "Parallel Agent Standard." The campaign orchestrator (main thread) manages the mission sequence, inter-mission gates, and campaign state — it does NOT perform inline code analysis. Pass findings summaries between missions, not raw code. (Field report #270)
+
 ### Campaign-Mode Pipeline
 
 When `/assemble` runs from within `/campaign`, the full 13-phase pipeline is impractical (130 phase executions for a 10-mission campaign). Campaign missions should use a reduced pipeline:
