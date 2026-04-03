@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [20.1.1] - 2026-04-02
+
+### Changed
+- **Parallel Agent Standard** added to `SUB_AGENTS.md` — standard brief format, structured deliverables, 3-agent concurrency cap, orchestration loop. Main thread orchestrates, sub-agents do the work. Dispatch directives added to ASSEMBLER.md (Rule 11), GAUNTLET.md, BUILD_PROTOCOL.md, CAMPAIGN.md, QA_ENGINEER.md, SECURITY_AUDITOR.md, CONTEXT_MANAGEMENT.md.
+- **ID Space Audit** added to `QA_ENGINEER.md` — verify identifier comparisons use the same ID type.
+- **Safety Parameter Audit** added to `SECURITY_AUDITOR.md` — verify safety-critical params can't be overridden to unsafe values.
+- **Maul re-probe** formalized as mandatory gate in `ASSEMBLER.md` — review fixes can introduce new failure modes.
+
+---
+
 ## [20.1.0] - 2026-04-02
 
 ### Added
