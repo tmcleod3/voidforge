@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [20.2.0] - 2026-04-03
+
+### Added
+- **ADR-037: Graceful Tier Degradation** — sentinel file check, methodology-only fallback, --audit-only expansion, cultivation graceful skip, phantom directory cleanup.
+- **PRD-graceful-degradation.md** — 6 requirements for scaffold /cultivation and /grow experience.
+- **Spring Cleaning migration** in `/void` — auto-cleans leaked main-only files from old scaffold/core clones. Fingerprints ambiguous files before removing. Detects Full-tier wizard usage.
+- **GROWTH_STRATEGIST.md "Scaffold/Core Users"** section — documents which /grow phases work without wizard.
+- **TROUBLESHOOTING.md** — Step 0 (What Changed?), Hypothesis Invalidation, Post-Deploy Debugging Protocol. (Field reports #271, #275)
+- **QA_ENGINEER.md** — Stateful Service Audit: verify runtime state survives restart. (Field report #271)
+- **SECURITY_AUDITOR.md** — Verify Before Transact: read-back verification for >$100 irreversible operations. (Field report #271)
+- **SYSTEMS_ARCHITECT.md** — Strategy Consolidation Check + Access Control Granularity in conflict checklist. (Field reports #273, #274)
+- **GAUNTLET.md** — Troi Marketing Copy Drift Check in standard and Infinity rounds. (Field report #273)
+- **execution-safety.ts** — Derive Don't Accumulate pattern + never raw transfer() to smart contracts. (Field reports #271, #274, #275)
+- **relay.sh** — Transport pre-flight validation at daemon startup for all 3 transports. (Field report #276)
+- **BACKEND_ENGINEER.md** — Stateless by Default: all runtime state must be reconstructable within one startup cycle. (Field report #274)
+
+### Changed
+- **Tier gate sentinel** — all 6 Full-tier commands (`/cultivation`, `/grow`, `/dangerroom`, `/treasury`, `/portfolio`, `/current`) check `wizard/server.ts` not `wizard/` directory. Prevents phantom empty directories from bypassing the gate.
+- **/grow Prerequisites** — "On no" proceeds to Phases 1-3 instead of hard stopping. `--audit-only`, `--seo`, `--content` skip the wizard gate entirely.
+- **/cultivation install** — Steps 4-8 display skip messages when wizard absent. Step 7 shows partial install summary. "On no" proceeds to Steps 1-3.
+- **/grow --audit-only** — expanded from Phase 1 to Phases 1-3 (reconnaissance + foundation + content).
+- **.gitignore** — hardened with keys/certs, coverage, playwright reports, editor backups, settings.json, package-lock.json patterns. `wizard/` added on scaffold/core.
+- **ROADMAP.md** — header updated to v20.2.0.
+- **package.json** — replaced with minimal version on scaffold (name + version + description only, no dependencies).
+
+### Removed
+- **274 files** from scaffold branch — wizard/ (216 files), build configs, main-only scripts, stale v15.2.1 docs, wizard-specific ADRs (32), PRD-VOIDFORGE, PROPHECY, WORKSHOP, marketing copy, package-lock.json. Scaffold: 408 → 134 tracked files.
+- **16 files** from core branch — same categories. Added 3 methodology-relevant ADRs (008, 032, 034).
+- **20 residual wizard files** from scaffold (UI + headless-deploy.ts from earlier incomplete cleanup).
+- **6 field reports closed** — #271 (debugging protocol), #272 (LEARNINGS validated), #273 (marketing drift), #274 (stateless + strategy), #275 (merged with #271), #276 (thumper tmux — 1 accept, 3 wontfix).
+
+---
+
 ## [20.1.1] - 2026-04-02
 
 ### Changed
