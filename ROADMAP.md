@@ -2,10 +2,10 @@
 
 > The plan for the plan-maker.
 
-**Current:** v17.2.0 (2026-03-24)
-**Next:** v18.0 — The Proving Ground (E2E testing with Playwright)
-**Status:** v17.2 shipped. Foundation verified. Ready for E2E.
-**294 tests**, 9 universes, 260+ agents, 26 slash commands, 30 code patterns.
+**Current:** v20.1.1 (2026-04-02)
+**Next:** v20.2 — Follow-up (heartbeat wiring, webhook ingress, ROADMAP items)
+**Status:** v20.1 shipped (Kongo Engine Integration — 10 modules, 119 tests, Infinity Gauntlet hardened).
+**618 tests**, 9 universes, 260+ agents, 28 slash commands, 37 code patterns.
 
 ---
 
