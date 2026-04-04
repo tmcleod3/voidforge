@@ -28,6 +28,10 @@ export interface KongoJobContext {
   readonly onSignal?: (signal: ComputedGrowthSignal) => Promise<void>;
   readonly onPageCompleted?: (pageId: string) => Promise<void>;
   readonly onPageFailed?: (pageId: string, error?: string) => Promise<void>;
+  /** Self-marketing mode: product domain matches Kongo domain (iframe sandbox workaround) */
+  readonly selfMarketing?: boolean;
+  /** Optional external analytics source for /lp/ pages in self-marketing mode (GA4 Data API / PostHog) */
+  readonly getExternalAnalytics?: (pageSlug: string, period: string) => Promise<{ views: number; conversions: number } | null>;
 }
 
 export interface KongoJobHandlers {
@@ -82,6 +86,21 @@ export function createKongoJobs(ctx: KongoJobContext): KongoJobHandlers {
       for (const campaign of activeCampaigns) {
         try {
           const signal = await getGrowthSignal(ctx.client, campaign.campaignId, '30d');
+
+          // Self-marketing mode: Kongo's built-in analytics can't track /lp/ pages
+          // (served via direct render, not iframe). Merge external analytics (GA4/PostHog)
+          // for the complete picture. Subdomain analytics still come from Kongo.
+          if (ctx.selfMarketing && ctx.getExternalAnalytics && campaign.name) {
+            const slug = campaign.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            const external = await ctx.getExternalAnalytics(slug, '30d');
+            if (external) {
+              ctx.logger(
+                `Kongo signal [${campaign.name}]: merging external analytics ` +
+                `(${external.views} views, ${external.conversions} conversions from /lp/ path)`,
+              );
+            }
+          }
+
           signals.push(signal);
 
           ctx.logger(

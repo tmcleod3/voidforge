@@ -58,18 +58,45 @@ export function extractSeedFromPrd(prd: PrdContent): PrdSeedContent {
 /**
  * Extract seed content for a specific campaign.
  * Enriches the base PRD seed with campaign-specific metadata.
+ *
+ * Self-marketing mode: When the product domain matches the Kongo domain
+ * (dogfooding), destination URLs use the /lp/ direct-render path instead
+ * of subdomain URLs. This avoids the iframe sandbox constraint that breaks
+ * GA4 cookie tracking and UTM relay. See GROWTH_STRATEGIST.md "Iframe
+ * Sandbox Constraint" section.
  */
 export function extractSeedForCampaign(
   prd: PrdContent,
   campaignId: string,
   platform: string,
+  options?: { kongoDomain?: string; selfMarketing?: boolean; slug?: string },
 ): PrdSeedContent {
   const baseSeed = extractSeedFromPrd(prd);
+  const kongoDomain = options?.kongoDomain ?? 'kongo.io';
+  const slug = options?.slug ?? slugify(baseSeed.projectName, campaignId);
+  const isSelfMarketing = options?.selfMarketing ?? false;
+
+  // Self-marketing: use /lp/ direct-render path (no iframe sandbox)
+  // Standard: use subdomain URL
+  const destinationUrl = isSelfMarketing
+    ? `https://${kongoDomain}/lp/${slug}`
+    : `https://${slug}.${kongoDomain}`;
+
   return {
     ...baseSeed,
     campaignId,
     platform,
+    ctaUrl: destinationUrl,
   };
+}
+
+/** Generate a URL-safe slug from project name and campaign ID */
+function slugify(projectName: string, campaignId: string): string {
+  return `${projectName}-${campaignId}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 // ── Frontmatter Parsing ──────────────────────────────────
