@@ -1,0 +1,5 @@
+{
+  "health_endpoint": null,
+  "pm2_process": null,
+  "panels": ["git-status", "tests"]
+}
