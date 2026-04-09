@@ -19,46 +19,48 @@
 
 **The fix:** Build pipeline (tsc → dist/), CI/CD for npm publish, branch deprecation, and type error fixes. After this version, `npx voidforge init` works from npm.
 
-**Missions (5):**
+**Missions (4):**
 
-### Mission 1: Build Pipeline (tsc → dist/)
-- Fix `packages/voidforge/tsconfig.json`: rootDir → ".", remove external pattern includes
-- Add `build` script to package.json: `tsc`
-- Add `prepack` script: build before publish
-- Change bin entry: `./dist/scripts/voidforge.js`
-- Change files field: `["dist/"]`
-- Decouple wizard from docs/patterns/ imports (copy pattern types locally or use methodology package)
-- Verify: `npm run build && npx . version` works from compiled dist/
-
-### Mission 2: Heartbeat Hash Chain Fix
-- Add `getLastLogHash()` helper to read prevHash from last log entry
-- Fix 4 `appendToLog` calls in heartbeat.ts (lines 368, 393, 475, 551) — add prevHash
-- Fix adapter-factory.ts 'snap' AdPlatform error (if still present)
-- Tests for hash chain integrity
-
-### Mission 3: CI/CD Pipeline
-- Create `.github/workflows/publish.yml` — npm publish on git tag
-- Requires: npm account with `NPM_TOKEN` secret in GitHub
-- Publish both packages: `voidforge` and `@voidforge/methodology`
-- Run tests + typecheck before publish
-
-### Mission 4: Branch Deprecation
+### Mission 1: Branch Deprecation
+No code dependencies — ships immediately. Independent of build pipeline.
 - On scaffold: add DEPRECATION.md, update README/CLAUDE.md/CHANGELOG with deprecation notices
 - On core: same deprecation notices
-- On main: remove scaffold/core references from 6+ files (CLAUDE.md Release Tiers, README install, FORGE_KEEPER.md sync, void.md fetch target)
+- On main: remove scaffold/core references from README, CLAUDE.md Release Tiers, FORGE_KEEPER.md sync, void.md fetch target
 - 30-day timer: delete scaffold/core on 2026-05-08
 - Create archive/scaffold and archive/core before deletion
 
-### Mission 5: Integration Verification
-- Test `npx voidforge init` from npm install (clean env)
+### Mission 2: Build Pipeline + Type Fixes
+The core unblock — make `tsc` compile clean and produce a publishable dist/.
+- Fix `packages/voidforge/tsconfig.json`: rootDir → ".", remove external pattern includes
+- Add `build` and `prepack` scripts to package.json
+- Change bin entry: `./dist/scripts/voidforge.js`, files field: `["dist/"]`
+- Decouple wizard from docs/patterns/ imports (copy 9 pattern files into wizard/lib/patterns/ at prepack)
+- Fix 6 type errors:
+  - heartbeat.ts lines 368, 393, 475, 551: add `prevHash` to `appendToLog` calls (add `getLastLogHash()` helper)
+  - adapter-factory.ts: 'snap' not in AdPlatform union
+  - project-init.ts:219: ProjectInput missing optional fields
+- Add hash chain integrity tests
+- Verify: `npm run build && node dist/scripts/voidforge.js version` works
+
+### Mission 3: CI/CD Pipeline
+Depends on M2 (working build). Also blocked on npm account (user infrastructure).
+- Create `.github/workflows/publish.yml` — npm publish on git tag (`v*`)
+- Update `.github/workflows/validate-branches.yml` for monorepo structure
+- Publish both packages: `voidforge` and `@voidforge/methodology`
+- Pipeline: checkout → install → typecheck → test → build → publish
+- Requires: npm account with `NPM_TOKEN` secret in GitHub
+
+### Mission 4: Integration Verification + Victory Gauntlet
+Depends on M2+M3. Final gate before v21.1 release.
+- Test `npx voidforge init` from clean npm install (requires published package)
 - Test `npx voidforge migrate` on mock v20.x project
 - Test daemon socket communication (integration tests)
 - Test job import path in heartbeat daemon context
 - Victory Gauntlet on complete v21.1
 
 **BLOCKED:**
-- npm account creation (infrastructure — user must do)
-- NPM_TOKEN secret in GitHub repo settings
+- npm account creation (infrastructure — user must do) — blocks M3+M4
+- NPM_TOKEN secret in GitHub repo settings — blocks M3
 
 ---
 
