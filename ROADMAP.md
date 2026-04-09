@@ -2,16 +2,67 @@
 
 > The plan for the plan-maker.
 
-**Current:** v21.0.0 (2026-04-08)
-**Next:** v21.1 — The Shipyard (build pipeline, npm publish, branch cleanup)
-**Status:** v21.0 shipped (The Extraction). Monorepo complete, 675 tests. Blocked on npm account + build pipeline for publishing.
+**Current:** v21.0.17 (2026-04-08)
+**Next:** v22.0 — The Scope (project-scoped dashboards, per-project financial isolation)
+**Status:** v21.0 shipped + published to npm as `thevoidforge`. v21.1 shipped (build pipeline + CI/CD). 12 patch releases fixing LAN mode, auth, CWD assumptions.
 **675 tests**, 9 universes, 260+ agents, 28 slash commands, 38 code patterns.
 
 ---
 
-## v21.1 — The Shipyard
+## v22.0 — The Scope (BREAKING)
+
+*"A captain doesn't monitor the fleet from inside one ship."*
+
+**Architecture: ADR-040. Campaign 28. Depends on: v21.0 complete.**
+
+**The problem:** The Danger Room, War Room, and Cultivation financial system assume the wizard lives inside the project. Dashboard reads from the npm package directory (broken). Financial logs write to `~/.voidforge/treasury/` globally (multi-project collision). The UI has Danger Room in the global nav instead of per-project.
+
+**The fix:** Everything becomes project-scoped. API routes gain project ID (`/api/projects/:id/danger-room/...`). Financial paths move from global to `project/cultivation/treasury/`. Lobby shows aggregated KPIs, drill-down enters project dashboard with Danger Room, War Room, Tower, Deploy.
+
+**Missions (5):**
+
+### Mission 1: Dashboard Data — Add projectDir Parameter
+- Refactor all 10+ functions in `dashboard-data.ts` to accept `projectDir`
+- Remove `PROJECT_ROOT` constant (resolves to npm package — broken)
+- API routes in `danger-room.ts` gain `?project=<id>` query param
+- Read logs, git status, build state from the actual project directory
+
+### Mission 2: Financial Path Isolation
+- `TREASURY_DIR`, `SPEND_LOG`, `REVENUE_LOG` become functions of `projectDir`
+- Paths move from `~/.voidforge/treasury/` to `project/cultivation/treasury/`
+- Update: financial-transaction.ts, financial-core.ts, heartbeat.ts, treasury-heartbeat.ts, reconciliation.ts
+- Migration script for existing global data → per-project
+
+### Mission 3: Daemon State Per-Project
+- PID, socket, state files move from `~/.voidforge/run/` to `project/cultivation/`
+- daemon-process.ts constants become functions of projectDir
+- heartbeat.ts passes projectDir to all financial operations
+- daemon-aggregator.ts already correct (connects per-project sockets)
+
+### Mission 4: UI — Project-Scoped Navigation
+- Lobby: project cards with health badges (from daemon-aggregator)
+- Project Dashboard: new view with Overview, Tower, Danger Room, War Room, Deploy tabs
+- Danger Room button moves from Lobby top-nav to project dashboard
+- Aggregated "All Projects" Danger Room view in Lobby (optional)
+
+### Mission 5: API Routing + Victory Gauntlet
+- `/api/projects/:id/danger-room/*` routes
+- `/api/projects/:id/war-room/*` routes
+- `/api/projects/:id/deploy/*` routes
+- Server resolves projectDir from ID via registry
+- Victory Gauntlet on complete v22.0
+
+**Global vault stays global** — credentials are user-scoped (one Stripe account across projects). Per-project vault encryption deferred to v22.1 (Kenobi's HKDF proposal).
+
+---
+
+## v21.1 — The Shipyard (COMPLETE)
 
 *"A ship in harbor is safe, but that's not what ships are built for."*
+
+**Architecture: ADR-039. Campaign 27: 3 missions, --blitz --muster.**
+
+**Shipped 2026-04-08.** Build pipeline (tsc→dist/), CI/CD (GitHub Actions publish.yml), branch deprecation (scaffold/core). Published `thevoidforge@21.0.0` to npm. 12 patch releases (v21.0.1–v21.0.17) fixing LAN mode, auth, CWD assumptions, WebSocket origin validation, methodology bundling.
 
 **Architecture: ADR-039. Depends on: v21.0 complete.**
 
