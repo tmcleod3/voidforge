@@ -248,20 +248,29 @@
   // ── Navigation ─────────────────────────────────────
 
   function openRoom(project, mode) {
+    if (mode === 'ssh' && project.sshHost) {
+      // SSH goes directly to Tower (no project dashboard needed)
+      const params = new URLSearchParams({
+        project: project.id,
+        name: project.name,
+        dir: project.directory,
+        ssh: project.sshHost,
+      });
+      window.location.href = '/tower.html?' + params.toString();
+      return;
+    }
+
+    // Navigate to project dashboard (v22.0)
     const params = new URLSearchParams({
-      project: project.id,
+      id: project.id,
       name: project.name,
       dir: project.directory,
     });
-    if (mode === 'ssh' && project.sshHost) {
-      params.set('ssh', project.sshHost);
-    }
-    // Pass auto-command for build status context (start/resume)
     const buildStatus = getBuildStatus(project);
-    if (buildStatus.auto && mode !== 'ssh') {
+    if (buildStatus.auto) {
       params.set('auto', buildStatus.auto);
     }
-    window.location.href = '/tower.html?' + params.toString();
+    window.location.href = '/project.html?' + params.toString();
   }
 
   // ── Import Modal (with focus trap) ─────────────────
@@ -761,8 +770,25 @@
     if (header) header.after(banner);
   }
 
+  function showResumeLink() {
+    try {
+      const last = JSON.parse(localStorage.getItem('voidforge-last-project') || 'null');
+      if (!last || !last.id) return;
+      const header = document.querySelector('.lobby-header');
+      if (!header) return;
+      const link = document.createElement('a');
+      link.href = '/project.html?id=' + encodeURIComponent(last.id) + '&name=' + encodeURIComponent(last.name);
+      link.textContent = 'Resume: ' + last.name;
+      link.style.cssText = 'font-size: 13px; color: var(--accent); text-decoration: none; margin-left: 12px;';
+      link.addEventListener('mouseenter', function () { link.style.textDecoration = 'underline'; });
+      link.addEventListener('mouseleave', function () { link.style.textDecoration = 'none'; });
+      header.querySelector('.lobby-actions')?.prepend(link);
+    } catch { /* localStorage unavailable or corrupted */ }
+  }
+
   async function init() {
     await checkAuth();
+    showResumeLink();
     projects = await fetchProjects();
     render();
     await checkServerRestart();

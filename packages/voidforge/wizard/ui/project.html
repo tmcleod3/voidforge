@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Dashboard — VoidForge</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .separator { color: var(--text-dim); }
+    .breadcrumb .current { color: var(--text); font-weight: 600; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      background: var(--bg-card, #1a1a2e);
+      overflow-x: auto;
+    }
+    .tab-bar [role="tab"] {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-bar [role="tab"]:hover { color: var(--text); }
+    .tab-bar [role="tab"][aria-selected="true"] {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    .tab-bar [role="tab"]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      border-radius: 4px;
+    }
+
+    /* Tab panels */
+    .tab-panel {
+      display: none;
+      padding: 24px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .tab-panel.active { display: block; }
+
+    /* Panel content */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .panel-card {
+      background: var(--bg-card, #1a1a2e);
+      border: 1px solid var(--border);
+      border-radius: var(--radius, 8px);
+      padding: 16px;
+    }
+    .panel-card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .panel-card .value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .panel-card .detail {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-dim);
+    }
+    .empty-state h3 {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .empty-state p {
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .empty-state code {
+      background: rgba(91, 91, 247, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Tower iframe container */
+    #tower-container {
+      flex: 1;
+      display: flex;
+    }
+    #tower-container iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+      min-height: 500px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/lobby.html">Lobby</a>
+    <span class="separator">&rsaquo;</span>
+    <span class="current" id="project-name">Loading...</span>
+  </nav>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" role="tablist" aria-label="Project dashboard tabs">
+    <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" tabindex="0">Overview</button>
+    <button role="tab" id="tab-tower" aria-selected="false" aria-controls="panel-tower" tabindex="-1">Tower</button>
+    <button role="tab" id="tab-danger-room" aria-selected="false" aria-controls="panel-danger-room" tabindex="-1">Danger Room</button>
+    <button role="tab" id="tab-war-room" aria-selected="false" aria-controls="panel-war-room" tabindex="-1">War Room</button>
+    <button role="tab" id="tab-deploy" aria-selected="false" aria-controls="panel-deploy" tabindex="-1">Deploy</button>
+  </div>
+
+  <!-- Tab panels -->
+  <div role="tabpanel" id="panel-overview" class="tab-panel active" aria-labelledby="tab-overview">
+    <div class="panel-grid" id="overview-grid">
+      <div class="panel-card" id="card-version">
+        <h3>Version</h3>
+        <div class="value" id="overview-version">—</div>
+        <div class="detail" id="overview-branch">—</div>
+      </div>
+      <div class="panel-card" id="card-git">
+        <h3>Git Status</h3>
+        <div class="value" id="overview-git-branch">—</div>
+        <div class="detail" id="overview-git-detail">—</div>
+      </div>
+      <div class="panel-card" id="card-campaign">
+        <h3>Campaign</h3>
+        <div class="value" id="overview-campaign">—</div>
+        <div class="detail" id="overview-campaign-detail">—</div>
+      </div>
+      <div class="panel-card" id="card-tests">
+        <h3>Tests</h3>
+        <div class="value" id="overview-tests">—</div>
+        <div class="detail" id="overview-tests-detail">—</div>
+      </div>
+      <div class="panel-card" id="card-deploy">
+        <h3>Deploy</h3>
+        <div class="value" id="overview-deploy">—</div>
+        <div class="detail" id="overview-deploy-detail">—</div>
+      </div>
+      <div class="panel-card" id="card-findings">
+        <h3>Findings</h3>
+        <div class="value" id="overview-findings">—</div>
+        <div class="detail" id="overview-findings-detail">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="panel-tower" class="tab-panel" aria-labelledby="tab-tower">
+    <div id="tower-container">
+      <!-- Tower iframe loaded on tab activation -->
+    </div>
+  </div>
+
+  <div role="tabpanel" id="panel-danger-room" class="tab-panel" aria-labelledby="tab-danger-room">
+    <div id="danger-room-content">
+      <div class="empty-state" id="dr-empty">
+        <h3>No campaign or heartbeat data</h3>
+        <p>Build the project first, or install Cultivation for financial tracking.</p>
+        <p>Run <code>/campaign --blitz</code> to begin.</p>
+      </div>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="panel-war-room" class="tab-panel" aria-labelledby="tab-war-room">
+    <div id="war-room-content">
+      <div class="empty-state" id="wr-empty">
+        <h3>No campaign proposals yet</h3>
+        <p>Run <code>/current</code> to generate campaign intelligence.</p>
+      </div>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="panel-deploy" class="tab-panel" aria-labelledby="tab-deploy">
+    <div id="deploy-content">
+      <div class="empty-state" id="deploy-empty">
+        <h3>No deploy target configured</h3>
+        <p>Set up deployment in the project's <code>.env</code> file.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="project.js"></script>
+</body>
+</html>
