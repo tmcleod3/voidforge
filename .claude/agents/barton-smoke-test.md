@@ -1,7 +1,7 @@
 ---
 name: Barton
 description: "Smoke test scout — endpoint verification, route collision detection, quick health checks"
-model: sonnet
+model: haiku
 tools:
   - Read
   - Bash
