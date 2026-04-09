@@ -195,6 +195,13 @@ addRoute('GET', '/api/projects/:id/danger-room/heartbeat', async (req: IncomingM
 addRoute('POST', '/api/projects/:id/danger-room/freeze', async (req: IncomingMessage, res: ServerResponse) => {
   const resolved = await resolveProject(req, res);
   if (!resolved) return;
+
+  // Deployer+ required for freeze (safety-critical operation)
+  if (resolved.role !== 'deployer' && resolved.role !== 'admin') {
+    sendJson(res, 404, { success: false, error: 'Not found' });
+    return;
+  }
+
   const ctx = resolved.context;
 
   try {
