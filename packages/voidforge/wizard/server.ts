@@ -161,24 +161,9 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
-  // LAN mode — restrict to dashboard-only endpoints (read-only, no credentials/deploy/terminal)
-  if (isLanMode() && !isRemoteMode()) {
-    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-    const path = url.pathname;
-    const isLanSafe = path.startsWith('/api/danger-room/')
-      || path.startsWith('/api/war-room/')
-      || path.startsWith('/api/project/')
-      || path.startsWith('/api/projects')
-      || path === '/api/danger-room/heartbeat'
-      || path.endsWith('.html') || path.endsWith('.js') || path.endsWith('.css')
-      || path.endsWith('.svg') || path.endsWith('.png') || path.endsWith('.ico')
-      || path === '/' || path === '/danger-room.html' || path === '/war-room.html'
-      || path === '/lobby.html' || path === '/index.html' || path.startsWith('/styles');
-    if (!isLanSafe) {
-      sendJson(res, 403, { success: false, error: 'Endpoint not available in LAN mode. Use --remote for full access.' });
-      return;
-    }
-  }
+  // LAN mode — full access. LAN is a private network (ZeroTier, local subnet),
+  // inherently more secure than remote. No endpoint restrictions.
+  // Auth: optional password (no TOTP). All features available.
 
   // Auth middleware — in remote mode, require valid session for non-exempt paths
   if (isRemoteMode()) {
