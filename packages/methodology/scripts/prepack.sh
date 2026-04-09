@@ -17,10 +17,11 @@ cp "$REPO_ROOT/HOLOCRON.md" "$PKG_DIR/HOLOCRON.md"
 cp "$REPO_ROOT/VERSION.md" "$PKG_DIR/VERSION.md"
 cp "$REPO_ROOT/CHANGELOG.md" "$PKG_DIR/CHANGELOG.md"
 
-# Copy .claude/commands/
+# Copy .claude/commands/ and .claude/agents/
 rm -rf "$PKG_DIR/.claude"
-mkdir -p "$PKG_DIR/.claude/commands"
+mkdir -p "$PKG_DIR/.claude/commands" "$PKG_DIR/.claude/agents"
 cp "$REPO_ROOT"/.claude/commands/*.md "$PKG_DIR/.claude/commands/"
+cp "$REPO_ROOT"/.claude/agents/*.md "$PKG_DIR/.claude/agents/"
 
 # Copy docs/methods/ and docs/patterns/
 rm -rf "$PKG_DIR/docs"
@@ -30,6 +31,7 @@ cp "$REPO_ROOT"/docs/patterns/*.ts "$PKG_DIR/docs/patterns/" 2>/dev/null || true
 cp "$REPO_ROOT"/docs/patterns/*.tsx "$PKG_DIR/docs/patterns/" 2>/dev/null || true
 cp "$REPO_ROOT"/docs/patterns/*.md "$PKG_DIR/docs/patterns/" 2>/dev/null || true
 cp "$REPO_ROOT/docs/NAMING_REGISTRY.md" "$PKG_DIR/docs/NAMING_REGISTRY.md"
+cp "$REPO_ROOT/docs/AGENT_CLASSIFICATION.md" "$PKG_DIR/docs/AGENT_CLASSIFICATION.md"
 
 # Copy scripts/thumper/
 rm -rf "$PKG_DIR/scripts/thumper"

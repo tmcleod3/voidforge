@@ -38,6 +38,12 @@ if [ -d "$REPO_ROOT/.claude/commands" ]; then
   echo "copy-assets: .claude/commands/ → dist/ ($(ls "$DIST/.claude/commands/" | wc -l | tr -d ' ') files)"
 fi
 
+if [ -d "$REPO_ROOT/.claude/agents" ]; then
+  mkdir -p "$DIST/.claude/agents"
+  cp "$REPO_ROOT"/.claude/agents/*.md "$DIST/.claude/agents/"
+  echo "copy-assets: .claude/agents/ → dist/ ($(ls "$DIST/.claude/agents/" | wc -l | tr -d ' ') files)"
+fi
+
 if [ -d "$REPO_ROOT/docs/methods" ]; then
   mkdir -p "$DIST/docs/methods"
   cp "$REPO_ROOT"/docs/methods/*.md "$DIST/docs/methods/"

@@ -35,6 +35,7 @@ cp "$SCAFFOLD_DIR/.gitignore" "$PROJECT_DIR/" 2>/dev/null || true
 # Copy Claude Code configuration
 mkdir -p "$PROJECT_DIR/.claude"
 cp -r "$SCAFFOLD_DIR/.claude/commands" "$PROJECT_DIR/.claude/" 2>/dev/null || true
+cp -r "$SCAFFOLD_DIR/.claude/agents" "$PROJECT_DIR/.claude/" 2>/dev/null || true
 cp "$SCAFFOLD_DIR/.claude/settings.json" "$PROJECT_DIR/.claude/" 2>/dev/null || true
 
 # Create build journal directory
@@ -71,7 +72,8 @@ echo "VoidForge project created at: $PROJECT_DIR"
 echo ""
 echo "Included:"
 echo "  CLAUDE.md           Root context (operational instructions)"
-echo "  .claude/commands/   10 slash commands: /build /qa /test /security /ux /review /devops /architect /git /void"
+echo "  .claude/commands/   28 slash commands"
+echo "  .claude/agents/    263 subagent definitions (Opus leads, Sonnet specialists, Haiku scouts)"
 echo "  .claude/settings.json  Permissions + hooks"
 echo "  docs/methods/       16 agent protocols"
 echo "  docs/patterns/      7 code reference implementations"
