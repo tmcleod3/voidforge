@@ -177,11 +177,19 @@
 
         <div class="tab-panel" id="tab-paste" role="tabpanel" aria-labelledby="tab-btn-paste">
           <div class="card">
-            <p>Already have a PRD, or prefer to generate one with a different AI? Paste the finished result below.</p>
+            <p>Already have a PRD? Drop the file here, upload it, or paste below.</p>
+
+            <div class="field">
+              <div id="prd-dropzone" style="border: 2px dashed var(--border, #333); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 12px;" role="button" tabindex="0" aria-label="Drop a PRD file here or click to upload">
+                <p style="margin: 0 0 8px 0; font-size: 1.1em;">Drop your PRD file here</p>
+                <p style="margin: 0; opacity: 0.6; font-size: 0.9em;">or click to browse (.md, .txt, .yaml)</p>
+                <input type="file" id="prd-file-input" accept=".md,.txt,.yaml,.yml,.markdown" style="display: none;">
+              </div>
+            </div>
 
             <div class="field">
               <label>PRD Generator Prompt</label>
-              <p class="field-hint" style="margin-bottom: 8px;">Copy this prompt into ChatGPT, Gemini, or any AI — then paste the output below.</p>
+              <p class="field-hint" style="margin-bottom: 8px;">Or copy this prompt into ChatGPT, Gemini, or any AI — then paste the output below.</p>
               <button class="btn btn-secondary" id="copy-prd-prompt" type="button">Copy Generator Prompt to Clipboard</button>
               <div class="status-row" id="prompt-copy-status" role="status" aria-live="polite"></div>
             </div>

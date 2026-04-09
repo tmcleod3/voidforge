@@ -669,6 +669,50 @@
     }
   });
 
+  // PRD file upload + drag-and-drop
+  const dropzone = $('#prd-dropzone');
+  const fileInput = $('#prd-file-input');
+  const prdTextarea = $('#prd-paste');
+
+  if (dropzone && fileInput) {
+    function handlePrdFile(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        prdTextarea.value = e.target.result;
+        showStatus(prdStatus, 'success', 'Loaded: ' + file.name + ' (' + file.size + ' bytes)');
+        dropzone.style.borderColor = 'var(--accent, #5b5bf7)';
+        setTimeout(function () { dropzone.style.borderColor = ''; }, 2000);
+      };
+      reader.onerror = function () {
+        showStatus(prdStatus, 'error', 'Failed to read file');
+      };
+      reader.readAsText(file);
+    }
+
+    dropzone.addEventListener('click', function () { fileInput.click(); });
+    dropzone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files && fileInput.files[0]) handlePrdFile(fileInput.files[0]);
+    });
+
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--accent, #5b5bf7)';
+      dropzone.style.background = 'rgba(91, 91, 247, 0.05)';
+    });
+    dropzone.addEventListener('dragleave', function () {
+      dropzone.style.borderColor = '';
+      dropzone.style.background = '';
+    });
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropzone.style.borderColor = '';
+      dropzone.style.background = '';
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handlePrdFile(e.dataTransfer.files[0]);
+    });
+  }
+
   let cachedPrompt = null;
   $('#copy-prd-prompt').addEventListener('click', async () => {
     const promptCopyStatus = $('#prompt-copy-status');
