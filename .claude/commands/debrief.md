@@ -5,9 +5,9 @@ Bashir examines the patient. Time to diagnose.
 2. Read `/logs/build-state.md`, `/logs/assemble-state.md`, `/logs/campaign-state.md`
 3. Read recent git history: `git log --oneline -20`
 
-## Step 0 — Reconstruct the Timeline (Ezri)
+## Step 0 — Reconstruct the Timeline
 
-Ezri reads the session's history and reconstructs what happened:
+**Ezri** `subagent_type: ezri-session-analyst` reads the session's history and reconstructs what happened:
 
 1. Read all `/logs/` files — build state, assemble state, campaign state, phase logs
 2. Read `git log` — all commits from this session/campaign
@@ -18,9 +18,9 @@ If `$ARGUMENTS` contains `--campaign`, analyze the full campaign history.
 If `$ARGUMENTS` contains `--session`, analyze just this session.
 Default: auto-detect scope from available logs.
 
-## Step 1 — Investigate Root Causes (O'Brien)
+## Step 1 — Investigate Root Causes
 
-For each failure, difficulty, or retry identified by Ezri:
+**O'Brien** `subagent_type: obrien-root-cause` investigates. For each failure, difficulty, or retry identified by Ezri:
 
 Classify the root cause:
 - **Methodology gap** — missing step, wrong order, blind spot in the protocol
@@ -32,9 +32,9 @@ Classify the root cause:
 
 Map each root cause to the VoidForge component responsible (which command, which agent, which method doc).
 
-## Step 2 — Propose Solutions (Nog)
+## Step 2 — Propose Solutions
 
-For each root cause, Nog proposes a fix that works within VoidForge's existing framework:
+**Nog** `subagent_type: nog-solutions` proposes a fix for each root cause that works within VoidForge's existing framework:
 
 - New agent? → name it from the correct universe, define the role
 - New step in existing command? → specify where it goes in the sequence
@@ -44,7 +44,7 @@ For each root cause, Nog proposes a fix that works within VoidForge's existing f
 
 **Constraint:** All proposals must reference existing VoidForge concepts (agents, phases, commands, patterns). No solutions that require reimagining the system.
 
-## Step 2.5 — Operational Learning Extraction (O'Brien + Nog)
+## Step 2.5 — Operational Learning Extraction
 
 After root cause analysis (Step 1) and before writing the report (Step 3), check if any findings are project-scoped operational learnings — facts that matter in future sessions but don't belong in cross-project methodology. See FIELD_MEDIC.md Step 2.5 for full extraction criteria and entry format.
 
@@ -52,17 +52,17 @@ For each candidate, draft a structured entry (title, category, verified date, sc
 
 Approved entries written to `docs/LEARNINGS.md` (created on first use). Hard cap: 50 active entries.
 
-## Step 2.5b — Promotion Analysis (Wong)
+## Step 2.5b — Promotion Analysis
 
-After extraction, Wong checks `docs/LESSONS.md` for lesson clusters AND checks `docs/LEARNINGS.md` for promotable entries (appeared in 2+ projects):
+After extraction, **Wong** `subagent_type: wong-documentation` checks `docs/LESSONS.md` for lesson clusters AND checks `docs/LEARNINGS.md` for promotable entries (appeared in 2+ projects):
 - If 3+ lessons share the same category AND target the same method doc → Wong drafts a specific method doc update
 - Present for user approval: "Wong recommends promoting these lessons into [method doc] [section]: [proposed text]. Approve?"
 - If approved: apply the change, mark lessons as "Promoted to: [doc]" in LESSONS.md
 - If submitting upstream (`--submit`): include the proposed change in the GitHub issue body
 
-## Step 3 — Write the Report (Jake)
+## Step 3 — Write the Report
 
-Produce a structured post-mortem:
+**Jake** `subagent_type: jake-reporter` produces a structured post-mortem:
 
 ```markdown
 # Field Report — [Project Name]

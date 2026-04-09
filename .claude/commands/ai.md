@@ -9,7 +9,7 @@ The AI Intelligence Audit reviews every LLM-powered component in your applicatio
 2. Read the PRD — check for `ai: yes` in frontmatter
 3. Scan the codebase for LLM integration points: imports from `anthropic`, `@anthropic-ai/sdk`, `openai`, `@langchain`, prompt files, tool definitions
 
-## Phase 0 — AI Surface Map (Hari Seldon)
+## Phase 0 — AI Surface Map (`subagent_type: seldon-ai`)
 
 Reconnaissance — find all AI integration points:
 1. Grep for LLM SDK imports (`anthropic`, `openai`, `@ai-sdk`, `langchain`)
@@ -22,22 +22,22 @@ Reconnaissance — find all AI integration points:
 
 Use the Agent tool to run all four in parallel:
 
-- **Agent 1 (Salvor Hardin — Model Selection):** For each AI call, is this the right model? Could a smaller/faster model handle it? Is the latency budget met? Is cost tracked?
-- **Agent 2 (Gaal Dornick — Prompt Architecture):** Are prompts structured, versioned, testable? System prompt separated? Output format specified? Edge cases handled? Few-shot where needed?
-- **Agent 3 (Hober Mallow — Tool Schemas):** Are tool descriptions clear? Parameter types correct? Required vs optional right? No overlapping tools? Return types documented?
-- **Agent 4 (Bliss — AI Safety):** Prompt injection risk? PII in prompts? Output content safety? System prompt extractable? Jailbreak vectors?
+- **Agent 1** `subagent_type: salvor-model-selection` — Model selection: right model per call? Smaller/faster alternative? Latency budget met? Cost tracked?
+- **Agent 2** `subagent_type: gaal-prompt-arch` — Prompt architecture: structured, versioned, testable? System prompt separated? Output format specified? Edge cases? Few-shot?
+- **Agent 3** `subagent_type: hober-tool-schema` — Tool schemas: clear descriptions? Correct parameter types? Required vs optional? No overlapping tools? Return types documented?
+- **Agent 4** `subagent_type: bliss-ai-safety` — AI safety: prompt injection risk? PII in prompts? Output content safety? System prompt extractable? Jailbreak vectors?
 
-## Phase 2 — Sequential Audits (5 agents)
+## Phase 2 — Sequential Audits (7 agents)
 
 Run sequentially — each builds on the previous:
 
-- **Bel Riose (Orchestration):** Is this a completion, chain, agent loop, or workflow? Appropriate for the reliability requirement? Loops bounded? Maximum iteration count? Intermediate state persisted?
-- **The Mule (Failure Modes):** What happens when the model hallucinates? Refuses? Times out? Context overflows? API is down? Is there a fallback? Circuit breaker? Bounded retries?
-- **Ducem Barr (Token Economics):** Token usage tracked per request? Caching strategies? Context window efficient? System prompts deduplicated? Streaming where appropriate?
-- **Bayta Darell (Evaluation):** How do you know outputs are correct? Golden datasets? Automated scoring? Regression suite for prompt changes? Quality degradation detection?
-- **Dors Venabili (Observability):** Can you see what the AI decided and why? Trace logging? Inputs/outputs logged (PII-scrubbed)? Latency tracked? Quality scores over time?
-- **Janov Pelorat (Context Engineering):** RAG retrieval returning relevant docs? Embeddings right dimensionality? Chunking appropriate?
-- **R. Daneel Olivaw (Versioning):** When models update, does behavior change? Prompts pinned? Migration strategy?
+- **Bel Riose** `subagent_type: bel-riose-orchestration` — Orchestration: completion/chain/agent loop/workflow? Reliability appropriate? Loops bounded? State persisted?
+- **The Mule** `subagent_type: mule-adversarial-ai` — Failure modes: hallucination, refusal, timeout, context overflow, API down. Fallback? Circuit breaker? Bounded retries?
+- **Ducem Barr** `subagent_type: ducem-token-economics` — Token economics: usage tracked? Caching? Context window efficient? System prompts deduplicated? Streaming?
+- **Bayta Darell** `subagent_type: bayta-evals` — Evaluation: golden datasets? Automated scoring? Regression suite for prompt changes? Quality degradation detection?
+- **Dors Venabili** `subagent_type: dors-observability` — Observability: trace logging? Inputs/outputs logged (PII-scrubbed)? Latency tracked? Quality scores?
+- **Janov Pelorat** `subagent_type: janov-context-eng` — Context engineering: RAG retrieval relevance? Embedding dimensionality? Chunking strategy?
+- **R. Daneel Olivaw** `subagent_type: daneel-model-migration` — Versioning: behavior change on model updates? Prompts pinned? Migration strategy?
 
 ## Phase 3 — Remediate
 
@@ -45,7 +45,7 @@ Fix all Critical and High findings. Use the standard finding format with confide
 
 ## Phase 4 — Re-Verify
 
-**The Mule + Wanda Seldon** re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
+**The Mule** `subagent_type: mule-adversarial-ai` + **Wanda Seldon** `subagent_type: wanda-seldon-validation` re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
 
 ## Arguments
 - No arguments → full 5-phase audit of all AI components

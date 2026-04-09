@@ -14,8 +14,8 @@ Document in phase log: "How to run", key routes, where components/styles/copy li
 ## Step 1 — Product Surface Map
 List every screen/route, primary user journeys, key shared components, and the state taxonomy (loading/empty/error/success/partial/unauthorized). Write to phase log.
 
-## Step 1.75 — Éowyn's Enchantment Review
-Before the auditors begin, Éowyn dreams. Read the PRD's brand personality section. Walk through each primary flow and ask:
+## Step 1.75 — Enchantment Review
+Before the auditors begin, **Eowyn** `subagent_type: eowyn-delight` dreams. Read the PRD's brand personality section. Walk through each primary flow and ask:
 - Where could this surprise and delight?
 - Where does functionality need warmth?
 - Do transitions breathe or just appear? (200ms ease-out minimum for panels, modals, state changes)
@@ -32,29 +32,24 @@ See `PRODUCT_DESIGN_FRONTEND.md` Step 1.75 for full Éowyn protocol.
 
 ## Step 2 — Parallel Analysis
 Use the Agent tool to run these simultaneously — all are read-only analysis:
-- **Agent 1 (Elrond — UX):** Review information architecture, navigation, task flows, friction points. Can users find things? Are flows intuitive?
-- **Agent 2 (Arwen — Visual):** Review spacing, typography, color usage, button hierarchy, visual consistency. Does it look intentional?
-- **Agent 3 (Samwise — A11y):** Check keyboard navigation, focus management, ARIA labels, color contrast, reduced motion. Test with keyboard-only navigation.
-- **Agent 4 (Celeborn — Design System):** Are spacing tokens consistent? Typography scale followed? Colors from the palette? Component naming conventions respected? Catches systemic inconsistencies (e.g., `gap-4` vs `gap-[18px]` for the same spacing).
+- **Agent 1** `subagent_type: elrond-ux-strategy` — UX: information architecture, navigation, task flows, friction points, discoverability, flow intuitiveness.
+- **Agent 2** `subagent_type: arwen-ui-polish` — Visual: spacing, typography, color usage, button hierarchy, visual consistency.
+- **Agent 3** `subagent_type: samwise-accessibility` — A11y: keyboard navigation, focus management, ARIA labels, color contrast, reduced motion. Keyboard-only testing.
+- **Agent 4** `subagent_type: celeborn-design-system` — Design system: spacing token consistency, typography scale, palette adherence, component naming conventions.
 
-**Aragorn** orchestrates when multiple findings conflict — prioritizes which matter most for users.
+**Aragorn** `subagent_type: aragorn-orchestration` orchestrates when multiple findings conflict — prioritizes which matter most for users.
 
 Synthesize findings from all agents.
 
 ## Step 3 — Sequential Reviews
 These require interactive testing:
 
-**Bilbo (Copy):** Review all microcopy — labels, buttons, error messages, empty states, confirmations, destructive action warnings. Does the product speak clearly and consistently?
-
-**Pippin (Edge Cases):** Does the unexpected — resizes to 320px, pastes emoji in search, clicks back mid-flow, opens the same page in two tabs, toggles between light/dark mid-animation.
-
-**Frodo (Hardest Flow):** If the project has one flow that is both the most critical AND the most complex, Frodo gets dedicated attention on that single flow. Conditional — skip if no single flow dominates.
-
-**Legolas (Code):** Review component architecture — semantic HTML, CSS organization, state management patterns. Reference `/docs/patterns/component.tsx`.
-
-**Gimli (Performance):** Check loading states, skeleton screens, layout shift, optimistic UI, mobile responsiveness, touch targets (min 44px).
-
-**Radagast (Edge Cases + Error States):** Test forms with empty/huge/unicode inputs, broken states, dangerous actions without confirmation, validation gaps.
+- **Bilbo** `subagent_type: bilbo-microcopy` — Copy: all microcopy (labels, buttons, error messages, empty states, confirmations, destructive warnings). Clear and consistent?
+- **Pippin** `subagent_type: pippin-discovery` — Edge cases: resize to 320px, paste emoji in search, click back mid-flow, two tabs, light/dark toggle mid-animation.
+- **Frodo** `subagent_type: frodo-critical-path` — (conditional) Hardest flow: dedicated attention on the single most critical + complex flow. Skip if no single flow dominates.
+- **Legolas** `subagent_type: legolas-precision` — Code: component architecture, semantic HTML, CSS organization, state management. Reference `/docs/patterns/component.tsx`.
+- **Gimli** `subagent_type: gimli-performance` — Performance: loading states, skeleton screens, layout shift, optimistic UI, mobile responsiveness, touch targets (min 44px).
+- **Radagast** `subagent_type: radagast-edge-cases` — Edge cases + error states: empty/huge/unicode inputs, broken states, dangerous actions without confirmation, validation gaps.
 
 **ERROR STATE TESTING (mandatory):** For every form/action in the UI:
 - Submit with intentionally invalid data (duplicate name, wrong format, missing required field)
@@ -74,18 +69,18 @@ Categories: UX, Visual, A11y, Copy, Performance, Edge Case
 **Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Samwise found it, escalate to Padmé or Nightwing) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 7.5.
 
 ## Step 5 — Enhancement Specs (before coding)
-For each fix: problem statement, proposed solution, acceptance criteria, a11y requirements (Samwise signs off), copy (Bilbo signs off). **Faramir** checks whether polish effort targets the right screens — high-traffic core flows, not low-traffic edge pages.
+For each fix: problem statement, proposed solution, acceptance criteria, a11y requirements (**Samwise** `subagent_type: samwise-accessibility` signs off), copy (**Bilbo** `subagent_type: bilbo-microcopy` signs off). **Faramir** `subagent_type: faramir-judgment` checks whether polish effort targets the right screens — high-traffic core flows, not low-traffic edge pages.
 
-## Step 6 — Implement (small batches — **Boromir** guards against hubris)
-One batch = one flow or component cluster (max ~200 lines changed). **Boromir** checks: is the polish overengineered? Too many animations? Does complexity hurt performance? **Glorfindel** handles the hardest rendering (canvas, WebGL, SVG — conditional, only if the project has visual complexity). After each batch:
+## Step 6 — Implement (small batches)
+One batch = one flow or component cluster (max ~200 lines changed). **Boromir** `subagent_type: boromir-hubris` checks: is the polish overengineered? Too many animations? Does complexity hurt performance? **Glorfindel** `subagent_type: glorfindel-rendering` handles the hardest rendering (canvas, WebGL, SVG -- conditional, only if the project has visual complexity). After each batch:
 1. Re-run the app
 2. Re-walk the affected flow
 3. Test keyboard navigation
 4. Update issue tracker status
 5. Run `npm test` to catch regressions
 
-## Step 7 — Harden Design System (**Haldir** guards boundaries)
-Arwen leads. **Haldir** checks transitions between pages, states, and components — loading→success, error→retry, navigate→return. Are they smooth or jarring? Audit shared components (buttons, inputs, cards, modals, toasts) for:
+## Step 7 — Harden Design System
+**Arwen** `subagent_type: arwen-ui-polish` leads. **Haldir** `subagent_type: haldir-boundaries` checks transitions between pages, states, and components — loading->success, error->retry, navigate->return. Are they smooth or jarring? Audit shared components (buttons, inputs, cards, modals, toasts) for:
 - Consistent variants (primary, secondary, danger, ghost)
 - Responsive behavior
 - Keyboard focus styles
@@ -93,9 +88,9 @@ Arwen leads. **Haldir** checks transitions between pages, states, and components
 
 ## Step 7.5 — Pass 2: Re-Verify Fixes
 After all fixes are applied, run a verification pass:
-- **Samwise** re-audits accessibility on all modified components — verify a11y fixes didn't break other a11y properties
-- **Radagast** re-checks edge cases on fixed flows — verify fixes hold under adversarial input
-- **Merry** pair-verifies Pippin's edge case resolutions — one found it, the other confirms the fix
+- **Samwise** `subagent_type: samwise-accessibility` re-audits accessibility on all modified components — verify a11y fixes didn't break other a11y properties
+- **Radagast** `subagent_type: radagast-edge-cases` re-checks edge cases on fixed flows — verify fixes hold under adversarial input
+- **Merry** `subagent_type: merry-pair-review` pair-verifies Pippin's edge case resolutions — one found it, the other confirms the fix
 
 If Pass 2 finds new issues, fix and re-verify until Samwise, Radagast, and Merry sign off.
 

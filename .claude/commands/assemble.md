@@ -7,23 +7,29 @@ Avengers, assemble. Full pipeline from architecture to launch — one command to
 
 **Hill** tracks phase completion — logs each gate pass to `assemble-state.md`. **Jarvis** provides status summaries between phases.
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Agent Deployment Manifest — The Full Initiative
 
 When `/assemble` invokes each sub-command, it deploys the FULL roster for that command — not just the lead. The leads below are coordinators; they bring their complete teams.
 
-| Phase | Lead | Full Team Deployed |
+| Phase | Lead (`subagent_type`) | Full Team Deployed |
 |-------|------|--------------------|
-| Architecture | **Picard** | Spock, Uhura, Worf, Tuvok, Scotty, Kim, Janeway, Torres, La Forge, Data, Crusher, Archer, Pike, Riker, Troi |
-| Build | **Stark + Galadriel + Kusanagi** | Full /build roster (~35 agents across 4 universes) |
-| Smoke Test | **Hawkeye** | Solo — runtime verification |
-| Code Review (×3) | **Picard** | Spock, Seven, Data + **Rogers, Banner, Strange, Barton, Thor, Romanoff, Wanda, T'Challa** + **Nightwing, Bilbo, Troi, Constantine, Samwise** (cross-domain) |
-| UX | **Galadriel** | Elrond, Arwen, Samwise, Bilbo, Legolas, Gimli, Radagast, Éowyn, Celeborn, Aragorn, Faramir, Pippin, Boromir, Haldir, Frodo, Merry |
-| Security (×2) | **Kenobi** | Leia, Chewie, Rex, Maul, Yoda, Windu, Ahsoka, Padmé, Han, Cassian, Sabine, Qui-Gon, Bo-Katan, Anakin, Din Djarin |
-| DevOps | **Kusanagi** | Senku, Levi, Spike, L, Bulma, Holo, Valkyrie, Vegeta, Trunks, Mikasa, Erwin, Mustang, Olivier, Hughes, Calcifer, Duo |
-| QA | **Batman** | Oracle, Red Hood, Alfred, Deathstroke, Constantine, Nightwing, Lucius, Cyborg, Raven, Wonder Woman, Flash, Green Lantern, Batgirl, Aquaman |
-| Test | **Batman** | Oracle, Red Hood, Alfred, Nightwing (testing subset) |
-| Crossfire | **Maul, Deathstroke, Loki, Constantine, Éowyn** | Adversarial — each attacks another domain's work |
-| Council | **Spock, Ahsoka, Nightwing, Samwise, Padmé, Troi** | Final convergence — one voice per domain |
+| Architecture | `picard-architecture` | spock-schema, + Star Trek architecture specialists |
+| Build | `stark-backend` + `galadriel-frontend` + `kusanagi-devops` | Full /build roster (~35 agents across 4 universes) |
+| Smoke Test | `barton-smoke-test` | Solo — runtime verification |
+| Code Review (×3) | `picard-architecture` | spock-schema, seven-optimization + Marvel review team + cross-domain (nightwing-regression, bilbo-microcopy, troi-prd-compliance, constantine-cursed-code, samwise-accessibility) |
+| UX | `galadriel-frontend` | elrond-ux-strategy, arwen-ui-polish, samwise-accessibility, bilbo-microcopy, legolas-precision, gimli-performance, radagast-edge-cases, eowyn-delight, celeborn-design-system |
+| Security (×2) | `kenobi-security` | leia-secrets, chewie-dependency-audit, rex-infrastructure, maul-red-team, yoda-auth, windu-input-validation, ahsoka-access-control, padme-data-protection, han-vuln-hunter, cassian-recon, sabine-unconventional, qui-gon-subtle-vulns, bo-katan-perimeter |
+| DevOps | `kusanagi-devops` | senku-provisioning, levi-deploy, spike-routing, bulma-engineering, vegeta-monitoring |
+| QA | `batman-qa` | oracle-static-analysis, red-hood-aggressive, alfred-dependencies, deathstroke-adversarial, constantine-cursed-code, nightwing-regression, lucius-config |
+| Test | `batman-qa` | oracle-static-analysis, red-hood-aggressive, alfred-dependencies, nightwing-regression (testing subset) |
+| Crossfire | `maul-red-team`, `deathstroke-adversarial`, `loki-chaos`, `constantine-cursed-code` | Adversarial — each attacks another domain's work |
+| Council | `spock-schema`, `ahsoka-access-control`, `nightwing-regression`, `samwise-accessibility`, `padme-data-protection`, `troi-prd-compliance` | Final convergence — one voice per domain |
 
 ## Phase 1 — Architecture (Picard has the conn)
 **Fury:** "Picard, you're up. Review the architecture before we build anything."
@@ -126,10 +132,10 @@ Run the full `/test` protocol. Write missing unit tests, integration tests, and 
 
 Use the Agent tool to run these in parallel — all are adversarial, read-only analysis:
 
-- **Maul** (Star Wars) — attacks code that passed /review. Looks for exploits in "clean" code.
-- **Deathstroke** (DC) — probes endpoints that /security hardened. Tests if remediations can be bypassed.
-- **Loki** (Marvel) — chaos-tests features that /qa cleared. Finds what breaks under unexpected conditions.
-- **Constantine** (DC) — hunts cursed code in FIXED areas specifically. Code that works by accident.
+- `subagent_type: maul-red-team` — attacks code that passed /review. Looks for exploits in "clean" code.
+- `subagent_type: deathstroke-adversarial` — probes endpoints that /security hardened. Tests if remediations can be bypassed.
+- `subagent_type: loki-chaos` — chaos-tests features that /qa cleared. Finds what breaks under unexpected conditions.
+- `subagent_type: constantine-cursed-code` — hunts cursed code in FIXED areas specifically. Code that works by accident.
 
 Synthesize findings. **Conflict detection:** If any two agents produce conflicting findings on the same code (one says "fix," another says "by design" or "not exploitable"), trigger the debate protocol instead of listing both. See SUB_AGENTS.md "Agent Debate Protocol": Agent A states finding → Agent B responds → Agent A rebuts → Arbiter (Picard or user) decides. 3 exchanges max. Log the debate transcript as an ADR. Fix all Must Fix items. If any fixes were applied, re-run the four agents on the fixed areas only.
 
@@ -140,11 +146,11 @@ Synthesize findings. **Conflict detection:** If any two agents produce conflicti
 
 Use the Agent tool to run these in parallel:
 
-- **Spock** (Star Trek) — Did any security/QA/UX fix break code patterns or quality?
-- **Ahsoka** (Star Wars) — Did any review/QA fix introduce access control gaps?
-- **Nightwing** (DC) — Did any fix cause a regression? Run the full test suite.
-- **Samwise** (Tolkien) — Did any fix break accessibility?
-- **Troi** (Star Trek) — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
+- `subagent_type: spock-schema` — Did any security/QA/UX fix break code patterns or quality?
+- `subagent_type: ahsoka-access-control` — Did any review/QA fix introduce access control gaps?
+- `subagent_type: nightwing-regression` — Did any fix cause a regression? Run the full test suite.
+- `subagent_type: samwise-accessibility` — Did any fix break accessibility?
+- `subagent_type: troi-prd-compliance` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
 
 **Conflict detection:** If Council members disagree (e.g., Spock says a fix broke patterns but Ahsoka says it's necessary for access control), trigger the debate protocol. Do not list both opinions — resolve via debate. Arbiter: Picard for code/architecture conflicts, Troi for PRD compliance conflicts.
 

@@ -23,10 +23,10 @@ Run `/gauntlet --assess` — Rounds 1-2 only (Discovery + First Strike). No fix 
 - **Auth-free defaults:** HTTP endpoints with no authentication middleware (RC-3 pattern)
 - **Dead code:** Services wired but never called, preferences stored but never read
 
-### Step 3 — PRD Gap Analysis (Dax + Troi)
+### Step 3 — PRD Gap Analysis
 If a PRD exists:
-1. **Dax** diffs PRD requirements against implemented features (structural + semantic)
-2. **Troi** reads PRD prose section-by-section and verifies claims against reality
+1. **Dax** `subagent_type: dax-legacy-wisdom` diffs PRD requirements against implemented features (structural + semantic)
+2. **Troi** `subagent_type: troi-prd-compliance` reads PRD prose section-by-section and verifies claims against reality
 3. Check for YAML frontmatter — if missing, flag it (see CAMPAIGN.md Step 1)
 
 If no PRD exists:

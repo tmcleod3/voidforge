@@ -1,8 +1,14 @@
 # /build — Execute the Build Protocol
 
-## Promoted Agents (ADR-042)
-- **Troi** (PRD compliance) runs after every build mission completion — catches PRD drift before it compounds.
-- **Riker** (trade-off challenges) runs whenever an ADR is written during the build — prevents rubber-stamped decisions.
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
+**Promoted agents:**
+- **Troi** `subagent_type: troi-prd-compliance` runs after every build mission completion — catches PRD drift before it compounds.
+- **Riker** `subagent_type: riker-review` runs whenever an ADR is written during the build — prevents rubber-stamped decisions.
 
 ## Context Setup
 1. Read `/logs/build-state.md` — if it exists, resume from current phase
@@ -15,7 +21,7 @@
 4. Extract from PRD: tech stack, database schema, API routes, page routes, integrations, env vars
 5. Read `/docs/LESSONS.md` — check for relevant lessons from previous projects. If any lessons match this project's tech stack (framework, database, auth, integrations), note them: "Lessons from prior builds: [list relevant ones]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+.
 6. Flag any gaps or ambiguities — list them explicitly, don't guess
-7. **Troi confirms PRD extraction:** Troi reads the PRD prose and verifies the extraction matches — catches misinterpretations before 8+ build phases propagate them.
+7. **Troi** `subagent_type: troi-prd-compliance` confirms PRD extraction: reads the PRD prose and verifies the extraction matches — catches misinterpretations before 8+ build phases propagate them.
 8. **Save PRD snapshot:** Copy `/docs/PRD.md` to `/docs/PRD-snapshot-phase0.md`. This is the baseline for drift detection — the Living PRD feature compares the evolving PRD against this snapshot at phase gates and at Victory.
 9. Write initial ADRs to `/docs/adrs/`
 10. Create `/logs/build-state.md` and `/logs/phase-00-orient.md` with extraction results + relevant lessons
@@ -110,9 +116,9 @@ After build and before launch, log which patterns were used: pattern name, frame
 3. Update `/logs/build-state.md` to "LAUNCHED"
 
 ## Flags
-- `--blitz` — Autonomous execution: no confirmation between phases. Does NOT reduce quality.
 - `--resume` — Resume from last completed phase in build-state.md.
-- `--muster` — Full 9-universe review on every build phase. See `docs/methods/MUSTER.md`. **ENFORCEMENT: Must launch Agent tool sub-processes. Inline analysis is not a Muster.**
+- `--blitz` — *(retired — accepted as no-op per ADR-043. Autonomous execution is now the default. Use `--interactive` to pause between phases.)*
+- `--muster` — *(retired — accepted as no-op per ADR-043. Full roster is now the default. Use `--light` to reduce.)*
 
 ## At Every Phase
 - Update `/logs/build-state.md` when starting and completing each phase

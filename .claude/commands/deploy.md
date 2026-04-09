@@ -96,4 +96,4 @@ Update `/logs/deploy-state.md` with deploy results.
 - Always health check after deploy
 - Always rollback on health check failure
 - Deploy log with timestamps for audit trail
-- In blitz mode at campaign end: auto-deploy after Victory Gauntlet passes
+- In autonomous campaign mode: auto-deploy after Victory Gauntlet passes

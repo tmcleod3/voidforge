@@ -2,15 +2,13 @@
 
 **AGENT DEPLOYMENT IS MANDATORY.** Steps 1 and 4 specify parallel agent launches via the Agent tool. You MUST actually launch these agents as separate sub-processes — do NOT shortcut to inline analysis, even if you think you can answer faster by reading files directly. The agents exist because parallel analysis catches things sequential reading misses. Skipping agent deployment is a protocol violation. (Field report #68)
 
-## Content-Driven Agent Selection (ADR-042)
-Before starting the review, scan `git diff --stat` and add agents based on code content:
-- Implementation feasibility concerns → add **Stark** (can this be built?)
-- Security implications in design → add **Kenobi** (attack surface review)
-- Performance-critical paths → add **Torres** (scaling analysis)
-- Statistical/ML architecture → add **Vin** (math assumptions review)
-- Financial transactions → add **Dockson** + **Steris** (treasury architecture)
+## Dynamic Dispatch (ADR-044)
 
-**Promoted agent:** **Riker** runs on every ADR written — challenges trade-offs.
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
+**Promoted agent:** **Riker** `subagent_type: riker-review` runs on every ADR written — challenges trade-offs.
 
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
@@ -22,75 +20,44 @@ Before any deep analysis, scan the PRD frontmatter for structural contradictions
 
 ## Agent Deployment Manifest
 
-**Lead:** Picard (Star Trek)
-**Full bridge crew:** Spock (schema), Uhura (integrations), Worf (security implications), Tuvok (security architecture), Scotty (service architecture + scaling), Kim (API design), Janeway (novel architectures), Torres (performance), La Forge (failure analysis), Data (tech debt), Crusher (system diagnostics), Archer (greenfield), Pike (bold ordering — challenges Dax in /campaign), Riker (ADR review — challenges trade-offs), Troi (PRD compliance)
+**Lead:** `subagent_type: picard-architecture`
+**Full bridge crew:** `spock-schema`, `uhura-integration`, `worf-security-arch`, `tuvok-deep-current`, `scotty-infrastructure`, `kim-api-design`, `janeway-novel-arch`, `torres-site-scanner`, `la-forge-reliability`, `data-tech-debt`, `crusher-diagnostics`, `archer-greenfield`, `pike-bold-decisions`, `riker-review`, `troi-prd-compliance`
 
-## Step 0 — System Discovery (**Crusher** + **Archer**)
-**Crusher** assesses system health first — test coverage, build time, dependency age, code complexity. Baseline before changes.
-**Archer** (for greenfield projects) proposes initial directory structure, module boundaries, naming conventions.
+## Step 0 — System Discovery
+- **Crusher** `subagent_type: crusher-diagnostics` — System health baseline: test coverage, build time, dependency age, code complexity.
+- **Archer** `subagent_type: archer-greenfield` — (greenfield only) Initial directory structure, module boundaries, naming conventions.
+
 Produce: system identity, component inventory, data flow diagram (ASCII), dependency graph.
 Write to `/logs/` (phase-00 if during orient, or a dedicated architecture log).
 
-## Step 1 — Parallel Analysis (Spock + Uhura + Worf)
+## Step 1 — Parallel Analysis
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 
-**Agent 1 (Spock — Schema Review):**
-- Normalization: are relationships correct?
-- Indexes: do they match actual query patterns?
-- Nullable fields: intentional or oversight?
-- Audit fields: createdAt, updatedAt on every table?
-- PII isolation: sensitive data identified and separated?
-- Data lifecycle: what gets archived? What gets deleted?
-- Backup/recovery plan: defined and tested?
-
-**Agent 2 (Uhura — Integration Review):**
-For each external service, produce:
-
-| Service | Purpose | Failure Mode | Fallback | Cost | Lock-in Risk |
-|---------|---------|-------------|----------|------|-------------|
-
-Verify: API versions pinned, responses validated, abstraction layer exists.
-
-**Agent 3 (Worf — Security Implications):**
-For each architectural decision (schema, service boundaries, data flows), flag security implications. PII colocation, unauthenticated access to internal state, overly permissive service boundaries. Worf audits *design*, not code.
-
-**Agent 4 (Tuvok — Security Architecture):**
-Auth flow design, token storage strategy, session architecture, encryption at rest vs in transit. Where Worf flags implications, Tuvok designs the solutions.
+- **Agent 1** `subagent_type: spock-schema` — Schema review: normalization, index/query alignment, nullable fields, audit fields, PII isolation, data lifecycle, backup/recovery.
+- **Agent 2** `subagent_type: uhura-integration` — Integration review: service inventory (purpose, failure mode, fallback, cost, lock-in), API version pinning, response validation, abstraction layers.
+- **Agent 3** `subagent_type: worf-security-arch` — Security implications of architectural decisions: PII colocation, unauthenticated internal state access, permissive service boundaries. Audits *design*, not code.
+- **Agent 4** `subagent_type: tuvok-deep-current` — Security architecture: auth flow design, token storage, session architecture, encryption at rest vs in transit. Where Worf flags implications, Tuvok designs solutions.
 
 Synthesize findings from all four agents.
 
-## Step 2 — Scotty's Service Architecture + Kim's API Design
-- Boundary assessment: is the boundary between services/modules clean?
-- Monolith vs services: default monolith. Only split if there's a specific operational reason (different scaling profile, different team, different deploy cadence).
-- Async vs sync: which operations should be background jobs?
-- **Kim** reviews API surface: REST conventions, consistent error shapes, pagination patterns, versioning strategy.
-- **Janeway** (conditional): when the standard monolith doesn't fit, proposes event-sourcing, CQRS, serverless, edge computing.
+## Step 2 — Service Architecture + API Design
+- **Scotty** `subagent_type: scotty-infrastructure` — Boundary assessment, monolith vs services, async vs sync decisions.
+- **Kim** `subagent_type: kim-api-design` — API surface review: REST conventions, error shapes, pagination, versioning.
+- **Janeway** `subagent_type: janeway-novel-arch` — (conditional) When standard monolith doesn't fit: event-sourcing, CQRS, serverless, edge computing.
 - Informed by Spock's schema, Uhura's integrations, and Worf/Tuvok's security findings.
 
-## Step 3 — Scotty's Scaling + Torres's Performance
-- **Scotty:** Identify the first bottleneck. Three-tier plan: Tier 1 (current), Tier 2 (10x, vertical), Tier 3 (100x, horizontal). Cost estimates.
-- **Torres:** Performance architecture — N+1 query patterns in schema design, missing indexes for anticipated queries, connection pool sizing, caching strategy gaps. Catches performance problems before code is written.
+## Step 3 — Scaling + Performance
+- **Scotty** `subagent_type: scotty-infrastructure` — First bottleneck identification, three-tier scaling plan (current → 10x vertical → 100x horizontal), cost estimates.
+- **Torres** `subagent_type: torres-site-scanner` — Performance architecture: N+1 patterns, missing indexes, connection pool sizing, caching strategy gaps.
 
-## Step 4 — Parallel Analysis (La Forge + Data)
+## Step 4 — Parallel Analysis
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 
-**Agent 1 (La Forge — Failure Analysis):**
-For each component, answer: "What happens when this fails?"
-- Database down → app shows error, no data loss, auto-reconnect
-- Redis down → app works without cache (slower), sessions fall back
-- External API down → graceful degradation, queue retries
-- Worker crashes → job retries, dead letter queue, alerting
+- **Agent 1** `subagent_type: la-forge-reliability` — Failure analysis: for each component, answer "What happens when this fails?" (DB down, cache down, API down, worker crash).
+- **Agent 2** `subagent_type: data-tech-debt` — Tech debt catalog: wrong/missing abstraction, premature optimization, deferred decisions, dependency debt, documentation debt. Severity table with impact/risk/effort/urgency.
 
-**Agent 2 (Data — Tech Debt):**
-Catalog each item:
-
-| Item | Type | Impact | Risk | Effort | Urgency |
-|------|------|--------|------|--------|---------|
-
-Types: wrong abstraction, missing abstraction, premature optimization, deferred decision, dependency debt, documentation debt.
-
-## Step 5 — ADRs + Riker's Decision Review
-Write Architecture Decision Records to `/docs/adrs/` for every non-obvious choice. After writing, **Riker reviews**: challenges trade-offs, verifies alternatives were truly considered, checks for second-order effects.
+## Step 5 — ADRs + Decision Review
+Write Architecture Decision Records to `/docs/adrs/` for every non-obvious choice. After writing, **Riker** `subagent_type: riker-review` reviews: challenges trade-offs, verifies alternatives were truly considered, checks for second-order effects.
 ```
 # ADR-001: [Title]
 ## Status: Accepted
@@ -122,7 +89,7 @@ For specific conflicts:
 
 ## Arguments
 - `--plan [description]` → Planning mode: analyze and recommend without executing. Present findings and proposed changes for review.
-- `--muster` → Full 9-universe deployment. Instead of the Star Trek bridge crew, deploy every viable agent across all universes in 3 waves (Vanguard → Main Force → Adversarial). See `docs/methods/MUSTER.md`. **ENFORCEMENT: Must launch Agent tool sub-processes per MUSTER.md. Inline analysis is not a Muster.**
+- `--muster` → *(retired — accepted as no-op per ADR-043. Full roster is now the default. Use `--light` to reduce.)*
 
 ## Handoffs
 - API/DB implementation → Stark, log to `/logs/handoffs.md`

@@ -33,12 +33,12 @@ If `$ARGUMENTS` contains `--plan`, skip execution and update the plan instead:
 
 1. Read the current PRD (`/PRD-VOIDFORGE.md` or `/docs/PRD.md`) and `ROADMAP.md` (if it exists)
 2. Parse what the user wants to add from `$ARGUMENTS` (everything after `--plan`)
-3. **Dax analyzes** where it fits:
+3. **Dax** (`subagent_type: dax-legacy-wisdom`) **analyzes** where it fits:
    - Is it a new feature? → Add to the PRD under the right section (Core Features, Integrations, etc.)
    - Is it a bug fix or improvement? → Add to ROADMAP.md under the appropriate version
    - Is it a new version-worth of work? → Create a new version section in ROADMAP.md
    - Does it change priorities? → Reorder the roadmap accordingly
-4. **Odo checks** dependencies: does this new item depend on something not yet built? Flag it.
+4. **Odo** (`subagent_type: odo-structural-anomaly`) **checks** dependencies: does this new item depend on something not yet built? Flag it.
 5. Present the proposed changes to the user for review before writing
 6. On confirmation, write the updates to the PRD and/or ROADMAP.md
 7. Do NOT start building — planning mode only updates the plan
@@ -47,9 +47,15 @@ After planning mode completes, the user can run `/campaign` (no flags) to start 
 
 ---
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Execution Mode (default)
 
-## Step 0 — Kira's Operational Reconnaissance
+## Step 0 — Kira's Operational Reconnaissance (`subagent_type: kira-pragmatic`)
 
 Check for unfinished business:
 
@@ -79,9 +85,9 @@ If vault exists and `.env` is sparse (missing keys that the vault has):
 1. Run `voidforge deploy --env-only` to write vault credentials to `.env`
 2. In `--blitz` mode: auto-run without confirmation
 3. In normal mode: show what will be written, ask for confirmation
-4. This runs BEFORE Dax's full analysis so the populated `.env` is visible
+4. This runs BEFORE Dax's (`subagent_type: dax-legacy-wisdom`) full analysis so the populated `.env` is visible
 
-## Step 1 — Dax's Strategic Analysis
+## Step 1 — Dax's Strategic Analysis (`subagent_type: dax-legacy-wisdom`)
 
 Read the PRD and diff against the codebase:
 
@@ -92,7 +98,7 @@ Read the PRD and diff against the codebase:
 5. **Classify every requirement by type:** Code (buildable), Asset (needs external generation — images, illustrations, OG cards), Copy (text accuracy), Infrastructure (DNS, env vars, dashboards)
 6. Diff: what the PRD describes vs. what's implemented — **structural AND semantic** (not just "does the route exist?" but "does the component render what the PRD describes?")
 7. Produce the ordered mission list — each mission is 1-3 PRD sections, scoped to be buildable in one `/assemble` run
-8. **Pike challenges the ordering:** "Should we attempt a harder mission first while context is fresh?" Bold counterbalance to Dax's dependency-based ordering. If Pike's argument is stronger, reorder.
+8. **Pike** (`subagent_type: pike-bold-decisions`) **challenges the ordering:** "Should we attempt a harder mission first while context is fresh?" Bold counterbalance to Dax's dependency-based ordering. If Pike's argument is stronger, reorder.
 9. **Separately list BLOCKED items** — asset/infrastructure requirements that code can't satisfy
 
 **Priority cascade:**
@@ -103,7 +109,7 @@ Read the PRD and diff against the codebase:
 5. Skip sections flagged as no/none in frontmatter
 6. Asset/infrastructure requirements → flag as BLOCKED, don't include in code missions
 
-## Step 2 — Odo's Prerequisite Check
+## Step 2 — Odo's Prerequisite Check (`subagent_type: odo-structural-anomaly`)
 
 For the next mission on the list:
 - Are dependencies met? (e.g., Payments needs Auth)
@@ -139,7 +145,7 @@ On confirmation (or immediately in `--blitz` mode):
 2. If `$ARGUMENTS` includes `--fast`, pass `--fast` to assemble (skip Crossfire + Council). Note: `--blitz` does NOT imply `--fast`.
 3. Monitor for context pressure symptoms (re-reading files, forgetting decisions). If noticed, ask user to run `/context` — only checkpoint if usage exceeds 70%.
 
-## Step 4.5 — Gauntlet Checkpoint (Thanos)
+## Step 4.5 — Gauntlet Checkpoint (`subagent_type: thanos-gauntlet`)
 
 After every 4th mission (missions 4, 8, 12, etc.), run a Gauntlet checkpoint before continuing:
 
@@ -171,13 +177,13 @@ After `/assemble` completes:
 
 **Context pressure check:** Do NOT checkpoint based on mission count. Check actual context usage via `/context`. Only checkpoint when usage exceeds 70% (~700k tokens). Never pause a blitz based on mission count alone.
 
-## Step 6 — Victory Condition (Gauntlet + Troi's Compliance Check)
+## Step 6 — Victory Condition (Gauntlet + Troi's Compliance Check) (`subagent_type: troi-prd-compliance`)
 
 All PRD requirements are COMPLETE or explicitly BLOCKED:
 
 1. **Run `/gauntlet` (full 5 rounds)** — mandatory final Gauntlet on the complete codebase. This is non-negotiable, even with `--fast`. The Gauntlet tests the combined system across all domains: architecture, code review, UX, security, QA, DevOps, adversarial crossfire, and council convergence. Individual `/assemble` runs review one mission at a time; the Gauntlet reviews everything together.
 2. **Fix all Critical and High findings** from the Gauntlet.
-3. **Troi reads the PRD section-by-section** (runs as part of the Gauntlet Council round) — verifies every prose claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Checks numeric claims, visual treatments, copy accuracy, asset gaps.
+3. **Troi** (`subagent_type: troi-prd-compliance`) **reads the PRD section-by-section** (runs as part of the Gauntlet Council round) — verifies every prose claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Checks numeric claims, visual treatments, copy accuracy, asset gaps.
 4. Fix code discrepancies. Flag asset requirements as BLOCKED.
 5. Report: COMPLETE items, BLOCKED items (with reasons), deviations from PRD
 6. Victory only if: Gauntlet Council signs off AND user acknowledges all BLOCKED items

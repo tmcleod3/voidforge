@@ -7,27 +7,27 @@
 
 ## Agent Deployment Manifest
 
-**Lead:** Kusanagi (Anime — Ghost in the Shell)
+**Lead:** Kusanagi (`subagent_type: kusanagi-devops`)
 
 **Core team (always deployed):**
-- **Senku** (Dr. Stone) — provisioning: server setup, dependencies, runtime, idempotent scripts
-- **Levi** (Attack on Titan) — deployment: process management, zero-downtime, rollback scripts
-- **Spike** (Cowboy Bebop) — networking: reverse proxy, DNS, TLS, firewall, CORS headers
-- **L** (Death Note) — monitoring: health checks, uptime, alerting, log aggregation
-- **Bulma** (Dragon Ball) — backup: database dumps, file backup, retention, restore testing
-- **Holo** (Spice & Wolf) — cost: resource sizing, instance selection, cost estimation, optimization
+- **Senku** (`subagent_type: senku-provisioning`) — provisioning: server setup, dependencies, runtime, idempotent scripts
+- **Levi** (`subagent_type: levi-deploy`) — deployment: process management, zero-downtime, rollback scripts
+- **Spike** (`subagent_type: spike-routing`) — networking: reverse proxy, DNS, TLS, firewall, CORS headers
+- **L** — monitoring: health checks, uptime, alerting, log aggregation (honorary — no agent definition)
+- **Bulma** (`subagent_type: bulma-engineering`) — backup: database dumps, file backup, retention, restore testing
+- **Holo** — cost: resource sizing, instance selection, cost estimation, optimization (honorary — no agent definition)
 
 **Extended team (deployed on full infra reviews):**
-- **Valkyrie** (Marvel/Anime crossover) — disaster recovery: failover, data center redundancy, RTO/RPO
-- **Vegeta** (Dragon Ball) — scaling: horizontal scaling, load balancing, auto-scaling policies
-- **Trunks** (Dragon Ball) — migration: database migration strategy, zero-downtime schema changes
-- **Mikasa** (Attack on Titan) — security hardening: SSH config, fail2ban, unattended upgrades
-- **Erwin** (Attack on Titan) — strategy: multi-environment management, staging/production parity
-- **Mustang** (FMA) — orchestration: Docker Compose, container networking, service discovery
-- **Olivier** (FMA) — cold region: CDN configuration, edge caching, geographic distribution
-- **Hughes** (FMA) — documentation: runbook writing, infrastructure diagrams, onboarding docs
-- **Calcifer** (Ghibli) — energy: resource efficiency, idle scaling, sleep/wake optimization
-- **Duo** (Gundam) — CI/CD: GitHub Actions, pipeline design, automated testing in deploy
+- **Valkyrie** (`subagent_type: valkyrie-recovery`) — disaster recovery: failover, data center redundancy, RTO/RPO
+- **Vegeta** (`subagent_type: vegeta-monitoring`) — scaling: horizontal scaling, load balancing, auto-scaling policies
+- **Trunks** (`subagent_type: trunks-rollback`) — migration: database migration strategy, zero-downtime schema changes
+- **Mikasa** (`subagent_type: mikasa-protection`) — security hardening: SSH config, fail2ban, unattended upgrades
+- **Erwin** (`subagent_type: erwin-strategy`) — strategy: multi-environment management, staging/production parity
+- **Mustang** (`subagent_type: mustang-cleanup`) — orchestration: Docker Compose, container networking, service discovery
+- **Olivier** (`subagent_type: olivier-hardening`) — cold region: CDN configuration, edge caching, geographic distribution
+- **Hughes** (`subagent_type: hughes-observability`) — documentation: runbook writing, infrastructure diagrams, onboarding docs
+- **Calcifer** (`subagent_type: calcifer-daemon`) — energy: resource efficiency, idle scaling, sleep/wake optimization
+- **Duo** (`subagent_type: duo-teardown`) — CI/CD: GitHub Actions, pipeline design, automated testing in deploy
 
 ## Deploy Target Branching
 

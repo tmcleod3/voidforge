@@ -114,8 +114,8 @@ Present summary:
   Provision:   [done / skipped]
 ═══════════════════════════════════════════
   Ready to build. Run:
-    /campaign --blitz          # Autonomous build
-    /campaign --blitz --muster # Full multi-agent review
+    /campaign                  # Autonomous build (full roster)
+    /campaign --fast           # Autonomous, fewer review passes
 ═══════════════════════════════════════════
 ```
 
@@ -126,10 +126,10 @@ Present summary:
 
 ## Agents
 
-| Agent | Role |
-|-------|------|
-| **Picard** | Validates frontmatter + runs conflict scan |
-| **Troi** | Structural PRD compliance check |
-| **Wong** | Discovers and loads supporting documents |
-| **Boromir** | Challenges PRD design (with --challenge) |
-| **Kusanagi** | Provisions infrastructure from frontmatter |
+| Agent | `subagent_type` | Role |
+|-------|-----------------|------|
+| **Picard** | `picard-architecture` | Validates frontmatter + runs conflict scan |
+| **Troi** | `troi-prd-compliance` | Structural PRD compliance check |
+| **Wong** | `wong-documentation` | Discovers and loads supporting documents |
+| **Boromir** | `boromir-hubris` | Challenges PRD design (with --challenge) |
+| **Kusanagi** | `kusanagi-devops` | Provisions infrastructure from frontmatter |

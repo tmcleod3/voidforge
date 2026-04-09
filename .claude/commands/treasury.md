@@ -7,13 +7,13 @@ Read `/docs/methods/HEARTBEAT.md` for daemon architecture.
 
 ## Agent Deployment Manifest
 
-**Lead:** Dockson (Cosmere — Mistborn)
+**Lead:** Dockson (`subagent_type: dockson-treasury`)
 **Core team:**
-- **Steris** — budget allocation, forecasting, contingency plans
-- **Vin** — revenue analytics, attribution, pattern detection
-- **Szeth** — financial compliance, tax records, platform ToS
-- **Breeze** — platform relations, API credentials, OAuth management
-- **Wax** — spend execution, campaign budget management
+- **Steris** (`subagent_type: steris-budget`) — budget allocation, forecasting, contingency plans
+- **Vin** (`subagent_type: vin-analytics`) — revenue analytics, attribution, pattern detection
+- **Szeth** (`subagent_type: szeth-compliance`) — financial compliance, tax records, platform ToS
+- **Breeze** (`subagent_type: breeze-platform-relations`) — platform relations, API credentials, OAuth management
+- **Wax** (`subagent_type: wax-paid-ads`) — spend execution, campaign budget management
 
 ## Prerequisites
 

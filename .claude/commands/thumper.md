@@ -68,7 +68,7 @@ curl -s -X POST "https://api.telegram.org/bot<TOKEN>/setMyCommands" \
   -d '{
     "commands": [
       {"command": "build", "description": "Execute the build protocol"},
-      {"command": "campaign", "description": "Run the campaign (add --blitz or --fast)"},
+      {"command": "campaign", "description": "Run the campaign (add --fast for fewer passes)"},
       {"command": "qa", "description": "Batman'\''s QA pass"},
       {"command": "review", "description": "Picard'\''s code review"},
       {"command": "security", "description": "Kenobi'\''s security audit"},

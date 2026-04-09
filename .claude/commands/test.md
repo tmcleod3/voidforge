@@ -7,15 +7,16 @@
 2. Read `/docs/methods/QA_ENGINEER.md`
 3. Read `/docs/methods/TESTING.md` — testing pyramid, patterns, framework mapping
 
-## Step 0 — Orient (Oracle)
+## Step 0 — Orient
+**Oracle** `subagent_type: oracle-static-analysis` orients:
 1. Detect: test framework, test runner, test directory structure, existing coverage
 2. Run `npm test` to establish baseline — how many tests, how many pass, how many fail
 3. Document in phase log: framework, runner, config, current state
 
-## Step 1 — Coverage Analysis (Oracle + Alfred in parallel)
+## Step 1 — Coverage Analysis (parallel)
 Use the Agent tool to run these in parallel:
-- **Agent 1 (Oracle — Gap Analysis):** Scan all source files. For each service, API route, component, and utility, check: does a corresponding test file exist? What paths are tested? What paths are missing?
-- **Agent 2 (Alfred — Test Infrastructure):** Review test config, fixtures, factories, mocks, test utilities. Are they well-organized? Is there a test database? Are there shared helpers?
+- **Agent 1** `subagent_type: oracle-static-analysis` — Gap analysis: scan all source files, check for corresponding test files, identify tested vs missing paths.
+- **Agent 2** `subagent_type: alfred-dependencies` — Test infrastructure: review test config, fixtures, factories, mocks, test utilities, test database, shared helpers.
 
 Synthesize into a coverage map:
 
@@ -24,8 +25,8 @@ Synthesize into a coverage map:
 
 Priority: Critical path > User-facing > Internal > Utility
 
-## Step 2 — Test Architecture (Nightwing)
-Review existing tests for quality:
+## Step 2 — Test Architecture
+**Nightwing** `subagent_type: nightwing-regression` reviews existing tests for quality:
 - Are tests testing behavior or implementation details?
 - Are tests isolated (no test-order dependency)?
 - Are assertions specific (not just "doesn't throw")?
@@ -38,7 +39,7 @@ Flag anti-patterns:
 - Excessive mocking that hides real bugs
 - Tests coupled to implementation details
 
-## Step 3 — Write Missing Tests (Batman leads)
+## Step 3 — Write Missing Tests (`subagent_type: batman-qa` leads)
 Write tests in priority order from Step 1. For each module:
 
 1. **Unit tests** for pure business logic (services, utils, validators)
@@ -57,7 +58,7 @@ Write tests in priority order from Step 1. For each module:
 
 Work in small batches — write tests for one module, run `npm test`, verify they pass, then move to the next.
 
-## Step 3.5 — Integration Tests (Oracle)
+## Step 3.5 — Integration Tests (`subagent_type: oracle-static-analysis`)
 For each new feature, write at least one test that exercises the full cross-module path:
 - **File handling:** upload file → verify returned URL → fetch URL → verify 200 + correct content-type
 - **Form save with conflict:** submit with duplicate/conflicting value → verify response includes specific error message (not generic)
@@ -67,8 +68,8 @@ For each new feature, write at least one test that exercises the full cross-modu
 
 These can use mocked databases but MUST cross module boundaries — the test should touch at least two modules that would be reviewed by different agents.
 
-## Step 4 — Hardening (Red Hood)
-Red Hood writes adversarial tests:
+## Step 4 — Hardening
+**Red Hood** `subagent_type: red-hood-aggressive` writes adversarial tests:
 - Boundary values (0, -1, MAX_INT, empty string, null, undefined)
 - Unicode and special characters in all string inputs
 - Concurrent operations (race conditions, double-submit)
