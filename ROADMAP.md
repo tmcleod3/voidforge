@@ -5,7 +5,7 @@
 **Current:** v22.0.0 (2026-04-09)
 **Next:** v22.0.x — The Scope Hardening (Muster remediation patches)
 **Status:** v22.0 Campaign 28 complete (7 missions). Post-build Muster (17 agents, 3 waves) found 4 CRITICAL, 4 HIGH. Core architecture production-ready; hardening patches needed before npm publish.
-**675 tests**, 9 universes, 260+ agents, 28 slash commands, 38 code patterns.
+**696 tests**, 9 universes, 260+ agents, 28 slash commands, 37 code patterns.
 
 ---
 
