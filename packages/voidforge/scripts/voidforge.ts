@@ -224,6 +224,7 @@ function showHelp(): void {
   console.log('  install <ext>      Add extension to current project');
   console.log('  uninstall <ext>    Remove extension from current project');
   console.log('  deploy             Deploy project');
+  console.log('  migrate            Migrate v20.x project to v21.0');
   console.log('  doctor             Check versions, compatibility, health');
   console.log('  version            Show version information');
   console.log('  templates          List project templates');
@@ -337,6 +338,46 @@ async function main(): Promise<void> {
         console.log(`  Unchanged: ${plan.unchanged} files\n`);
         const result = await applyUpdate(projRoot);
         console.log(`  Updated to v${result.newVersion}. ${plan.added.length + plan.modified.length} files changed.\n`);
+        break;
+      }
+
+      case 'migrate': {
+        const isDryRun = args.includes('--dry-run');
+        const migrateDir = args.find((a, i) => args[i - 1] === '--dir') ?? process.cwd();
+        const { detectV20Project, migrateProject } = await import('../wizard/lib/migrator.js');
+        const migPlan = await detectV20Project(migrateDir);
+
+        if (!migPlan.hasWizardDir) {
+          console.log('\n  No wizard/ directory found — this is not a v20.x project.\n');
+          break;
+        }
+
+        console.log('\n  VoidForge v21.0 — Migration\n');
+        console.log('  Your project contains an embedded wizard (v20.x model).');
+        console.log('  VoidForge now runs as a standalone application.\n');
+        console.log('  Plan:');
+        console.log(`    1. Backup wizard/ (${migPlan.wizardFileCount} files) to ~/.voidforge/migration-backup/`);
+        if (migPlan.voidforgeDeps.length > 0) {
+          console.log(`    2. Remove ${migPlan.voidforgeDeps.length} VoidForge deps from package.json`);
+        }
+        console.log('    3. Remove wizard/ directory');
+        console.log('    4. Add .voidforge marker file');
+        console.log('    5. Keep all methodology files in place\n');
+
+        if (isDryRun) {
+          console.log('  (dry-run — no changes made)\n');
+          break;
+        }
+
+        const migResult = await migrateProject(migrateDir);
+        console.log(`  Migration complete.`);
+        console.log(`  Backup: ${migResult.backupDir}`);
+        console.log(`  Files removed: ${migResult.wizardFilesRemoved}`);
+        if (migResult.depsRemoved.length > 0) {
+          console.log(`  Deps removed: ${migResult.depsRemoved.join(', ')}`);
+        }
+        console.log(`  Marker created: ${migResult.markerCreated}\n`);
+        console.log('  To rollback: restore from the backup directory.\n');
         break;
       }
 
