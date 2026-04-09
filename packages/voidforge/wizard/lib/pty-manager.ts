@@ -49,6 +49,13 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 // SEC-004/QA-003: Whitelist of allowed initial commands — prevent arbitrary command injection
 const ALLOWED_INITIAL_COMMANDS = ['claude', 'claude --dangerously-skip-permissions', 'bash', 'zsh', 'sh', 'npm run dev', 'npm start', 'npm test'];
+// Also allow claude with slash commands (e.g., "claude /campaign --blitz")
+function isAllowedCommand(cmd: string): boolean {
+  if (ALLOWED_INITIAL_COMMANDS.includes(cmd)) return true;
+  // Allow: claude [slash-command] [flags]
+  if (/^claude\s+\/[a-z]/.test(cmd)) return true;
+  return false;
+}
 
 // SEC-013: Safe environment keys — no credential leakage into PTY sessions
 // ANTHROPIC_API_KEY included only in local mode (user's own key).
@@ -132,6 +139,7 @@ export async function createSession(
     safeEnv['VOIDFORGE_REMOTE'] = '1';
   }
 
+  console.log(`  PTY spawn: shell=${shell} cwd=${projectDir} cmd=${initialCommand ?? '(none)'} PATH=${safeEnv['PATH']?.slice(0, 80) ?? 'UNSET'}`);
   const ptyProcess = nodePty.spawn(shell, [], spawnOptions);
 
   const session: InternalSession = {
@@ -178,7 +186,8 @@ export async function createSession(
   }
 
   // SEC-004/QA-003: Validate initial command against whitelist
-  if (initialCommand && !ALLOWED_INITIAL_COMMANDS.includes(initialCommand)) {
+  if (initialCommand && !isAllowedCommand(initialCommand)) {
+    console.log(`  PTY: rejected command "${initialCommand}" (not in whitelist)`);
     initialCommand = undefined;
   }
 
