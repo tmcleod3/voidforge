@@ -35,7 +35,7 @@ async function getPackageVersion(): Promise<string> {
     try {
       const raw = await readFile(pkgPath, 'utf-8');
       const pkg = JSON.parse(raw) as { version?: string; name?: string };
-      if (pkg.name === 'voidforge' && pkg.version) return pkg.version;
+      if ((pkg.name === 'thevoidforge' || pkg.name === 'voidforge') && pkg.version) return pkg.version;
     } catch {
       continue;
     }
