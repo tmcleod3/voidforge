@@ -2,20 +2,15 @@ name: Validate Branch Integrity
 
 on:
   push:
-    branches: [main, scaffold, core]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        branch: [main, scaffold, core]
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ matrix.branch }}
 
       - name: Verify CLAUDE.md exists
         run: test -f CLAUDE.md
@@ -60,17 +55,15 @@ jobs:
       - name: Verify naming registry exists
         run: test -f docs/NAMING_REGISTRY.md
 
-      - name: Run tests (main branch only)
-        if: matrix.branch == 'main'
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install and test (main branch only)
-        if: matrix.branch == 'main'
+      - name: Install and test
         run: |
           npm ci
-          npm run typecheck
-          npm test
+          npm run typecheck -w voidforge
+          npm run test -w voidforge
 
   e2e-tests:
     runs-on: ubuntu-latest
