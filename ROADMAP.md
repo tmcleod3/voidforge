@@ -226,7 +226,7 @@
 
 **The problem:** v22.0 shipped the architecture, v22.0.x fixed the bugs, v22.1 handles migration. v22.2 closes the experience gaps — what a new user encounters on day 1, what legacy code should be deprecated, and what the /portfolio command needs to work with per-project data.
 
-**Missions (5):**
+**Missions (6):**
 
 ### Mission 1: First-Run Experience
 - Wizard detects "empty project" (no logs/, no cultivation/, no campaign-state.md)
@@ -262,7 +262,15 @@
 - Add test count (696) to stats where appropriate
 - Verify all tutorials reflect npm install path (no scaffold refs)
 
-**Execution order:** M1 → M2 → M3 → M4 → M5 (M4 and M5 can be parallel)
+### Mission 6: Dynamic Agent Dispatch (ADR-042)
+- **Cross-domain spot-checks**: When a command's agents find code in another domain (e.g., `/review` finds auth code), auto-deploy a spot-check agent (Kenobi) instead of logging a handoff
+- **Content-driven selection**: Commands scan `git diff` and add agents based on what's in the code — schema changes deploy Spock, API changes deploy Kim, statistical code deploys Vin
+- **Promote high-value agents**: Troi (PRD compliance) → every `/build` completion. Riker (trade-offs) → every ADR. Vin (stats) → any math code. Worf (security implications) → any auth code. Torres (performance) → any DB/API code. Constantine (cursed code) → every `/qa` final pass.
+- Update 8+ method docs with "Cross-Domain Triggers" sections
+- Update 8+ command files with content-scanning preamble
+- No runtime code changes — purely methodology
+
+**Execution order:** M1 → M2 → M3 → M4 → M5 → M6 (M4 and M5 can be parallel, M6 independent)
 
 ---
 
