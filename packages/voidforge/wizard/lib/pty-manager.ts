@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { isRemoteMode } from './tower-auth.js';
+import { isRemoteMode, isLanMode } from './tower-auth.js';
 import { audit } from './audit-log.js';
 
 // node-pty is a native module — dynamic import to handle missing installs gracefully
@@ -57,7 +57,9 @@ const ALLOWED_INITIAL_COMMANDS = ['claude', 'claude --dangerously-skip-permissio
 const BASE_SAFE_ENV_KEYS = ['PATH', 'HOME', 'SHELL', 'USER', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM_PROGRAM', 'EDITOR', 'VISUAL', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'NVM_DIR', 'NVM_BIN', 'NVM_INC', 'TMPDIR', 'TEMP', 'SSH_AUTH_SOCK', 'COLORTERM'];
 // FLOW-R2-007: Only pass ANTHROPIC_API_KEY in local mode
 function getSafeEnvKeys(): string[] {
-  if (isRemoteMode()) return BASE_SAFE_ENV_KEYS;
+  // Remote mode (internet-facing): exclude API key — operator's key must not leak
+  // Local + LAN mode: include API key — it's the user's own key on their network
+  if (isRemoteMode() && !isLanMode()) return BASE_SAFE_ENV_KEYS;
   return [...BASE_SAFE_ENV_KEYS, 'ANTHROPIC_API_KEY'];
 }
 
@@ -100,7 +102,7 @@ export async function createSession(
   }
 
   const nodePty = await loadPty();
-  const shell = process.env['SHELL'] || '/bin/zsh';
+  const shell = process.env['SHELL'] || '/bin/bash';
   const id = randomUUID();
 
   // SEC-013: Build clean environment — no credential leakage into PTY
