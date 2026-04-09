@@ -309,6 +309,30 @@ async function main(): Promise<void> {
           console.log(result.message);
           process.exit(result.success ? 0 : 1);
         }
+        if (args.includes('--extensions')) {
+          const { readRegistry } = await import('../wizard/lib/project-registry.js');
+          const { readMarker: readMkr } = await import('../wizard/lib/marker.js');
+          const { getExtension } = await import('../wizard/lib/extensions.js');
+          let updated = 0;
+          try {
+            const projects = await readRegistry();
+            for (const p of projects) {
+              const marker = await readMkr(p.directory);
+              if (!marker || marker.extensions.length === 0) continue;
+              for (const extName of marker.extensions) {
+                const ext = getExtension(extName);
+                if (ext) {
+                  await ext.install(p.directory);
+                  updated++;
+                }
+              }
+            }
+          } catch {
+            // Registry read failure — non-fatal
+          }
+          console.log(`\n  Extensions updated across ${updated} project(s).\n`);
+          break;
+        }
         // Methodology update
         const { findProjectRoot: findProjRoot } = await import('../wizard/lib/marker.js');
         const projRoot = findProjRoot();
