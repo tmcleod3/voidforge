@@ -3,7 +3,7 @@
 > The plan for the plan-maker.
 
 **Current:** v22.0.0 (2026-04-09)
-**Next:** v22.0.x — The Scope Hardening (Muster remediation patches)
+**Next:** v22.1 — The Migration (treasury CLI, summary file, per-project vault)
 **Status:** v22.0 Campaign 28 complete (7 missions). Post-build Muster (17 agents, 3 waves) found 4 CRITICAL, 4 HIGH. Core architecture production-ready; hardening patches needed before npm publish.
 **696 tests**, 9 universes, 260+ agents, 28 slash commands, 37 code patterns.
 
@@ -177,6 +177,92 @@
 **Execution order:** P0-A → P0-B → P0-C → P1-A → P1-B → P1-C → P2-A → P2-B → P2-C → P3
 
 **P0 (3 missions) are SHIP BLOCKERS.** P1 should ship with v22.0.0. P2-P3 can be v22.0.1-v22.0.3.
+
+---
+
+## v22.1 — The Migration
+
+*"The needs of the many outweigh the needs of the few." — Spock*
+
+**Depends on: v22.0.x complete. Campaign 30.**
+
+**The problem:** v22.0 moved financial paths per-project but left no migration tooling. Existing users with global treasury data at `~/.voidforge/treasury/` see empty dashboards. The heartbeat endpoint scans entire JSONL files O(n) on every poll — a scalability cliff for mature projects.
+
+**Missions (3):**
+
+### Mission 1: Treasury Migration CLI
+- New command: `voidforge migrate treasury --project=<id>`
+- Pre-flight: verify daemon stopped, project registered, cultivation installed
+- Archive global `~/.voidforge/treasury/` → `~/.voidforge/treasury-pre-v22/`
+- Per-project logs start with genesis hash (`'0'`) — clean break, no copy (ADR-041 decision)
+- Write migration manifest: `cultivation/treasury/.migrated` with timestamp, source hash, file count
+- Set 0700 permissions on `cultivation/treasury/`
+- Validation: verify hash chain integrity on new files, compare entry counts
+
+### Mission 2: Treasury Summary File (Torres P0)
+- Daemon writes `cultivation/treasury/treasury-summary.json` after each financial operation
+- Contents: running totals (totalSpendCents, totalRevenueCents, net, roas, budgetRemaining, timestamp)
+- Dashboard reads this O(1) file instead of scanning O(n) JSONL logs
+- JSONL remains the authoritative append-only log — summary is a read cache
+- `readTreasurySummary()` in `treasury-reader.ts` checks for summary file first, falls back to JSONL scan
+- Heartbeat endpoint response time: O(n) → O(1)
+
+### Mission 3: Per-Project Vault Encryption (Kenobi's HKDF)
+- Derive per-project encryption keys from the global vault password using HKDF
+- Each project's `cultivation/treasury/vault.enc` encrypted with a project-specific key
+- Global vault stays global for cross-project credentials (API keys shared across projects)
+- Per-project vault for project-specific secrets (campaign configs, platform tokens scoped to one project)
+- Key derivation: `HKDF(masterKey, projectId, 'voidforge-project-vault')` → 256-bit key
+
+**Execution order:** M1 → M2 → M3 (sequential — migration before performance, vault last)
+
+---
+
+## v22.2 — The Polish
+
+*"It's not enough that we do our best; sometimes we must do what is required." — Picard*
+
+**Depends on: v22.1 complete. Campaign 31.**
+
+**The problem:** v22.0 shipped the architecture, v22.0.x fixed the bugs, v22.1 handles migration. v22.2 closes the experience gaps — what a new user encounters on day 1, what legacy code should be deprecated, and what the /portfolio command needs to work with per-project data.
+
+**Missions (5):**
+
+### Mission 1: First-Run Experience
+- Wizard detects "empty project" (no logs/, no cultivation/, no campaign-state.md)
+- Project dashboard Overview tab shows guided onboarding instead of empty panels:
+  - "Write your PRD" → link to `/prd` command
+  - "Run your first build" → link to `/campaign --blitz`
+  - "Install Cultivation" → link to extension installer
+- Danger Room tab empty state enhanced with step-by-step next actions
+- Lobby empty state for zero-project wizard: "Import a project or create one"
+
+### Mission 2: Portfolio Command Update
+- `/portfolio` reads from per-project treasury paths (currently reads global paths deprecated in v22.0)
+- `DaemonAggregator.getStatus()` filtered by `getProjectsForUser()` at the API layer
+- Portfolio dashboard shows per-project spend/revenue breakdown with drill-down
+- Cross-project aggregation uses aggregator totals (already correct)
+
+### Mission 3: Legacy Route Deprecation
+- Add `Deprecation: true` header + `Sunset: 2026-07-01` header on all 19 legacy shim routes
+- Log deprecation warnings: `console.warn('Deprecated: /api/danger-room/* → /api/projects/:id/danger-room/*')`
+- Add deprecation notice to old danger-room.html and war-room.html pages
+- Plan removal in v23.0 (3-month sunset period)
+
+### Mission 4: Growth Tutorial Prerequisites
+- Each growth tutorial (/grow, /cultivation, /treasury, /google-ads, /google-ads-kongo) gets a "Prerequisites" section
+- Lists exact accounts and API keys needed before starting
+- Cold-start flow: "Don't have a Google Ads account yet? Here's how to get one"
+- Danger Room growth panels show "Setup required: [list of missing keys]" instead of blank
+
+### Mission 5: Website Accuracy Pass
+- Pattern pages: financial-transaction and daemon-process get v22.0 additions (prompt already written)
+- Forge Labs: clarify Danger Room is a wizard feature, not standalone
+- Agent count: update to "259 named agents" (accurate) or keep "260+" (rounded)
+- Add test count (696) to stats where appropriate
+- Verify all tutorials reflect npm install path (no scaffold refs)
+
+**Execution order:** M1 → M2 → M3 → M4 → M5 (M4 and M5 can be parallel)
 
 ---
 
