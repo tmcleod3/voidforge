@@ -92,12 +92,19 @@
 
     try {
       const data = await setupAccount(username, password);
-      // Show TOTP setup
-      setupStatus.textContent = '';
-      setupStatus.className = 'status-row';
-      totpSecret.textContent = data.totpSecret;
-      totpSetup.style.display = 'block';
-      setupSubmit.style.display = 'none';
+      if (requireTotp && data.totpSecret) {
+        // Show TOTP setup (remote mode)
+        setupStatus.textContent = '';
+        setupStatus.className = 'status-row';
+        totpSecret.textContent = data.totpSecret;
+        totpSetup.style.display = 'block';
+        setupSubmit.style.display = 'none';
+      } else {
+        // LAN mode — skip TOTP, go straight to login
+        setupStatus.textContent = 'Account created. Please log in.';
+        setupStatus.className = 'status-row success';
+        setTimeout(function () { showLogin(); }, 1000);
+      }
     } catch (err) {
       setupStatus.textContent = err.message;
       setupStatus.className = 'status-row error';
@@ -111,7 +118,15 @@
 
   // ── Login flow ─────────────────────────────────────
 
-  // TOTP field is always visible (removed conditional show — accessibility fix)
+  // Detect if TOTP is required (remote mode) or optional (LAN mode)
+  var requireTotp = true;
+  fetch('/api/auth/session').then(function (r) { return r.json(); }).then(function (d) {
+    var data = d.data || {};
+    if (data.lanMode && !data.remoteMode) {
+      requireTotp = false;
+      if (totpField) totpField.style.display = 'none';
+    }
+  }).catch(function () {});
 
   loginSubmit.addEventListener('click', async () => {
     const username = loginUsername.value.trim();
@@ -123,7 +138,7 @@
       loginStatus.className = 'status-row error';
       return;
     }
-    if (!totp || totp.length !== 6) {
+    if (requireTotp && (!totp || totp.length !== 6)) {
       loginStatus.textContent = 'Enter your 6-digit authenticator code';
       loginStatus.className = 'status-row error';
       loginTotp.focus();

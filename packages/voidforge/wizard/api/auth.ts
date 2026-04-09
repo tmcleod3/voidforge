@@ -27,8 +27,8 @@ import { sendJson } from '../lib/http-helpers.js';
 
 // POST /api/auth/setup — Create initial admin user (only when no users exist)
 addRoute('POST', '/api/auth/setup', async (req: IncomingMessage, res: ServerResponse) => {
-  if (!isRemoteMode()) {
-    sendJson(res, 400, { success: false, error: 'Auth setup is only available in remote mode' });
+  if (!isRemoteMode() && !isLanMode()) {
+    sendJson(res, 400, { success: false, error: 'Auth setup is only available in remote or LAN mode' });
     return;
   }
 
@@ -79,8 +79,8 @@ addRoute('POST', '/api/auth/setup', async (req: IncomingMessage, res: ServerResp
 
 // POST /api/auth/login — Authenticate with username + password + TOTP
 addRoute('POST', '/api/auth/login', async (req: IncomingMessage, res: ServerResponse) => {
-  if (!isRemoteMode()) {
-    sendJson(res, 400, { success: false, error: 'Auth is only required in remote mode' });
+  if (!isRemoteMode() && !isLanMode()) {
+    sendJson(res, 400, { success: false, error: 'Auth is only required in remote or LAN mode' });
     return;
   }
 
@@ -91,22 +91,30 @@ addRoute('POST', '/api/auth/login', async (req: IncomingMessage, res: ServerResp
   }
 
   const { username, password, totpCode } = body as Record<string, unknown>;
-  if (typeof username !== 'string' || typeof password !== 'string' || typeof totpCode !== 'string') {
-    sendJson(res, 400, { success: false, error: 'username, password, and totpCode are required strings' });
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    sendJson(res, 400, { success: false, error: 'username and password are required strings' });
+    return;
+  }
+
+  // LAN mode: TOTP is optional (password-only auth)
+  const requireTotp = isRemoteMode();
+  const totp = typeof totpCode === 'string' ? totpCode : '';
+
+  if (requireTotp && (totp.length !== 6 || !/^\d{6}$/.test(totp))) {
+    sendJson(res, 400, { success: false, error: 'totpCode must be exactly 6 digits' });
     return;
   }
 
   // Cap field lengths to prevent DoS via oversized PBKDF2 input
-  // QA-R3-018 + CROSS-R4-010: TOTP must be exactly 6 digits per RFC 6238
-  if (username.length > 64 || password.length > 256 || totpCode.length !== 6 || !/^\d{6}$/.test(totpCode)) {
+  if (username.length > 64 || password.length > 256) {
     sendJson(res, 400, { success: false, error: 'Field length exceeded' });
     return;
   }
 
   const ip = getClientIp(req);
-  await audit('login_attempt', ip, username.slice(0, 64), { method: 'password+totp' });
+  await audit('login_attempt', ip, username.slice(0, 64), { method: requireTotp ? 'password+totp' : 'password' });
 
-  const result = await login(username, password, totpCode, ip);
+  const result = await login(username, password, totp, ip);
 
   if ('error' in result) {
     await audit('login_failure', ip, username.slice(0, 64), { reason: result.error });
