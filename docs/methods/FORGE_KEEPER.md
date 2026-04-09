@@ -260,9 +260,9 @@ Verify and celebrate:
 
 ## Edge Cases
 
-- **First run on a manually copied project:** No VERSION.md, no git remote. Bombadil adds the remote, fetches scaffold, and does a full comparison against whatever files exist.
+- **First run on a manually copied project:** No VERSION.md, no git remote. Bombadil adds the remote, fetches main, and does a full comparison against whatever files exist.
 - **User is ahead of upstream:** Possible if user contributes back. Bombadil notes it and doesn't downgrade.
 - **Merge conflicts in CLAUDE.md:** The Project section (name, one-liner, domain, repo) is always preserved. Methodology sections are always updated. If the user added custom sections, Bombadil preserves those too.
 - **Network failure:** Bombadil announces the failure cheerfully and stops. No retries, no partial state.
-- **Full-tier users (main branch):** Bombadil only syncs methodology files. For wizard/provisioner updates, tell the user to run `git pull` and `npm install` on main.
+- **Full-tier users:** Bombadil only syncs methodology files. For wizard updates, tell the user to run `npx thevoidforge update --self`.
 - **Rollback:** All updates are applied to the working tree (not committed). If anything goes wrong, `git checkout -- .` restores every file to its last committed state. Bombadil should mention this safety net before applying updates.

@@ -26,7 +26,7 @@ Start the wizard server and open the Danger Room:
 
 ### `/dangerroom install`
 
-Alias for starting the wizard server. Ensures the server is running and the Danger Room is accessible. If the project uses the scaffold branch (no packages/voidforge/wizard/server.ts), report: "The Danger Room requires the main branch. Run `git checkout main` or install VoidForge with `npx voidforge init`."
+Alias for starting the wizard server. Ensures the server is running and the Danger Room is accessible. If `packages/voidforge/wizard/server.ts` does not exist, report: "The Danger Room requires the full VoidForge wizard. Install with `npx thevoidforge init` or run `npx thevoidforge install danger-room`."
 
 ### `/dangerroom status`
 
@@ -63,7 +63,7 @@ Stop the wizard server if running.
 
 - Node.js installed
 - Port 3141 available (or set `VOIDFORGE_PORT` env var)
-- The `packages/voidforge/wizard/server.ts` file must exist. If it does not (scaffold/core users):
+- The `packages/voidforge/wizard/server.ts` file must exist. If it does not (methodology-only install):
   1. Offer: "The Danger Room requires the wizard server. Pull it from upstream? [Y/n]"
   2. On yes: `git fetch voidforge main 2>/dev/null || git remote add voidforge https://github.com/tmcleod3/voidforge.git && git fetch voidforge main` then `git checkout voidforge/main -- packages/voidforge/`
   3. Run `npm install` to install wizard dependencies

@@ -47,7 +47,7 @@ Mandatory runtime verification BEFORE code review begins:
 2. Hit every new/modified API endpoint with `curl` — verify HTTP status codes match expectations
 3. For web apps: list all registered routes and **check for path collisions** (duplicate method+path across routers)
 4. For React/frontend: trace the primary user flow through the component tree — follow state changes through the store, identify re-render cycles. For every `useEffect` with store values in its deps, verify the effect body doesn't trigger a store update that changes those same deps.
-5. If the server cannot be started (scaffold branch, methodology-only), skip with a note
+5. If the server cannot be started (methodology-only project, no wizard), skip with a note
 
 **Gate:** All endpoints return expected status codes. No route collisions. No infinite render loops detected. Update assemble-state.
 

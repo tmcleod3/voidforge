@@ -798,6 +798,7 @@ If Phase 12 or a deploy script fails:
 | Deploy script hangs | Check SSH connectivity, verify key permissions (0600) |
 | Test runner not found | Phase 1 should set it up — re-run scaffold if missing |
 | Context fills mid-phase | Checkpoint to journal, new session, continue |
+| `npx voidforge init` doesn't work | Not available yet. Clone the repo directly. See QUICKSTART.md |
 | npm install fails on Windows | node-pty needs C++ tools. Use `--ignore-scripts` or `npx thevoidforge init --headless` |
 
 ---

@@ -84,9 +84,9 @@ Growth infrastructure should be established at the same time as the product — 
 
 This separation means the user can install Cultivation in 5 minutes (vault + treasury + revenue + daemon) and configure ad platforms later when they're ready to spend.
 
-## Scaffold/Core Users
+## Headless / Methodology-Only Users
 
-Scaffold and core branches do not include the `wizard/` directory. This affects which parts of the growth protocol are available:
+Projects created with `npx thevoidforge init --headless` do not include the `wizard/` directory. This affects which parts of the growth protocol are available:
 
 **Fully functional without wizard (Phases 1-3):**
 - Phase 1 — Reconnaissance: PRD audit, analytics audit, competitive scan

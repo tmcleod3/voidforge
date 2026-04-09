@@ -28,11 +28,11 @@ We'll use **VoidForge** — a methodology framework that gives Claude Code a tea
 First, create a folder for your project and install VoidForge:
 
 ```bash
-mkdir my-app && cd my-app
-git clone --branch scaffold https://github.com/tmcleod3/voidforge.git .
+npx thevoidforge init my-app
+cd my-app
 ```
 
-This gives you VoidForge's methodology — the slash commands, build protocols, code patterns, and agent definitions. No heavy dependencies. No server. Just the playbook Claude Code follows.
+This gives you VoidForge's methodology — the slash commands, build protocols, code patterns, and agent definitions — plus the wizard UI. For methodology only (no wizard): `npx thevoidforge init --headless my-app`.
 
 Now launch Claude Code inside your project:
 

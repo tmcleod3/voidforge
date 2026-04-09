@@ -35,7 +35,7 @@ Four-team review (Galadriel, Batman, Kusanagi, Kenobi) produced 43 findings — 
 ## v3.2 -- Bombadil's Forge Sync *(shipped)*
 
 **~~`/void` Self-Update Command~~** — *Shipped in v3.2.0 (unforetold)*
-Not originally in the prophecy. Tom Bombadil emerged from the old forest with a new idea: keep the forge sharp. `/void` fetches the latest VoidForge methodology from the scaffold branch, compares every shared file, shows a human-readable update plan, and sings the changes into place — preserving project-specific customizations. Works on all three tiers. ADR-008.
+Not originally in the prophecy. Tom Bombadil emerged from the old forest with a new idea: keep the forge sharp. `/void` checks for the latest methodology (via npm or git fallback), compares every shared file, shows a human-readable update plan, and sings the changes into place — preserving project-specific customizations. ADR-008.
 
 ---
 

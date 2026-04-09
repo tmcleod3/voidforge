@@ -27,16 +27,16 @@ Then open the folder in VS Code: **File > Open Folder > select `my-project`**.
 
 | Branch | What You Get | Install |
 |--------|-------------|---------|
-| `main` | Full — wizard server, dashboard, everything | `npm install` (may need build tools) |
-| `scaffold` | Methodology only — all commands, patterns, agents | No install needed |
+| `npx thevoidforge init` | Full — wizard server, dashboard, everything | May need build tools for node-pty |
+| `npx thevoidforge init --headless` | Methodology only — all commands, patterns, agents | No native deps needed |
 
-**Recommended for most Windows users:** Use `scaffold` to avoid native module issues:
+**Recommended for most Windows users:** Use headless mode to avoid native module issues:
 
 ```powershell
-git clone --branch scaffold https://github.com/tmcleod3/voidforge.git my-project
+npx thevoidforge init --headless my-project
 ```
 
-If you want the full wizard on `main` and `npm install` fails with a `node-pty` error, see [Troubleshooting](#npm-install-fails-with-node-pty-error) below.
+If you want the full wizard and `npm install` fails with a `node-pty` error, see [Troubleshooting](#npm-install-fails-with-node-pty-error) below.
 
 ## Step 2: Set Up Claude Code in VS Code
 
@@ -242,11 +242,11 @@ Run `npm install -g @anthropic-ai/claude-code` in PowerShell, then restart VS Co
 
 This is a native C++ module for the browser terminal. Four options:
 
-**Option A — Use scaffold branch (fastest)**
+**Option A — Use headless mode (fastest)**
 ```powershell
-git clone --branch scaffold https://github.com/tmcleod3/voidforge.git my-project
+npx thevoidforge init --headless my-project
 ```
-No `npm install` needed. Full methodology, all commands, no native dependencies.
+Full methodology, all commands, no native dependencies.
 
 **Option B — Skip native modules**
 ```powershell
@@ -318,7 +318,7 @@ Opens **http://localhost:3141**:
 ## The Quick Path
 
 1. Install prerequisites (VS Code, Node.js, Git, Claude Code extension + CLI).
-2. Clone VoidForge (`scaffold` branch recommended for Windows).
+2. Create project: `npx thevoidforge init --headless my-project` (or full: `npx thevoidforge init my-project`).
 3. Open folder in VS Code.
 4. Open Claude in the integrated terminal: `claude`.
 5. `/prd` — describe what you want to build.

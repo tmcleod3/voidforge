@@ -44,13 +44,13 @@ Runtime code lives in `wizard/` (main branch only). Fixes should:
 
 | Branch | What's Here | Who Uses It |
 |--------|-------------|-------------|
-| `main` | Everything — wizards, provisioners, runtime code | `npx voidforge init` users |
-| `scaffold` | Methodology only — no runtime code | `git clone --branch scaffold` users |
-| `core` | Ultra-light — methodology reference | Claude Code learning |
+| `main` | Everything — methodology + wizard + CLI | All users (v21.0+) |
 
-**If your change is to a shared file** (commands, methods, patterns, CLAUDE.md, naming registry), it must work on all three branches. Shared files cannot reference `wizard/` paths.
+> **Note:** The `scaffold` and `core` branches were deprecated in v21.1 and will be deleted on 2026-05-08. All distribution now goes through npm: `npx thevoidforge init`.
 
-**If your change is to runtime code** (`wizard/`), it goes to `main` only.
+**If your change is to a shared file** (commands, methods, patterns, CLAUDE.md, naming registry), it ships via the `thevoidforge-methodology` npm package.
+
+**If your change is to runtime code** (`wizard/`), it ships via the `thevoidforge` npm package.
 
 ## Pull Request Process
 
