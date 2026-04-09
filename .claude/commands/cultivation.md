@@ -6,10 +6,28 @@ Read `/docs/methods/GROWTH_STRATEGIST.md` for operating rules.
 Read PRD-VOIDFORGE.md §9.19 for the Cultivation architecture.
 
 ## Prerequisites
+
+### System Requirements
 If `packages/voidforge/wizard/server.ts` does not exist (methodology-only install):
 1. Offer: "Cultivation's full install requires the wizard server for the heartbeat daemon and dashboard. Pull it from upstream? [Y/n] (Steps 1-3 work without it.)"
 2. On yes: `git fetch voidforge main 2>/dev/null || git remote add voidforge https://github.com/tmcleod3/voidforge.git && git fetch voidforge main` then `git checkout voidforge/main -- packages/voidforge/` then `npm install`. Proceed with full install.
 3. On no: proceed to Steps 1-3 (Financial Foundation, Revenue Tracking, Ad Platform deferral). Steps 4-8 will display skip messages. The partial install summary at Step 7 shows what was completed vs skipped.
+
+### External Accounts & API Keys
+**For revenue tracking (Step 2):**
+- **Stripe:** API secret key (`sk_live_...` or `sk_test_...`). [Create account](https://dashboard.stripe.com/register) → API keys in Developer settings.
+- **Paddle (alternative):** API key + vendor ID. [Create account](https://vendors.paddle.com/signup).
+- At least one revenue source is required for ROAS calculation.
+
+**For ad platform integration (Steps 4-5):**
+- Run `/grow --setup` after cultivation install to configure platforms interactively.
+- See `/grow` prerequisites for per-platform account requirements.
+
+**For stablecoin treasury (optional, Step 6+):**
+- Circle USDC account + API key for stablecoin off-ramp automation.
+- Bank account connected via Mercury or Brex for settlement.
+
+**Minimum to start:** Only a vault password (12+ chars, set during install) is required. External accounts can be added later.
 
 ## What Cultivation IS
 

@@ -3,6 +3,8 @@
 Read `/docs/methods/GROWTH_STRATEGIST.md` for operating rules.
 
 ## Prerequisites
+
+### System Requirements
 If `packages/voidforge/wizard/server.ts` does not exist and the mode requires it (default 6-phase, `--setup`, `--distribute`):
 1. Offer: "Phases 4-6 require the wizard server for ad platform APIs, treasury, and autonomous monitoring. Pull it from upstream? [Y/n] (Phases 1-3 work without it.)"
 2. On yes: `git fetch voidforge main 2>/dev/null || git remote add voidforge https://github.com/tmcleod3/voidforge.git && git fetch voidforge main` then `git checkout voidforge/main -- packages/voidforge/` then `npm install`. Proceed with all 6 phases.
@@ -10,6 +12,18 @@ If `packages/voidforge/wizard/server.ts` does not exist and the mode requires it
 
 If `packages/voidforge/wizard/server.ts` does not exist and the mode does NOT require it (`--audit-only`, `--seo`, `--content`):
 - Skip the wizard gate entirely. These modes run Phases 1-3 only — no wizard dependency.
+
+### External Accounts & API Keys (Phases 4-6)
+**Required for paid acquisition (Phase 4+):**
+- **Google Ads:** Google Ads account + OAuth credentials (client ID, client secret, developer token). [Create account](https://ads.google.com) → Apply for API access via Google Ads API Center.
+- **Meta Ads (optional):** Meta Business account + App with `ads_management` permission. [Create account](https://business.facebook.com) → Create app in Meta Developer portal.
+- **Revenue tracking:** Stripe or Paddle account with API keys for revenue attribution.
+
+**Required for treasury (Phase 5+):**
+- Run `/cultivation install` first — sets up the heartbeat daemon and financial vault.
+- Financial vault password (12+ chars) — set during cultivation install.
+
+**Not required for Phases 1-3** (`--audit-only`): SEO audit, content strategy, and foundation work need no external accounts.
 
 ## Arguments
 - No arguments → run/resume the 6-phase growth protocol

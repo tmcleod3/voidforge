@@ -16,10 +16,27 @@ Read `/docs/methods/HEARTBEAT.md` for daemon architecture.
 - **Wax** — spend execution, campaign budget management
 
 ## Prerequisites
+
+### System Requirements
 If `packages/voidforge/wizard/server.ts` does not exist (methodology-only install):
 1. Offer: "Treasury requires the wizard server. Pull it from upstream? [Y/n]"
 2. On yes: `git fetch voidforge main 2>/dev/null || git remote add voidforge https://github.com/tmcleod3/voidforge.git && git fetch voidforge main` then `git checkout voidforge/main -- packages/voidforge/` then `npm install`
 3. On no: stop with "Run manually: `git checkout voidforge/main -- packages/voidforge/`"
+
+### External Accounts & API Keys
+**Required for treasury setup:**
+- **Cultivation installed:** Run `/cultivation install` first — treasury operates within cultivation.
+- **Financial vault password:** 12+ characters, set during cultivation install.
+
+**Required for revenue tracking:**
+- **Stripe** (`sk_live_...` or `sk_test_...`) or **Paddle** (API key + vendor ID) — at least one revenue source for ROAS.
+
+**Required for stablecoin funding (optional):**
+- **Circle:** USDC account + API key for automated off-ramp. [Create account](https://www.circle.com/en/).
+- **Bank account:** Mercury or Brex connected for fiat settlement.
+
+**Required for ad spend tracking:**
+- Ad platform credentials configured via `/grow --setup` (Google Ads, Meta Ads, etc.).
 
 ## Context Setup
 1. Check if financial vault exists (`~/.voidforge/treasury/vault.enc`)
