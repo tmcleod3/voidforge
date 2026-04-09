@@ -418,6 +418,61 @@ async function main(): Promise<void> {
         }
         break;
 
+      case 'heartbeat': {
+        const subCmd = args[1]; // start | stop | status
+        if (subCmd !== 'start') {
+          console.error('Usage: voidforge heartbeat start [--project-dir <path>]');
+          process.exit(1);
+        }
+
+        // Parse --project-dir for per-project daemon (v22.0 ADR-041 P1-A)
+        const projectDirIdx = args.indexOf('--project-dir');
+        const projectDir = projectDirIdx >= 0 ? args[projectDirIdx + 1] : undefined;
+
+        if (projectDir) {
+          if (!existsSync(projectDir)) {
+            console.error(`Project directory does not exist: ${projectDir}`);
+            process.exit(1);
+          }
+          // Configure per-project paths BEFORE daemon starts
+          const { configurePaths, checkGlobalDaemon } = await import('../wizard/lib/daemon-core.js');
+          configurePaths(projectDir);
+
+          // Dual-daemon guard
+          const globalRunning = await checkGlobalDaemon();
+          if (globalRunning) {
+            console.error('A global heartbeat daemon is running at ~/.voidforge/run/.');
+            console.error('Stop it first: kill $(cat ~/.voidforge/run/heartbeat.pid)');
+            process.exit(1);
+          }
+
+          // Set project ID and dir for financial operations
+          const { setDaemonProjectId, setDaemonProjectDir } = await import('../wizard/lib/heartbeat.js');
+          setDaemonProjectDir(projectDir);
+
+          // Look up project in registry for ID
+          const { findByDirectory } = await import('../wizard/lib/project-registry.js');
+          const project = await findByDirectory(resolve(projectDir));
+          if (project) {
+            setDaemonProjectId(project.id);
+            console.log(`  Heartbeat daemon starting for project: ${project.name} (${project.id})`);
+          } else {
+            console.log(`  Heartbeat daemon starting for directory: ${projectDir} (not in registry)`);
+          }
+        }
+
+        // Prompt for vault password
+        const { createInterface } = await import('node:readline');
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        const password = await new Promise<string>((res) => {
+          rl.question('Vault password: ', (answer) => { rl.close(); res(answer); });
+        });
+
+        const { startHeartbeat } = await import('../wizard/lib/heartbeat.js');
+        await startHeartbeat(password);
+        break;
+      }
+
       case '--help':
       case '-h':
         showHelp();
