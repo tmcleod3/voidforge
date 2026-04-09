@@ -38,7 +38,8 @@ import {
 
 import type { SessionTokenState } from './oauth-core.js';
 
-import { appendToLog, atomicWrite, getTreasuryDir, getSpendLog, getRevenueLog } from './financial-core.js';
+import { appendToLog, atomicWrite, getTreasuryDir, getSpendLog, getRevenueLog, getBudgetsFile } from './financial-core.js';
+import { TREASURY_SUMMARY_FILE } from './treasury-reader.js';
 
 import {
   registerTreasuryJobs, handleTreasuryRequest, executeTreasuryFreeze,
@@ -681,6 +682,53 @@ async function buildStateSnapshot(): Promise<HeartbeatState> {
 
 async function writeCurrentState(): Promise<void> {
   await writeState(await buildStateSnapshot());
+  // v22.1 M2: Write treasury-summary.json for O(1) dashboard reads
+  await writeTreasurySummaryFile();
+}
+
+/**
+ * Write the treasury-summary.json cache file (v22.1 M2).
+ * Computed from the same O(n) JSONL scan the daemon already does, then
+ * persisted so external readers (Danger Room, portfolio) get O(1) reads.
+ */
+async function writeTreasurySummaryFile(): Promise<void> {
+  try {
+    const summary = await readTreasurySummary();
+    const treasuryDir = activeTreasuryDir();
+    await mkdir(treasuryDir, { recursive: true });
+
+    // Read budget data for budgetRemaining
+    let budgetRemaining = 0;
+    const budgetsPath = getBudgetsFile(daemonProjectDir);
+    if (existsSync(budgetsPath)) {
+      try {
+        const budgetData = JSON.parse(await readFile(budgetsPath, 'utf-8')) as { totalBudgetCents?: number };
+        budgetRemaining = (budgetData.totalBudgetCents ?? 0) - ((summary as Record<string, unknown>).spend as number ?? 0);
+      } catch { /* malformed budgets file */ }
+    }
+
+    // Include treasury heartbeat state if available
+    const treasurySnapshot = isStablecoinConfigured() ? getTreasuryStateSnapshot() : null;
+    const summaryData = {
+      ...(summary as Record<string, unknown>),
+      budgetRemaining,
+      stablecoinBalance: treasurySnapshot?.stablecoinBalanceCents ?? null,
+      pendingOfframps: treasurySnapshot?.pendingTransferCount ?? 0,
+      bankAvailable: treasurySnapshot?.bankBalanceCents ?? null,
+      bankReserved: null as number | null,
+      runwayDays: treasurySnapshot?.runwayDays ?? null,
+      fundingState: treasurySnapshot?.fundingFrozen ? 'frozen'
+        : treasurySnapshot ? (treasurySnapshot.runwayDays < 7 ? 'degraded' : 'healthy')
+        : null,
+      unsettledInvoices: 0,
+      reconciliationStatus: treasurySnapshot?.lastReconciliationAt ? 'matched' : null,
+      timestamp: new Date().toISOString(),
+    };
+
+    await atomicWrite(join(treasuryDir, TREASURY_SUMMARY_FILE), JSON.stringify(summaryData));
+  } catch {
+    // Non-fatal — summary is a cache, JSONL remains authoritative
+  }
 }
 
 async function readCampaigns(): Promise<unknown[]> {

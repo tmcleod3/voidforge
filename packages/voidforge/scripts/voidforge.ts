@@ -13,7 +13,8 @@
  * npx voidforge uninstall <ext>       Remove extension from current project
  * npx voidforge deploy                Deploy project (Haku)
  * npx voidforge doctor                Check versions, compatibility, health
- * npx voidforge migrate               Migrate old-model project to v21.0
+ * npx voidforge migrate               Migrate v20.x project to v21.0
+ * npx voidforge migrate treasury      Migrate global treasury to per-project (v22.1)
  * npx voidforge version               Show wizard + methodology versions
  * npx voidforge templates             List available project templates
  */
@@ -218,6 +219,92 @@ async function cmdInitHeadless(): Promise<void> {
   console.log('');
 }
 
+async function cmdMigrateTreasury(): Promise<void> {
+  const isDryRun = args.includes('--dry-run');
+
+  // Parse --project=<id> or --project <id>
+  let projectId: string | undefined;
+  for (let i = 2; i < args.length; i++) {
+    if (args[i].startsWith('--project=')) {
+      projectId = args[i].slice('--project='.length);
+    } else if (args[i] === '--project' && args[i + 1]) {
+      projectId = args[i + 1];
+    }
+  }
+
+  if (!projectId) {
+    console.error('Error: --project=<id> is required.');
+    console.error('Usage: npx voidforge migrate treasury --project=<id> [--dry-run]');
+    console.error('\nList projects: npx voidforge doctor');
+    process.exit(1);
+  }
+
+  const { preFlightCheck, migrateTreasury } = await import('../wizard/lib/treasury-migrator.js');
+  const preflight = await preFlightCheck(projectId);
+
+  console.log('\n  VoidForge v22.1 — Treasury Migration\n');
+  console.log(`  Project:  ${preflight.project?.name ?? projectId}`);
+  console.log(`  ID:       ${projectId}`);
+
+  if (preflight.context) {
+    console.log(`  Dir:      ${preflight.context.directory}`);
+    console.log(`  Treasury: ${preflight.context.treasuryDir}`);
+  }
+
+  console.log(`  Global:   ${preflight.globalTreasuryDir} (${preflight.globalFileCount} files)`);
+  console.log('');
+
+  // Show warnings
+  for (const warning of preflight.warnings) {
+    console.log(`  Warning: ${warning}`);
+  }
+
+  // Check for errors
+  if (preflight.errors.length > 0) {
+    for (const error of preflight.errors) {
+      console.error(`  Error: ${error}`);
+    }
+    console.error('\n  Migration aborted. Fix the errors above and retry.\n');
+    process.exit(1);
+  }
+
+  if (!preflight.context) {
+    console.error('  Error: Could not create project context.');
+    process.exit(1);
+  }
+
+  console.log('  Plan:');
+  if (preflight.globalTreasuryExists) {
+    console.log('    1. Archive global treasury to ~/.voidforge/treasury-pre-v22/');
+  }
+  console.log(`    ${preflight.globalTreasuryExists ? '2' : '1'}. Create per-project treasury at ${preflight.context.treasuryDir}`);
+  console.log(`    ${preflight.globalTreasuryExists ? '3' : '2'}. Initialize genesis log files (clean break — no data copy)`);
+  console.log(`    ${preflight.globalTreasuryExists ? '4' : '3'}. Set 0700 permissions`);
+  console.log(`    ${preflight.globalTreasuryExists ? '5' : '4'}. Write migration manifest (.migrated)`);
+
+  if (preflight.globalTreasuryExists) {
+    console.log(`    ${preflight.globalTreasuryExists ? '6' : '5'}. Validate archived hash chains`);
+  }
+  console.log('');
+
+  if (isDryRun) {
+    console.log('  (dry-run — no changes made)\n');
+    return;
+  }
+
+  const result = await migrateTreasury(preflight.context);
+
+  console.log('  Migration complete.');
+  console.log(`  Archive:          ${result.archiveDir}`);
+  console.log(`  Treasury:         ${result.treasuryDir}`);
+  console.log(`  Spend log:        ${result.manifest.spendLogEntries} archived entries (chain ${result.manifest.spendLogHashValid ? 'valid' : 'BROKEN'})`);
+  console.log(`  Revenue log:      ${result.manifest.revenueLogEntries} archived entries (chain ${result.manifest.revenueLogHashValid ? 'valid' : 'BROKEN'})`);
+  console.log(`  Source files:     ${result.manifest.sourceFileCount}`);
+  console.log('');
+  console.log('  Per-project logs start fresh (genesis hash). Global data preserved in archive.');
+  console.log('  To rollback: move archive back to ~/.voidforge/treasury/\n');
+}
+
 function showHelp(): void {
   console.log('VoidForge — From nothing, everything.\n');
   console.log('Usage: npx voidforge <command> [options]\n');
@@ -230,6 +317,7 @@ function showHelp(): void {
   console.log('  uninstall <ext>    Remove extension from current project');
   console.log('  deploy             Deploy project');
   console.log('  migrate            Migrate v20.x project to v21.0');
+  console.log('  migrate treasury   Migrate global treasury to per-project (v22.1)');
   console.log('  doctor             Check versions, compatibility, health');
   console.log('  version            Show version information');
   console.log('  templates          List project templates');
@@ -371,6 +459,12 @@ async function main(): Promise<void> {
       }
 
       case 'migrate': {
+        // Subcommand: migrate treasury --project=<id>
+        if (args[1] === 'treasury') {
+          await cmdMigrateTreasury();
+          break;
+        }
+
         const isDryRun = args.includes('--dry-run');
         const migrateDir = args.find((a, i) => args[i - 1] === '--dir') ?? process.cwd();
         const { detectV20Project, migrateProject } = await import('../wizard/lib/migrator.js');

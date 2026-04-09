@@ -94,11 +94,55 @@ async function readCampaigns(campaignsDir: string): Promise<unknown[]> {
   return campaigns;
 }
 
+/** Filename for the cached summary written by the daemon (v22.1 M2). */
+export const TREASURY_SUMMARY_FILE = 'treasury-summary.json';
+
 /**
- * Read treasury summary by scanning JSONL logs and state files.
- * This is the O(n) read that should be replaced by treasury-summary.json in M3.
+ * Read treasury summary. Tries the O(1) cached summary file first (written by
+ * the heartbeat daemon after each financial operation). Falls back to O(n)
+ * JSONL log scan if the summary file doesn't exist or is unreadable.
  */
 export async function readTreasurySummary(
+  treasuryDir: string,
+  heartbeatData?: unknown,
+): Promise<TreasurySummary> {
+  // O(1) path: read cached summary (written by daemon — ADR-1 single writer)
+  const summaryPath = join(treasuryDir, TREASURY_SUMMARY_FILE);
+  try {
+    if (existsSync(summaryPath)) {
+      const raw = await readFile(summaryPath, 'utf-8');
+      const cached = JSON.parse(raw) as TreasurySummary & { timestamp?: string };
+      // Validate it has the required shape (at minimum, spend + revenue)
+      if (typeof cached.spend === 'number' && typeof cached.revenue === 'number') {
+        return {
+          revenue: cached.revenue,
+          spend: cached.spend,
+          net: cached.net ?? cached.revenue - cached.spend,
+          roas: cached.roas ?? (cached.spend > 0 ? cached.revenue / cached.spend : 0),
+          budgetRemaining: cached.budgetRemaining ?? 0,
+          stablecoinBalance: cached.stablecoinBalance ?? null,
+          pendingOfframps: cached.pendingOfframps ?? 0,
+          bankAvailable: cached.bankAvailable ?? null,
+          bankReserved: cached.bankReserved ?? null,
+          runwayDays: cached.runwayDays ?? null,
+          fundingState: cached.fundingState ?? null,
+          nextTreasuryEvent: cached.nextTreasuryEvent ?? null,
+          unsettledInvoices: cached.unsettledInvoices ?? 0,
+          reconciliationStatus: cached.reconciliationStatus ?? null,
+        };
+      }
+    }
+  } catch { /* summary file missing or corrupt — fall through to JSONL scan */ }
+
+  // O(n) fallback: scan JSONL logs directly
+  return readTreasurySummaryFromLogs(treasuryDir, heartbeatData);
+}
+
+/**
+ * O(n) JSONL log scan — the original read path before v22.1.
+ * Used as fallback when treasury-summary.json is unavailable.
+ */
+async function readTreasurySummaryFromLogs(
   treasuryDir: string,
   heartbeatData?: unknown,
 ): Promise<TreasurySummary> {

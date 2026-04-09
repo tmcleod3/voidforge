@@ -180,11 +180,11 @@
 
 ---
 
-## v22.1 — The Migration
+## v22.1 — The Migration ✓
 
 *"The needs of the many outweigh the needs of the few." — Spock*
 
-**Depends on: v22.0.x complete. Campaign 30.**
+**Status: COMPLETE (Campaign 30 — 3/3 missions, 45 tests)**
 
 **The problem:** v22.0 moved financial paths per-project but left no migration tooling. Existing users with global treasury data at `~/.voidforge/treasury/` see empty dashboards. The heartbeat endpoint scans entire JSONL files O(n) on every poll — a scalability cliff for mature projects.
 
