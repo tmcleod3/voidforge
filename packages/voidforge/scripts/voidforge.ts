@@ -218,6 +218,8 @@ function showHelp(): void {
   console.log('Commands:');
   console.log('  (no command)       Launch the wizard (browser UI)');
   console.log('  init               Create a new project');
+  console.log('  install <ext>      Add extension to current project');
+  console.log('  uninstall <ext>    Remove extension from current project');
   console.log('  deploy             Deploy project');
   console.log('  doctor             Check versions, compatibility, health');
   console.log('  version            Show version information');
@@ -254,6 +256,47 @@ async function main(): Promise<void> {
       case 'deploy':
         await cmdDeploy();
         break;
+
+      case 'install': {
+        const extName = args[1];
+        if (!extName) {
+          const { listExtensions } = await import('../wizard/lib/extensions.js');
+          console.log('\nAvailable extensions:\n');
+          for (const ext of listExtensions()) {
+            console.log(`  ${ext.name.padEnd(16)} ${ext.description}`);
+          }
+          console.log('\nUsage: npx voidforge install <extension>\n');
+          break;
+        }
+        const { installExtension } = await import('../wizard/lib/extensions.js');
+        const { findProjectRoot } = await import('../wizard/lib/marker.js');
+        const projectRoot = findProjectRoot();
+        if (!projectRoot) {
+          console.error('Not a VoidForge project — run `npx voidforge init` first.');
+          process.exit(1);
+        }
+        const result = await installExtension(projectRoot, extName);
+        console.log(`\n  Extension "${extName}" installed (${result.filesCreated} files created).\n`);
+        break;
+      }
+
+      case 'uninstall': {
+        const extToRemove = args[1];
+        if (!extToRemove) {
+          console.error('Usage: npx voidforge uninstall <extension>');
+          process.exit(1);
+        }
+        const { uninstallExtension } = await import('../wizard/lib/extensions.js');
+        const { findProjectRoot: findRoot } = await import('../wizard/lib/marker.js');
+        const root = findRoot();
+        if (!root) {
+          console.error('Not a VoidForge project — run `npx voidforge init` first.');
+          process.exit(1);
+        }
+        await uninstallExtension(root, extToRemove);
+        console.log(`\n  Extension "${extToRemove}" uninstalled.\n`);
+        break;
+      }
 
       case 'init':
         if (args.includes('--headless')) {
