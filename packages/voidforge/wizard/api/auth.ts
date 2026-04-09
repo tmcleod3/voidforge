@@ -16,6 +16,7 @@ import {
   buildSessionCookie,
   clearSessionCookie,
   isRemoteMode,
+  isLanMode,
   checkRateLimit,
   getClientIp,
   getUserRole,
@@ -146,8 +147,8 @@ addRoute('POST', '/api/auth/logout', async (req: IncomingMessage, res: ServerRes
 
 // GET /api/auth/session — Check if current session is valid
 addRoute('GET', '/api/auth/session', async (req: IncomingMessage, res: ServerResponse) => {
-  if (!isRemoteMode()) {
-    sendJson(res, 200, { success: true, data: { authenticated: true, username: 'local', role: 'admin', remoteMode: false } });
+  if (!isRemoteMode() && !isLanMode()) {
+    sendJson(res, 200, { success: true, data: { authenticated: true, username: 'local', role: 'admin', remoteMode: false, lanMode: false } });
     return;
   }
 
@@ -165,5 +166,5 @@ addRoute('GET', '/api/auth/session', async (req: IncomingMessage, res: ServerRes
     return;
   }
 
-  sendJson(res, 200, { success: true, data: { authenticated: true, username: session.username, role: session.role, remoteMode: true } });
+  sendJson(res, 200, { success: true, data: { authenticated: true, username: session.username, role: session.role, remoteMode: isRemoteMode(), lanMode: isLanMode() } });
 });

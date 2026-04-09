@@ -710,14 +710,14 @@
       const res = await fetch('/api/auth/session');
       const body = await res.json();
       const data = body.data || {};
-      if (data.remoteMode && data.authenticated) {
+      if ((data.remoteMode || data.lanMode) && data.authenticated) {
         currentUser = { username: data.username || '', role: data.role || 'viewer' };
         const roleLabel = { admin: 'Admin', deployer: 'Deployer', viewer: 'Viewer' }[data.role] || '';
         authUser.textContent = data.username + (roleLabel ? ' (' + roleLabel + ')' : '');
         authUser.style.display = '';
         btnLogout.style.display = '';
       }
-      if (data.remoteMode && !data.authenticated) {
+      if ((data.remoteMode || data.lanMode) && !data.authenticated) {
         window.location.href = '/login.html';
       }
     } catch { /* local mode — no auth needed */ }

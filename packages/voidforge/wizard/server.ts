@@ -161,12 +161,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
-  // LAN mode — full access. LAN is a private network (ZeroTier, local subnet),
-  // inherently more secure than remote. No endpoint restrictions.
-  // Auth: optional password (no TOTP). All features available.
-
-  // Auth middleware — in remote mode, require valid session for non-exempt paths
-  if (isRemoteMode()) {
+  // Auth middleware — in remote and LAN modes, require valid session for non-exempt paths.
+  // LAN mode has full access (same as remote) but simpler auth (password only, no TOTP).
+  // Local mode (127.0.0.1) has no auth — it's your own machine.
+  if (isRemoteMode() || isLanMode()) {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     if (!isAuthExempt(url.pathname)) {
       const token = parseSessionCookie(req.headers.cookie);
