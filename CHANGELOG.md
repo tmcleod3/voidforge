@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [22.0.0] - 2026-04-09
+
+### Breaking Changes — The Scope (ADR-040, ADR-041)
+
+Everything is project-scoped. Multi-project wizard with per-project dashboards, financial isolation, and daemon configuration.
+
+### Added
+
+- **Project dashboard:** New `project.html` with 5-tab single-page app (Overview, Tower, Danger Room, War Room, Deploy)
+- **ProjectContext type:** Rich interface with 15+ derived paths for project-scoped operations (`project-scope.ts`)
+- **resolveProject() middleware:** Extracts project ID, validates access, returns ProjectContext on every route
+- **Router param matching:** `:id` URL parameter support (backward-compatible, exact-match fast path preserved)
+- **Per-project treasury functions:** `getTreasuryDir(projectDir?)`, `getSpendLog()`, `getRevenueLog()`, `getPendingOps()`, `getBudgetsFile()`
+- **Treasury reader:** Shared `readTreasurySummary()` and `readHeartbeatSnapshot()` (extracted from 180-line inline code)
+- **Daemon CLI:** `voidforge heartbeat start --project-dir <path>` for per-project daemon operation
+- **Dual-daemon guard:** `checkGlobalDaemon()` prevents split-brain when per-project daemon starts
+- **WebSocket subscription rooms:** `broadcast(data, projectId?)` filters by project, client subscribes via message
+- **Lobby "Resume last project":** localStorage persistence for quick project re-entry
+- **ADR-040:** Project-scoped dashboard architecture
+- **ADR-041:** Muster review amendments (17 agents, 3 waves, 14 findings)
+- **21 new tests:** project-scope (5), router-params (3), dashboard-data (13)
+- **Legacy backward-compat routes:** Old `/api/danger-room/*` and `/api/war-room/*` paths still work via shim routes
+
+### Changed
+
+- All 13 Danger Room + 7 War Room routes moved to `/api/projects/:id/*` with access control
+- Financial paths parameterized via `active*()` functions in heartbeat daemon
+- Dashboard-data.ts functions accept `logsDir`/`projectDir` params (removed broken `PROJECT_ROOT` constant)
+- Lobby navigation goes to project dashboard (not directly to Tower)
+- WebSocket upgrade handlers check auth in LAN mode (was remote-only)
+- TREASURY_DIR consolidated from 4 separate definitions to 1 source of truth
+
+### Fixed
+
+- **RBAC bypass on freeze endpoint:** Viewer could freeze daemons (deployer+ check added)
+- **LAN WebSocket auth gap:** Upgrade handlers now check `isRemoteMode() || isLanMode()`
+- **Global token fallback removed:** Freeze endpoint returns 503 if per-project token missing
+- **Stale directory detection:** resolveProject() verifies project directory exists on disk
+- **Prepack pattern sync:** docs/patterns/financial-transaction.ts synced with wizard version
+
+### Security
+
+- Project access control (`checkProjectAccess()`) enforced on all 20 dashboard routes
+- WebSocket subscription rooms prevent cross-project data leakage
+- Deployer role check on freeze endpoint (defense in depth alongside ROUTE_ROLES)
+- Per-project daemon token isolation (no global token fallback)
+
+---
+
 ## [21.0.0] - 2026-04-08
 
 ### Breaking Changes — The Extraction (ADR-038)

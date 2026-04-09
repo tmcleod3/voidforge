@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 21.0.0
+**Current:** 22.0.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 22.0.0 | 2026-04-09 | The Scope — project-scoped dashboards, per-project financial isolation, router param matching, ProjectContext middleware, WebSocket subscription rooms, 5-tab project dashboard, dual-daemon guard, RBAC fixes. 696 tests. 2 campaigns (28+29), 15 missions, 52 files changed. ADR-040 + ADR-041. |
 | 21.0.0 | 2026-04-08 | The Extraction — wizard becomes standalone npm package. Monorepo (packages/voidforge + packages/methodology). CLI router with 12 commands. .voidforge marker file. Project creation (headless init). Extension system (danger-room + cultivation). Methodology update (replaces /void git-fetch). Daemon aggregator for multi-project heartbeat. v20.x migration with rollback. 675 tests (618→675). ADR-038. |
 | 20.2.0 | 2026-04-03 | Graceful Tier Degradation — scaffold cleanup (408→134 files), Spring Cleaning /void migration, tier gate sentinel fix, /grow Phase 1-3 fallback, /cultivation graceful skip, 6 field reports triaged (#271-#276, 11 methodology fixes). |
 | 20.1.1 | 2026-04-02 | Parallel Agent Standard, ID Space Audit, Safety Parameter Audit, Maul mandatory gate, 7 field report triages (#264-#270). |
