@@ -122,6 +122,12 @@ async function copyMethodology(
     count += await copyDir(commandsSrc, join(projectDir, '.claude', 'commands'));
   }
 
+  // Agent definitions (ADR-044)
+  const agentsSrc = join(methodologyRoot, '.claude', 'agents');
+  if (existsSync(agentsSrc)) {
+    count += await copyDir(agentsSrc, join(projectDir, '.claude', 'agents'));
+  }
+
   // Methods
   const methodsSrc = join(methodologyRoot, 'docs', 'methods');
   if (existsSync(methodsSrc)) {

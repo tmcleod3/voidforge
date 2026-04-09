@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v22.2.0 (2026-04-09)
-**Next:** v23.0 — The Materialization (263 subagent definitions, dynamic dispatch, model routing)
-**Status:** v22.1 + v22.2 complete (Campaigns 30-31). Gauntlet passed. v23.0 planned (ADR-044).
+**Current:** v23.0.0 (2026-04-09)
+**Next:** v23.1 — The Injection (operational knowledge into agent definitions, distribution fixes, debrief pipeline)
+**Status:** v23.0 complete (Campaign 32). 263 agents materialized. Assessment found knowledge gap (ADR-045).
 **741 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.
 
 ---
@@ -282,6 +282,81 @@
 - No runtime code changes — purely methodology
 
 **Execution order:** M1 → M2 → M3 → M4 → M5 → M6 → M7 (M4+M5 parallel, M6+M7 parallel)
+
+---
+
+## v23.1 — The Injection
+
+*"There's always another secret." — Kelsier*
+
+**Depends on: v23.0 complete. Architecture: ADR-045. Campaign 33.**
+
+**The problem:** v23.0 materialized 263 agents but their definitions contain only 3-12% of the operational knowledge in the method docs. 25+ hard-won lessons from LESSONS.md and 4 learnings from LEARNINGS.md are absent from every agent definition. Six breaks exist in the knowledge flow: agents aren't distributed via init/update/void code paths, /debrief doesn't target agent definitions, and scaffold users have no migration path. VoidForge's recursive knowledge loop — build → debrief → learn → inject → build better — is broken at the injection step.
+
+**Missions (7):**
+
+### Mission 1: Distribution Fix (Break 1)
+- Fix `project-init.ts` — add `.claude/agents` to `copyMethodology()` **(DONE in v23.0 assessment)**
+- Fix `updater.ts` — add `.claude/agents` to `dirs` array **(DONE in v23.0 assessment)**
+- Fix `FORGE_KEEPER.md` — add `.claude/agents/*` to shared file list **(DONE in v23.0 assessment)**
+- Fix `void.md` — add `.claude/agents/*` to shared file checklist **(DONE in v23.0 assessment)**
+- Verify: `npx voidforge init` creates project with agents, `npx voidforge update` syncs agents
+
+### Mission 2: Lead Agent Knowledge Injection (20 agents)
+- For each of the 20 lead agents, cross-reference against:
+  - The lead's method doc (full operational rules, mandatory gates, field-report checks)
+  - `docs/LEARNINGS.md` (4 entries, tag-matched to agents)
+  - `docs/LESSONS.md` (25+ entries, most tagged with agent names)
+- Inject `## Operational Learnings` section: the critical 20% — specific thresholds, grep patterns, mandatory gates, named gotchas
+- Add `## Required Context` footer pointing to method doc + learnings files
+- Target: ~80-150 lines per lead (up from ~50)
+
+### Mission 3: Key Sub-Agent Knowledge Injection (~40 agents)
+- Identify sub-agents with section-specific checks in parent method docs:
+  - Constantine (cursed code patterns, `const`/`let` audit, stub detection greps)
+  - Nightwing (regression checklist template, auth flow E2E mandate)
+  - Barton (mandatory smoke test gate, React render cycle check)
+  - Yoda (bcrypt >= 12, `timingSafeEqual()`, OAuth checklist)
+  - Deathstroke (query-param state trust, Sibling Verification Protocol)
+  - Ahsoka (auth chain tracing mandate)
+  - Maul (runtime exploitation mandate)
+  - Troi (CLAUDE.md contract verification)
+  - Eowyn (10-question enchantment review protocol)
+  - Spock (statistical code math review, data mutation parity)
+  - All other sub-agents with field-report-specific checks
+- Inject their parent section's specific checks into `## Operational Learnings`
+- Add `## Required Context` footer to all 263 agents (bulk operation)
+- Target: ~60-80 lines for key sub-agents
+
+### Mission 4: Debrief Pipeline Update (Break 2 + Break 3)
+- Update `FIELD_MEDIC.md` Step 2.5b: Wong's promotion now targets agent definitions alongside method docs
+- Update `.claude/commands/debrief.md`: Nog's solution proposals check if findings are agent-relevant
+- Update `.claude/agents/bashir-field-medic.md`: scope includes `.claude/agents/` as output target
+- Update `.claude/agents/wong-documentation.md`: promotion scope includes agent definitions
+- Verify: run a mock /debrief scenario and confirm agent definition is proposed as update target
+
+### Mission 5: Scaffold Migration (Break 4)
+- On scaffold branch: update `void.md` to replace all 7 "scaffold" references with "main"
+- On scaffold branch: update `DEPRECATION.md` with complete migration instructions including `.voidforge` marker
+- On scaffold branch: update `README.md`, `CLAUDE.md`, `CHANGELOG.md` with deprecation banners
+- Create `archive/scaffold` and `archive/core` branches before 2026-05-08 deletion
+- Verify: scaffold user running `/void` successfully pulls from main
+
+### Mission 6: Vault + Global Lessons (Break 5 + Break 6)
+- Update `/vault` to include "Agent Definition Recommendations" section when findings suggest agent updates
+- Implement `~/.voidforge/lessons-global.json` schema and write path in Wong's promotion (or defer with explicit ADR noting it's unimplemented)
+- Verify: vault captures agent-relevant learnings for next session
+
+### Mission 7: Victory Gauntlet
+- Verify all 6 breaks are closed
+- Spot-check 10 agent definitions: do they contain operational learnings from their method docs?
+- Verify /debrief proposes agent updates for agent-relevant findings
+- Verify /void syncs agents
+- Verify `npx voidforge init` and `npx voidforge update` include agents
+- Full consistency check: all 263 agents have `## Required Context` sections
+- Verify scaffold migration path works
+
+**Execution order:** M1 (already done) → M2 + M3 (parallel) → M4 → M5 → M6 → M7
 
 ---
 

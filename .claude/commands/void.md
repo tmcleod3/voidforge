@@ -12,6 +12,7 @@ Orient to the current state:
    - `CLAUDE.md` (check both root and `.claude/CLAUDE.md` — if `.claude/CLAUDE.md` exists and root does not, use that path. If both exist, warn and don't create a duplicate.)
    - `HOLOCRON.md`
    - `.claude/commands/*`
+   - `.claude/agents/*`
    - `docs/methods/*`, `docs/patterns/*`, `docs/NAMING_REGISTRY.md`
    - `scripts/thumper/*`
    - `VERSION.md` (conditional — only sync the "Current:" line, preserve project-specific version history rows)

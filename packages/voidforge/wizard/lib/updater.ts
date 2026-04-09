@@ -78,6 +78,7 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
   // Directories to compare
   const dirs = [
     { src: '.claude/commands', dest: '.claude/commands' },
+    { src: '.claude/agents', dest: '.claude/agents' },
     { src: 'docs/methods', dest: 'docs/methods' },
     { src: 'docs/patterns', dest: 'docs/patterns' },
     { src: 'scripts/thumper', dest: 'scripts/thumper' },

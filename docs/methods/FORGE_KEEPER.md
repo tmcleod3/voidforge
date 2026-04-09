@@ -55,6 +55,7 @@ These are the files Bombadil watches. They are distributed via the @voidforge/me
 CLAUDE.md                          ← Methodology sections only (not Project block)
 HOLOCRON.md                        ← User guide
 .claude/commands/*                 ← All slash commands
+.claude/agents/*                   ← All agent definitions (ADR-044)
 docs/methods/*                     ← All agent protocols
 docs/patterns/*                    ← All reference implementations
 docs/NAMING_REGISTRY.md            ← Character registry
