@@ -226,7 +226,7 @@
 
 **The problem:** v22.0 shipped the architecture, v22.0.x fixed the bugs, v22.1 handles migration. v22.2 closes the experience gaps — what a new user encounters on day 1, what legacy code should be deprecated, and what the /portfolio command needs to work with per-project data.
 
-**Missions (6):**
+**Missions (7):**
 
 ### Mission 1: First-Run Experience
 - Wizard detects "empty project" (no logs/, no cultivation/, no campaign-state.md)
@@ -270,7 +270,18 @@
 - Update 8+ command files with content-scanning preamble
 - No runtime code changes — purely methodology
 
-**Execution order:** M1 → M2 → M3 → M4 → M5 → M6 (M4 and M5 can be parallel, M6 independent)
+### Mission 7: Max by Default — Invert Flag Taxonomy (ADR-043)
+- **Default is now maximum quality**: autonomous execution + full agent roster + all review passes
+- **Retire opt-in flags**: `--blitz` (now default), `--muster` (now default), `--infinity` (now default)
+- **New opt-out flags**: `--light` (standard agents only), `--interactive` (human pauses), `--solo` (lead agent only)
+- `--fast` unchanged (already opt-out)
+- `--blitz` and `--muster` still accepted silently (backward compat — they're no-ops)
+- Update CLAUDE.md Flag Taxonomy tables (Tier 1-3)
+- Update all 28 command files (arguments section)
+- Update MUSTER.md, CAMPAIGN.md, GAUNTLET.md, ASSEMBLER.md
+- No runtime code changes — purely methodology
+
+**Execution order:** M1 → M2 → M3 → M4 → M5 → M6 → M7 (M4+M5 parallel, M6+M7 parallel)
 
 ---
 
