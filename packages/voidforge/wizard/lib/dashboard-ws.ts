@@ -37,7 +37,7 @@ export interface DashboardWs {
  * @param name — Human-readable name for logging (e.g., 'Danger Room')
  */
 export function createDashboardWs(name: string): DashboardWs {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 }); // 64KB max message
   const clients = new Set<WebSocket>();
 
   const heartbeat = setInterval(() => {

@@ -10,6 +10,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { getProject, checkProjectAccess, type Project } from './project-registry.js';
 import { isRemoteMode, isLanMode, validateSession, parseSessionCookie, getClientIp } from './tower-auth.js';
 import { sendJson } from './http-helpers.js';
@@ -118,6 +119,12 @@ export async function resolveProject(
   // Look up project in registry
   const project = await getProject(projectId);
   if (!project) {
+    sendJson(res, 404, { success: false, error: 'Not found' });
+    return null;
+  }
+
+  // Verify project directory still exists (stale registry detection — Batman M2 finding)
+  if (!existsSync(project.directory)) {
     sendJson(res, 404, { success: false, error: 'Not found' });
     return null;
   }
