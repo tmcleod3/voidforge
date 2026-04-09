@@ -8,10 +8,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { readFile, readdir, stat, open } from 'node:fs/promises';
+import { readdir, stat, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { watch, existsSync } from 'node:fs';
+import { readHeartbeatSnapshot } from '../lib/treasury-reader.js';
 import { addRoute } from '../router.js';
 import { sendJson, readFileOrNull } from '../lib/http-helpers.js';
 import {
@@ -164,187 +165,14 @@ addRoute('GET', '/api/danger-room/drift', async (_req: IncomingMessage, res: Ser
 // ── Danger Room-specific endpoints ───────────────
 
 addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res: ServerResponse) => {
+  // Global paths — will be replaced with per-project paths in M1 via resolveProject()
   const voidforgeDir = join(homedir(), '.voidforge');
   const treasuryDir = join(voidforgeDir, 'treasury');
-  const treasuryVaultPath = join(treasuryDir, 'vault.enc');
-  const heartbeatJsonPath = join(voidforgeDir, 'heartbeat.json');
-  let cultivationInstalled = false;
-  let heartbeatData = null;
-  let campaigns: unknown[] = [];
-  let treasury: {
-    revenue: number; spend: number; net: number; roas: number; budgetRemaining: number;
-    stablecoinBalance: number | null; pendingOfframps: number;
-    bankAvailable: number | null; bankReserved: number | null;
-    runwayDays: number | null; fundingState: string | null;
-    nextTreasuryEvent: string | null; unsettledInvoices: number;
-    reconciliationStatus: string | null;
-  } = {
-    revenue: 0, spend: 0, net: 0, roas: 0, budgetRemaining: 0,
-    stablecoinBalance: null, pendingOfframps: 0,
-    bankAvailable: null, bankReserved: null,
-    runwayDays: null, fundingState: null,
-    nextTreasuryEvent: null, unsettledInvoices: 0,
-    reconciliationStatus: null,
-  };
+  const vaultCheckPath = join(treasuryDir, 'vault.enc');
+  const stateFilePath = join(voidforgeDir, 'heartbeat.json');
 
-  try {
-    // existsSync imported statically at top (Infinity Gauntlet ARCH-009)
-    cultivationInstalled = existsSync(treasuryVaultPath);
-    const raw = await readFileOrNull(heartbeatJsonPath);
-    if (raw) heartbeatData = JSON.parse(raw);
-  } catch { /* no heartbeat data */ }
-
-  // Read campaigns from treasury/campaigns directory (mirrors heartbeat.ts readCampaigns)
-  try {
-    const campaignsDir = join(treasuryDir, 'campaigns');
-    if (existsSync(campaignsDir)) {
-      const files = await readdir(campaignsDir);
-      for (const file of files) {
-        if (!file.endsWith('.json')) continue;
-        try {
-          const content = await readFile(join(campaignsDir, file), 'utf-8');
-          campaigns.push(JSON.parse(content));
-        } catch { /* skip malformed campaign files */ }
-      }
-    }
-  } catch { /* no campaigns directory */ }
-
-  // Read treasury summary from spend/revenue logs (mirrors heartbeat.ts readTreasurySummary)
-  try {
-    const spendLog = join(treasuryDir, 'spend-log.jsonl');
-    const revenueLog = join(treasuryDir, 'revenue-log.jsonl');
-    let totalSpendCents = 0;
-    let totalRevenueCents = 0;
-
-    if (existsSync(spendLog)) {
-      const lines = (await readFile(spendLog, 'utf-8')).trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line) as { amountCents?: number };
-          // Clamp negative values — spend should never be negative
-          totalSpendCents += Math.max(0, entry.amountCents ?? 0);
-        } catch { /* skip malformed lines */ }
-      }
-    }
-
-    if (existsSync(revenueLog)) {
-      const lines = (await readFile(revenueLog, 'utf-8')).trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line) as { amountCents?: number };
-          totalRevenueCents += entry.amountCents ?? 0;
-        } catch { /* skip malformed lines */ }
-      }
-    }
-
-    const net = totalRevenueCents - totalSpendCents;
-    const roas = totalSpendCents > 0 ? totalRevenueCents / totalSpendCents : 0;
-
-    // Read budget if available
-    let budgetRemaining = 0;
-    const budgetsFile = join(treasuryDir, 'budgets.json');
-    if (existsSync(budgetsFile)) {
-      try {
-        const budgetData = JSON.parse(await readFile(budgetsFile, 'utf-8')) as { totalBudgetCents?: number };
-        budgetRemaining = (budgetData.totalBudgetCents ?? 0) - totalSpendCents;
-      } catch { /* skip malformed budgets */ }
-    }
-
-    // ── Stablecoin funding data (v19.0 — read from treasury JSONL logs) ──
-    let stablecoinBalance: number | null = null;
-    let pendingOfframps = 0;
-    let bankAvailable: number | null = null;
-    let bankReserved: number | null = null;
-    let runwayDays: number | null = null;
-    let fundingState: string | null = null;
-    let nextTreasuryEvent: string | null = null;
-    let unsettledInvoices = 0;
-    let reconciliationStatus: string | null = null;
-
-    // Read funding config for stablecoin balance and bank state
-    const fundingConfigPath = join(treasuryDir, 'funding-config.json.enc');
-    if (existsSync(fundingConfigPath)) {
-      // If funding config exists, try to read bank and stablecoin state from heartbeat data
-      // (heartbeat.json is the live state written by the daemon; funding-config is encrypted)
-      if (heartbeatData) {
-        const hb = heartbeatData as Record<string, unknown>;
-        if (typeof hb.stablecoinBalanceCents === 'number') stablecoinBalance = hb.stablecoinBalanceCents;
-        if (typeof hb.bankAvailableCents === 'number') bankAvailable = hb.bankAvailableCents;
-        if (typeof hb.bankReservedCents === 'number') bankReserved = hb.bankReservedCents;
-        if (typeof hb.runwayDays === 'number') runwayDays = hb.runwayDays;
-        if (typeof hb.fundingState === 'string') fundingState = hb.fundingState;
-        if (typeof hb.nextTreasuryEvent === 'string') nextTreasuryEvent = hb.nextTreasuryEvent;
-      }
-    }
-
-    // Read funding plans for pending off-ramps and unsettled invoices
-    const fundingPlansLog = join(treasuryDir, 'funding-plans.jsonl');
-    if (existsSync(fundingPlansLog)) {
-      try {
-        const lines = (await readFile(fundingPlansLog, 'utf-8')).trim().split('\n').filter(Boolean);
-        for (const line of lines) {
-          try {
-            const plan = JSON.parse(line) as { status?: string };
-            if (plan.status === 'PENDING_SETTLEMENT' || plan.status === 'APPROVED') {
-              unsettledInvoices++;
-            }
-          } catch { /* skip malformed lines */ }
-        }
-      } catch { /* skip read errors */ }
-    }
-
-    // Read transfers for pending off-ramp count
-    const transfersLog = join(treasuryDir, 'transfers.jsonl');
-    if (existsSync(transfersLog)) {
-      try {
-        const lines = (await readFile(transfersLog, 'utf-8')).trim().split('\n').filter(Boolean);
-        for (const line of lines) {
-          try {
-            const transfer = JSON.parse(line) as { status?: string; direction?: string };
-            if ((transfer.status === 'pending' || transfer.status === 'processing')
-                && transfer.direction === 'crypto_to_fiat') {
-              pendingOfframps++;
-            }
-          } catch { /* skip malformed lines */ }
-        }
-      } catch { /* skip read errors */ }
-    }
-
-    // Read latest reconciliation status
-    const reconciliationLog = join(treasuryDir, 'reconciliation.jsonl');
-    if (existsSync(reconciliationLog)) {
-      try {
-        const lines = (await readFile(reconciliationLog, 'utf-8')).trim().split('\n').filter(Boolean);
-        if (lines.length > 0) {
-          // Use last reconciliation entry as current status
-          const last = JSON.parse(lines[lines.length - 1]) as { result?: string };
-          if (last.result === 'MATCHED' || last.result === 'WITHIN_THRESHOLD') {
-            reconciliationStatus = 'matched';
-          } else if (last.result === 'MISMATCH') {
-            reconciliationStatus = 'mismatch';
-          }
-        }
-      } catch { /* skip read errors */ }
-    }
-
-    // Calculate funding state from data if not provided by heartbeat daemon
-    if (fundingState === null && (stablecoinBalance !== null || bankAvailable !== null)) {
-      if (runwayDays !== null && runwayDays < 3) fundingState = 'frozen';
-      else if (runwayDays !== null && runwayDays < 7) fundingState = 'degraded';
-      else fundingState = 'healthy';
-    }
-
-    treasury = {
-      revenue: totalRevenueCents, spend: totalSpendCents, net, roas, budgetRemaining,
-      stablecoinBalance, pendingOfframps,
-      bankAvailable, bankReserved,
-      runwayDays, fundingState,
-      nextTreasuryEvent, unsettledInvoices,
-      reconciliationStatus,
-    };
-  } catch { /* no treasury data */ }
-
-  sendJson(res, 200, { cultivationInstalled, heartbeat: heartbeatData, campaigns, treasury });
+  const snapshot = await readHeartbeatSnapshot(treasuryDir, stateFilePath, vaultCheckPath);
+  sendJson(res, 200, snapshot);
 });
 
 addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
@@ -395,9 +223,13 @@ addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: S
 });
 
 // ── Deep Current endpoints (v12.x) ─────────────────
+// TODO(M1): Replace PROJECT_ROOT with ProjectContext.logsDir from resolveProject()
 
 addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: ServerResponse) => {
-  const situationPath = join(PROJECT_ROOT, 'logs', 'deep-current', 'situation.json');
+  // PROJECT_ROOT is broken when running from npm (resolves to package dir).
+  // M1 will replace this with per-project logsDir from resolveProject().
+  const logsDir = join(PROJECT_ROOT, 'logs');
+  const situationPath = join(logsDir, 'deep-current', 'situation.json');
   const content = await readFileOrNull(situationPath);
   if (!content) {
     sendJson(res, 200, { initialized: false });
@@ -405,7 +237,7 @@ addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: S
   }
   try {
     const situation = JSON.parse(content);
-    const proposalsDir = join(PROJECT_ROOT, 'logs', 'deep-current', 'proposals');
+    const proposalsDir = join(logsDir, 'deep-current', 'proposals');
     let latestProposal = null;
     try {
       // existsSync imported statically at top (Infinity Gauntlet ARCH-009)

@@ -19,9 +19,10 @@ import { createCipheriv, createDecipheriv, scrypt, randomBytes, timingSafeEqual 
 import { readFile, mkdir, open, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { homedir, platform } from 'node:os';
+import { platform } from 'node:os';
+import { TREASURY_DIR } from './financial-core.js';
 
-const TREASURY_DIR = join(homedir(), '.voidforge', 'treasury');
+// Vault stays global (user-scoped credentials, ADR-040 §4)
 const VAULT_PATH = join(TREASURY_DIR, 'vault.enc');
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;

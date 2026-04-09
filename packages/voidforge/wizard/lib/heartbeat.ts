@@ -79,6 +79,10 @@ let eventId = 0;
 const logger = createLogger(join(VOIDFORGE_DIR, 'heartbeat.log'));
 const daemonStartedAt = new Date().toISOString(); // Store once at module level (VG-R1-001)
 
+// Project ID for JSONL log entries (ADR-041 M0.4).
+// Set to 'global' until M2 wires in --project-dir CLI arg.
+let daemonProjectId = 'global';
+
 // Platform state tracking
 const platformFailures: Record<string, number> = {};
 const platformHealth: Record<string, { status: string; expiresAt: string }> = {};
@@ -382,7 +386,7 @@ async function handleCampaignPause(id: string): Promise<{ status: number; body: 
     record.updatedAt = new Date().toISOString();
     await writeCampaignRecord(record);
     eventId++;
-    await appendToLog(SPEND_LOG, { type: 'campaign_pause', campaignId: id, timestamp: record.updatedAt }, await getLastLogHash(SPEND_LOG));
+    await appendToLog(SPEND_LOG, { type: 'campaign_pause', campaignId: id, projectId: daemonProjectId, timestamp: record.updatedAt }, await getLastLogHash(SPEND_LOG));
     logger.log(`Campaign ${id} paused on ${record.platform}`);
     return { status: 200, body: { ok: true, campaignId: id, status: 'paused' } };
   } catch (err: unknown) {
@@ -407,7 +411,7 @@ async function handleCampaignResume(id: string): Promise<{ status: number; body:
     record.updatedAt = new Date().toISOString();
     await writeCampaignRecord(record);
     eventId++;
-    await appendToLog(SPEND_LOG, { type: 'campaign_resume', campaignId: id, timestamp: record.updatedAt }, await getLastLogHash(SPEND_LOG));
+    await appendToLog(SPEND_LOG, { type: 'campaign_resume', campaignId: id, projectId: daemonProjectId, timestamp: record.updatedAt }, await getLastLogHash(SPEND_LOG));
     logger.log(`Campaign ${id} resumed on ${record.platform}`);
     return { status: 200, body: { ok: true, campaignId: id, status: 'active' } };
   } catch (err: unknown) {
@@ -492,6 +496,7 @@ async function handleCampaignLaunch(body: unknown): Promise<{ status: number; bo
     await appendToLog(SPEND_LOG, {
       type: 'campaign_launch',
       campaignId,
+      projectId: daemonProjectId,
       externalId: result.externalId,
       platform: config.platform,
       dailyBudgetCents: config.dailyBudgetCents,
@@ -568,6 +573,7 @@ async function handleBudgetChange(body: unknown): Promise<{ status: number; body
     await appendToLog(SPEND_LOG, {
       type: 'budget_change',
       campaignId: params.campaignId,
+      projectId: daemonProjectId,
       oldBudgetCents: oldBudget,
       newBudgetCents: params.newBudgetCents,
       timestamp: record.updatedAt,
@@ -974,4 +980,9 @@ export async function startHeartbeat(vaultPassword: string): Promise<void> {
 
 // SEC-007: vaultKey is NOT exported — vault password must not be accessible outside the daemon
 // readCampaigns + readTreasurySummary exported for unit testing (read-only, no security risk)
-export { daemonState, readCampaigns, readTreasurySummary };
+/** Set the project ID for JSONL log entries (called by M2 daemon startup with --project-dir). */
+function setDaemonProjectId(id: string): void {
+  daemonProjectId = id;
+}
+
+export { daemonState, readCampaigns, readTreasurySummary, setDaemonProjectId };

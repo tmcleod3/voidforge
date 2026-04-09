@@ -16,10 +16,11 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, open, rename, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { homedir, platform } from 'node:os';
+import { platform } from 'node:os';
 import { execSync } from 'node:child_process';
+import { TREASURY_DIR } from './financial-core.js';
 
-const TREASURY_DIR = join(homedir(), '.voidforge', 'treasury');
+// TOTP secret stays global (user-scoped, ADR-040 §4)
 const TOTP_FALLBACK_PATH = join(TREASURY_DIR, 'totp.enc');
 const KEYCHAIN_SERVICE = 'com.voidforge.totp';
 const KEYCHAIN_ACCOUNT = 'totp-secret';

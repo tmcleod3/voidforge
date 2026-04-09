@@ -311,9 +311,9 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
       const url = new URL(req.url || '', `http://localhost:${port}`);
 
       if (url.pathname === '/ws/terminal') {
-        // Terminal: deployer minimum in remote mode
+        // Terminal: deployer minimum in remote/LAN mode
         let wsSession: SessionInfo | undefined;
-        if (isRemoteMode()) {
+        if (isRemoteMode() || isLanMode()) {
           const token = parseSessionCookie(req.headers.cookie);
           const ip = getClientIp(req);
           const session = token ? validateSession(token, ip) : null;
@@ -336,8 +336,8 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
         }
         handleTerminalUpgrade(req, socket, head, wsSession);
       } else if (url.pathname === '/ws/danger-room') {
-        // Danger Room: any authenticated user in remote mode (read-only dashboard)
-        if (isRemoteMode()) {
+        // Danger Room: any authenticated user in remote/LAN mode (read-only dashboard)
+        if (isRemoteMode() || isLanMode()) {
           const token = parseSessionCookie(req.headers.cookie);
           const ip = getClientIp(req);
           const session = token ? validateSession(token, ip) : null;
@@ -350,7 +350,7 @@ export function startServer(port: number, options?: { remote?: boolean; lan?: bo
         handleDangerRoomUpgrade(req, socket, head);
       } else if (url.pathname === '/ws/war-room') {
         // War Room: same auth rules as Danger Room
-        if (isRemoteMode()) {
+        if (isRemoteMode() || isLanMode()) {
           const token = parseSessionCookie(req.headers.cookie);
           const ip = getClientIp(req);
           const session = token ? validateSession(token, ip) : null;

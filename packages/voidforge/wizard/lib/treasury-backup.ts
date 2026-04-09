@@ -15,8 +15,9 @@ import { existsSync, createWriteStream, createReadStream } from 'node:fs';
 import { homedir } from 'node:os';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
+import { TREASURY_DIR } from './financial-core.js';
 
-const TREASURY_DIR = join(homedir(), '.voidforge', 'treasury');
+// Backup stays global (backs up all project treasury data)
 const BACKUP_DIR = join(homedir(), '.voidforge', 'backups');
 const RETENTION_DAYS = 30;
 
