@@ -219,6 +219,8 @@ function showHelp(): void {
   console.log('Commands:');
   console.log('  (no command)       Launch the wizard (browser UI)');
   console.log('  init               Create a new project');
+  console.log('  update             Update project methodology');
+  console.log('  update --self      Update the wizard itself');
   console.log('  install <ext>      Add extension to current project');
   console.log('  uninstall <ext>    Remove extension from current project');
   console.log('  deploy             Deploy project');
@@ -296,6 +298,45 @@ async function main(): Promise<void> {
         }
         await uninstallExtension(root, extToRemove);
         console.log(`\n  Extension "${extToRemove}" uninstalled.\n`);
+        break;
+      }
+
+      case 'update': {
+        if (args.includes('--self')) {
+          const { selfUpdate } = await import('../wizard/lib/updater.js');
+          const result = selfUpdate();
+          console.log(result.message);
+          process.exit(result.success ? 0 : 1);
+        }
+        // Methodology update
+        const { findProjectRoot: findProjRoot } = await import('../wizard/lib/marker.js');
+        const projRoot = findProjRoot();
+        if (!projRoot) {
+          console.error('Not a VoidForge project — run `npx voidforge init` first.');
+          process.exit(1);
+        }
+        const { diffMethodology, applyUpdate } = await import('../wizard/lib/updater.js');
+        const plan = await diffMethodology(projRoot);
+        if (plan.added.length === 0 && plan.modified.length === 0) {
+          console.log('\n  Methodology is up to date. No changes needed.\n');
+          break;
+        }
+        console.log('\n  VoidForge Update Plan (Bombadil)\n');
+        if (plan.added.length > 0) {
+          console.log(`  New files (${plan.added.length}):`);
+          for (const f of plan.added) console.log(`    + ${f}`);
+        }
+        if (plan.modified.length > 0) {
+          console.log(`  Modified (${plan.modified.length}):`);
+          for (const f of plan.modified) console.log(`    ~ ${f}`);
+        }
+        if (plan.removed.length > 0) {
+          console.log(`  Removed upstream (${plan.removed.length}):`);
+          for (const f of plan.removed) console.log(`    - ${f} (kept locally)`);
+        }
+        console.log(`  Unchanged: ${plan.unchanged} files\n`);
+        const result = await applyUpdate(projRoot);
+        console.log(`  Updated to v${result.newVersion}. ${plan.added.length + plan.modified.length} files changed.\n`);
         break;
       }
 
