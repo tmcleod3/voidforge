@@ -197,8 +197,10 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 
 // ── Route Registration ──────────────────────────────
 
-addRoute('GET', '/api/blueprint/detect', async (_req: IncomingMessage, res: ServerResponse) => {
-  const projectRoot = process.cwd();
+addRoute('GET', '/api/blueprint/detect', async (req: IncomingMessage, res: ServerResponse) => {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const dirParam = url.searchParams.get('dir');
+  const projectRoot = dirParam && dirParam !== 'undefined' ? dirParam : process.cwd();
   const prdPath = join(projectRoot, 'docs/PRD.md');
 
   if (existsSync(prdPath)) {

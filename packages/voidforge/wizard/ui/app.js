@@ -177,10 +177,11 @@
     }
 
     // Blueprint auto-detection: when moving from Step 3 → Step 4,
-    // check if docs/PRD.md already exists in the project directory
+    // check if docs/PRD.md already exists in the TARGET project directory (not CWD).
+    // During init, the project dir doesn't exist yet — detection is skipped.
     if (currentStep === 3 && state.projectDir) {
       try {
-        const detectRes = await fetch('/api/blueprint/detect');
+        const detectRes = await fetch('/api/blueprint/detect?dir=' + encodeURIComponent(state.projectDir));
         const detectData = await detectRes.json();
         if (detectData.detected) {
           const blueprintBanner = $('#blueprint-detection');
