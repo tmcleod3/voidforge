@@ -2,6 +2,9 @@
  * Dashboard data parsers — shared between Danger Room and War Room.
  * Reads campaign-state.md, assemble-state.md, log files, deploy logs, VERSION.md.
  *
+ * v22.0 (ADR-041 M1): All project-scoped functions accept logsDir/projectDir
+ * from ProjectContext. Global data (context stats) stays at ~/.voidforge/.
+ *
  * Parser fixes from field reports #127, #128:
  * - parseCampaignState: rewritten for actual 5-column format, handles bold status
  * - parseBuildState: explicit trim to remove capture artifacts
@@ -9,15 +12,13 @@
  */
 
 import { readdir, unlink } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { readFileOrNull } from './http-helpers.js';
 
-const PROJECT_ROOT = resolve(join(import.meta.dirname, '..', '..'));
-const LOGS_DIR = join(PROJECT_ROOT, 'logs');
 const VOIDFORGE_DIR = join(homedir(), '.voidforge');
 
-// ── Types ────────────────────────────────────
+// ── Types ────────────────────────────────────────
 
 export interface Mission {
   name: string;
@@ -52,7 +53,7 @@ export interface DeployData {
   timestamp: string;
 }
 
-// ── Parsers ──────────────────────────────────
+// ── Parsers ──────────────────────────────────────
 
 /**
  * Parse campaign-state.md into structured campaign data.
@@ -64,18 +65,15 @@ export interface DeployData {
  * Status values may be wrapped in bold: **DONE**, **COMPLETE**
  * Normalizes to: COMPLETE, ACTIVE, BLOCKED, PENDING, STRUCTURAL
  */
-export async function parseCampaignState(): Promise<CampaignData | null> {
-  const content = await readFileOrNull(join(LOGS_DIR, 'campaign-state.md'));
+export async function parseCampaignState(logsDir: string): Promise<CampaignData | null> {
+  const content = await readFileOrNull(join(logsDir, 'campaign-state.md'));
   if (!content) return null;
 
   const missions: Mission[] = [];
-  // Match 5-column table rows: | # | name | scope | status | debrief |
-  // Status may be wrapped in ** for bold markdown
   const re = /\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*\*{0,2}(COMPLETE|DONE|IN PROGRESS|NOT STARTED|BLOCKED|STRUCTURAL|ACTIVE|ABANDONED)\*{0,2}\s*\|\s*(.+?)\s*\|/g;
   let m;
   while ((m = re.exec(content)) !== null) {
     const rawStatus = m[4].trim();
-    // Normalize: DONE→COMPLETE, IN PROGRESS→ACTIVE, NOT STARTED→PENDING
     const status = rawStatus === 'IN PROGRESS' ? 'ACTIVE'
       : rawStatus === 'NOT STARTED' ? 'PENDING'
       : rawStatus === 'DONE' ? 'COMPLETE'
@@ -89,7 +87,6 @@ export async function parseCampaignState(): Promise<CampaignData | null> {
   }
 
   if (missions.length === 0) {
-    // Defensive: warn if file has content but no missions parsed
     if (content.length > 100) {
       console.warn('parseCampaignState: no missions found in non-empty file (%d chars)', content.length);
     }
@@ -107,15 +104,14 @@ export async function parseCampaignState(): Promise<CampaignData | null> {
  * Parse assemble-state.md into phase pipeline data.
  * Explicit trim on captures to remove leading artifacts.
  */
-export async function parseBuildState(): Promise<PhaseData | null> {
-  const content = await readFileOrNull(join(LOGS_DIR, 'assemble-state.md'));
+export async function parseBuildState(logsDir: string): Promise<PhaseData | null> {
+  const content = await readFileOrNull(join(logsDir, 'assemble-state.md'));
   if (!content) return null;
 
   const phases: Array<{ name: string; status: string }> = [];
   const re = /\|\s*(?:\d+\.\s*)?(.+?)\s*\|\s*(COMPLETE|IN PROGRESS|NOT STARTED|PENDING|SKIPPED)\s*\|/g;
   let m;
   while ((m = re.exec(content)) !== null) {
-    // Explicit trim + artifact removal
     const name = m[1].trim().replace(/^\|\s*/, '');
     if (name === 'Phase' || name === 'Status' || name.startsWith('-') || name === '') continue;
     const raw = m[2].trim();
@@ -136,11 +132,10 @@ function countSeverity(content: string, severity: string): number {
  * Parse findings — prefer Known Issues from build-state.md (curated, reflects open issues only).
  * Falls back to regex counting across log files (historical totals, may overcount).
  */
-export async function parseFindings(): Promise<FindingCounts> {
+export async function parseFindings(logsDir: string): Promise<FindingCounts> {
   const counts: FindingCounts = { critical: 0, high: 0, medium: 0, low: 0 };
 
-  // Preferred: read Known Issues from build-state.md
-  const buildState = await readFileOrNull(join(LOGS_DIR, 'build-state.md'));
+  const buildState = await readFileOrNull(join(logsDir, 'build-state.md'));
   if (buildState) {
     const knownIssuesMatch = buildState.match(/## Known Issues[\s\S]*?(?=\n## |\n---|$)/);
     if (knownIssuesMatch) {
@@ -153,12 +148,11 @@ export async function parseFindings(): Promise<FindingCounts> {
     }
   }
 
-  // Fallback: count across all log files (historical — may include fixed findings)
   try {
-    const files = await readdir(LOGS_DIR);
+    const files = await readdir(logsDir);
     const logFiles = files.filter(f => f.startsWith('phase-') || f === 'gauntlet-state.md');
     for (const file of logFiles) {
-      const content = await readFileOrNull(join(LOGS_DIR, file));
+      const content = await readFileOrNull(join(logsDir, file));
       if (!content) continue;
       counts.critical += countSeverity(content, 'CRITICAL');
       counts.high += countSeverity(content, 'HIGH');
@@ -169,11 +163,10 @@ export async function parseFindings(): Promise<FindingCounts> {
   return counts;
 }
 
-/** Read deploy log from logs or .voidforge directory. Also reads deploy-state.md (v15.0). */
-export async function readDeployLog(): Promise<DeployData | null> {
-  // Try JSON sources first
+/** Read deploy log from project logs or .voidforge directory. Also reads deploy-state.md (v15.0). */
+export async function readDeployLog(logsDir: string): Promise<DeployData | null> {
   const jsonPaths = [
-    join(LOGS_DIR, 'deploy-log.json'),
+    join(logsDir, 'deploy-log.json'),
     join(VOIDFORGE_DIR, 'deploys', 'latest.json'),
   ];
   for (const p of jsonPaths) {
@@ -190,8 +183,7 @@ export async function readDeployLog(): Promise<DeployData | null> {
     } catch { continue; }
   }
 
-  // Try deploy-state.md (v15.0 /deploy command format)
-  const deployState = await readFileOrNull(join(LOGS_DIR, 'deploy-state.md'));
+  const deployState = await readFileOrNull(join(logsDir, 'deploy-state.md'));
   if (deployState) {
     const urlMatch = deployState.match(/(?:URL|Target):\s*(.+?)(?:\n|$)/i);
     const statusMatch = deployState.match(/Status:\s*(.+?)(?:\n|$)/i);
@@ -212,13 +204,12 @@ export async function readDeployLog(): Promise<DeployData | null> {
 }
 
 /** Detect deployment drift — compare deployed commit against current HEAD. */
-export async function detectDeployDrift(): Promise<{
+export async function detectDeployDrift(logsDir: string, projectDir: string): Promise<{
   deployed_commit: string | null;
   head_commit: string | null;
   drifted: boolean;
 } | null> {
-  // Read deployed commit from deploy-state.md
-  const deployState = await readFileOrNull(join(LOGS_DIR, 'deploy-state.md'));
+  const deployState = await readFileOrNull(join(logsDir, 'deploy-state.md'));
   let deployedCommit: string | null = null;
   if (deployState) {
     const match = deployState.match(/Commit:\s*(\w+)/);
@@ -226,12 +217,11 @@ export async function detectDeployDrift(): Promise<{
   }
   if (!deployedCommit) return null;
 
-  // Get current HEAD
   try {
     const { execFile } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const exec = promisify(execFile);
-    const result = await exec('git', ['rev-parse', '--short', 'HEAD'], { cwd: PROJECT_ROOT, timeout: 5000 });
+    const result = await exec('git', ['rev-parse', '--short', 'HEAD'], { cwd: projectDir, timeout: 5000 });
     const headCommit = result.stdout.trim();
     return {
       deployed_commit: deployedCommit,
@@ -244,14 +234,14 @@ export async function detectDeployDrift(): Promise<{
 }
 
 /** Read current version from VERSION.md. */
-export async function readVersion(): Promise<{ version: string; branch: string }> {
-  const content = await readFileOrNull(join(PROJECT_ROOT, 'VERSION.md'));
+export async function readVersion(projectDir: string): Promise<{ version: string; branch: string }> {
+  const content = await readFileOrNull(join(projectDir, 'VERSION.md'));
   if (!content) return { version: 'unknown', branch: 'unknown' };
   const match = content.match(/\*\*Current:\*\*\s*([\d.]+)/);
   return { version: match ? match[1] : 'unknown', branch: 'main' };
 }
 
-// ── Context Stats (Status Line Bridge) ──────
+// ── Context Stats (Status Line Bridge) — GLOBAL ──
 
 export interface ContextStats {
   percent: number | null;
@@ -267,9 +257,8 @@ export interface ContextStats {
 const STALENESS_THRESHOLD_MS = 60000; // 60 seconds
 
 /**
- * Read context stats from the Status Line bridge.
+ * Read context stats from the Status Line bridge (GLOBAL — not project-scoped).
  * Reads per-session files (~/.voidforge/context-stats-*.json) and returns the most recent.
- * Returns null if no data exists or all data is stale (>60s old).
  */
 export async function readContextStats(): Promise<ContextStats | null> {
   try {
@@ -279,8 +268,8 @@ export async function readContextStats(): Promise<ContextStats | null> {
 
     let mostRecent: ContextStats | null = null;
     let latestTime = 0;
-    const now = Date.now() / 1000; // jq's `now` outputs Unix seconds
-    const CLEANUP_AGE_S = 300; // 5 minutes — delete orphaned session files
+    const now = Date.now() / 1000;
+    const CLEANUP_AGE_S = 300;
 
     for (const file of statsFiles) {
       const filePath = join(VOIDFORGE_DIR, file);
@@ -289,12 +278,10 @@ export async function readContextStats(): Promise<ContextStats | null> {
       try {
         const data = JSON.parse(content) as ContextStats;
         if (!data.updated_at) continue;
-        // Clean up files older than 5 minutes (orphaned sessions — Gauntlet Picard DR-13)
         if (now - data.updated_at > CLEANUP_AGE_S) {
           try { await unlink(filePath); } catch { /* ignore */ }
           continue;
         }
-        // Check staleness — skip files older than 60 seconds (still show —% gauge)
         if (now - data.updated_at > STALENESS_THRESHOLD_MS / 1000) continue;
         if (data.updated_at > latestTime) {
           latestTime = data.updated_at;
@@ -320,13 +307,11 @@ export interface TestResults {
   failures?: Array<{ name: string; message: string }>;
 }
 
-/**
- * Read test results from test-results.json (written by test runner or hook).
- */
-export async function readTestResults(): Promise<TestResults | null> {
+/** Read test results from test-results.json (written by test runner or hook). */
+export async function readTestResults(projectDir: string, logsDir: string): Promise<TestResults | null> {
   const paths = [
-    join(PROJECT_ROOT, 'test-results.json'),
-    join(LOGS_DIR, 'test-results.json'),
+    join(projectDir, 'test-results.json'),
+    join(logsDir, 'test-results.json'),
   ];
   for (const p of paths) {
     const content = await readFileOrNull(p);
@@ -347,13 +332,11 @@ export interface DangerRoomConfig {
   panels?: string[];
 }
 
-/**
- * Read danger-room.config.json for project-specific panel settings.
- */
-export async function readDashboardConfig(): Promise<DangerRoomConfig> {
+/** Read danger-room.config.json for project-specific panel settings. */
+export async function readDashboardConfig(projectDir: string): Promise<DangerRoomConfig> {
   const paths = [
-    join(PROJECT_ROOT, 'wizard', 'danger-room.config.json'),
-    join(PROJECT_ROOT, 'danger-room.config.json'),
+    join(projectDir, 'wizard', 'danger-room.config.json'),
+    join(projectDir, 'danger-room.config.json'),
   ];
   for (const p of paths) {
     const content = await readFileOrNull(p);
@@ -363,10 +346,8 @@ export async function readDashboardConfig(): Promise<DangerRoomConfig> {
   return {};
 }
 
-/**
- * Read git status for the Git Status panel.
- */
-export async function readGitStatus(): Promise<{
+/** Read git status for the Git Status panel. */
+export async function readGitStatus(projectDir: string): Promise<{
   branch: string;
   uncommitted: number;
   ahead: number;
@@ -379,20 +360,19 @@ export async function readGitStatus(): Promise<{
     const exec = promisify(execFile);
 
     const [branchResult, statusResult, logResult] = await Promise.all([
-      exec('git', ['branch', '--show-current'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: 'unknown' })),
-      exec('git', ['status', '--porcelain'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: '' })),
-      exec('git', ['log', '--oneline', '-1'], { cwd: PROJECT_ROOT, timeout: 5000 }).catch(() => ({ stdout: '—' })),
+      exec('git', ['branch', '--show-current'], { cwd: projectDir, timeout: 5000 }).catch(() => ({ stdout: 'unknown' })),
+      exec('git', ['status', '--porcelain'], { cwd: projectDir, timeout: 5000 }).catch(() => ({ stdout: '' })),
+      exec('git', ['log', '--oneline', '-1'], { cwd: projectDir, timeout: 5000 }).catch(() => ({ stdout: '—' })),
     ]);
 
     const branch = branchResult.stdout.trim() || 'unknown';
     const uncommitted = statusResult.stdout.trim().split('\n').filter(Boolean).length;
     const lastCommit = logResult.stdout.trim();
 
-    // Ahead/behind — may fail if no upstream is set
     let ahead = 0;
     let behind = 0;
     try {
-      const abResult = await exec('git', ['rev-list', '--count', '--left-right', `origin/${branch}...HEAD`], { cwd: PROJECT_ROOT, timeout: 5000 });
+      const abResult = await exec('git', ['rev-list', '--count', '--left-right', `origin/${branch}...HEAD`], { cwd: projectDir, timeout: 5000 });
       const parts = abResult.stdout.trim().split('\t');
       if (parts.length === 2) {
         behind = parseInt(parts[0]) || 0;
@@ -405,6 +385,3 @@ export async function readGitStatus(): Promise<{
     return null;
   }
 }
-
-/** Export paths for modules that need direct access. */
-export { PROJECT_ROOT, LOGS_DIR, VOIDFORGE_DIR };

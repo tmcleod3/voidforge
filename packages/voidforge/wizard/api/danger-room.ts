@@ -1,9 +1,10 @@
 /**
  * Danger Room API — Real-time data feeds for the mission control dashboard.
  *
+ * v22.0 (ADR-041 M1): All project-scoped routes use resolveProject() middleware.
+ * Routes registered at /api/projects/:id/danger-room/* with param routing.
+ *
  * Shared parsers and WebSocket infra live in wizard/lib/dashboard-*.ts.
- * This file registers Danger Room routes and any Danger Room-specific endpoints
- * (heartbeat, freeze, Deep Current).
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -15,6 +16,8 @@ import { watch, existsSync } from 'node:fs';
 import { readHeartbeatSnapshot } from '../lib/treasury-reader.js';
 import { addRoute } from '../router.js';
 import { sendJson, readFileOrNull } from '../lib/http-helpers.js';
+import { resolveProject } from '../lib/project-scope.js';
+import { TREASURY_DIR } from '../lib/financial-core.js';
 import {
   parseCampaignState,
   parseBuildState,
@@ -25,7 +28,6 @@ import {
   readTestResults,
   readGitStatus,
   detectDeployDrift,
-  PROJECT_ROOT,
 } from '../lib/dashboard-data.js';
 import { createDashboardWs } from '../lib/dashboard-ws.js';
 
@@ -39,7 +41,6 @@ export const broadcastDangerRoom = ws.broadcast;
 /** Close all Danger Room WebSocket connections, activity watcher, and shut down. */
 export function closeDangerRoom(): void {
   ws.close();
-  // Clean up activity watcher resources (Infinity Gauntlet ARCH-002)
   if (activityPollInterval) clearInterval(activityPollInterval);
   if (activityWatcher) { try { activityWatcher.close(); } catch { /* ignore */ } activityWatcher = null; }
   if (activityDebounce) clearTimeout(activityDebounce);
@@ -49,27 +50,29 @@ export function closeDangerRoom(): void {
 export const handleDangerRoomUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer) =>
   ws.handleUpgrade(req, socket, head);
 
-// ── Agent Activity Watcher (methodology-driven JSONL) ──
+// ── Agent Activity Watcher (global — wizard operational logs) ──
+// This watches the wizard's own agent-activity.jsonl, not a user project's.
+// Will be scoped per-project via subscription rooms in M5.
 
-const ACTIVITY_FILE = join(PROJECT_ROOT, 'logs', 'agent-activity.jsonl');
+const VOIDFORGE_DIR = join(homedir(), '.voidforge');
+let activityFile = join(process.cwd(), 'logs', 'agent-activity.jsonl');
+// Try to find it relative to CWD (where the wizard was launched)
 let lastActivitySize = 0;
 let activityDebounce: ReturnType<typeof setTimeout> | null = null;
 let activityCheckInProgress = false;
 
-/** Read new lines from agent-activity.jsonl and broadcast via WebSocket. */
 async function checkAgentActivity(): Promise<void> {
-  if (activityCheckInProgress) return; // prevent concurrent reads (Gauntlet DR-08)
+  if (activityCheckInProgress) return;
   activityCheckInProgress = true;
   try { await _checkAgentActivity(); } finally { activityCheckInProgress = false; }
 }
 
 async function _checkAgentActivity(): Promise<void> {
   try {
-    const st = await stat(ACTIVITY_FILE);
+    const st = await stat(activityFile);
     if (st.size <= lastActivitySize) return;
 
-    // Read only the new bytes appended since last check (Gauntlet DR-05: no line estimation)
-    const fd = await open(ACTIVITY_FILE, 'r');
+    const fd = await open(activityFile, 'r');
     const buf = Buffer.alloc(st.size - lastActivitySize);
     await fd.read(buf, 0, buf.length, lastActivitySize);
     await fd.close();
@@ -81,66 +84,75 @@ async function _checkAgentActivity(): Promise<void> {
       try {
         const entry = JSON.parse(line) as { agent?: string; task?: string; status?: string };
         if (entry.agent) {
-          // Server-side sanitization: cap field lengths (Gauntlet Kenobi DR-05)
           const agent = String(entry.agent).slice(0, 50);
           const action = String(entry.task || entry.status || 'dispatched').slice(0, 200);
           ws.broadcast({ type: 'agent-activity', agent, action });
         }
       } catch { /* skip malformed lines */ }
     }
-  } catch { /* file doesn't exist yet — normal before first agent dispatch */ }
+  } catch { /* file doesn't exist yet */ }
 }
 
-// Hybrid approach: fs.watch for immediate + poll fallback (fs.watch is unreliable on some OSes)
 let activityWatcher: ReturnType<typeof watch> | null = null;
 
 function setupActivityWatch(): void {
   if (activityWatcher) return;
   try {
-    activityWatcher = watch(ACTIVITY_FILE, { persistent: false }, () => {
+    activityWatcher = watch(activityFile, { persistent: false }, () => {
       if (activityDebounce) clearTimeout(activityDebounce);
       activityDebounce = setTimeout(checkAgentActivity, 200);
     });
-    activityWatcher.on('error', () => { activityWatcher = null; }); // re-establish on next poll
-  } catch { /* file doesn't exist yet — poll will re-try */ }
+    activityWatcher.on('error', () => { activityWatcher = null; });
+  } catch { /* file doesn't exist yet */ }
 }
 
 setupActivityWatch();
 
-// Poll fallback — catches events fs.watch misses AND re-establishes watch if file appeared (DR-06)
 const activityPollInterval = setInterval(() => {
   if (!activityWatcher) setupActivityWatch();
   checkAgentActivity();
 }, 3000);
 
-// ── Shared REST endpoints ────────────────────────
+// ── Project-scoped REST endpoints (/api/projects/:id/danger-room/*) ──
 
-addRoute('GET', '/api/danger-room/campaign', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await parseCampaignState());
+addRoute('GET', '/api/projects/:id/danger-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await parseCampaignState(resolved.context.logsDir));
 });
 
-addRoute('GET', '/api/danger-room/build', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await parseBuildState());
+addRoute('GET', '/api/projects/:id/danger-room/build', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await parseBuildState(resolved.context.logsDir));
 });
 
-addRoute('GET', '/api/danger-room/findings', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await parseFindings());
+addRoute('GET', '/api/projects/:id/danger-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await parseFindings(resolved.context.logsDir));
 });
 
-addRoute('GET', '/api/danger-room/version', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await readVersion());
+addRoute('GET', '/api/projects/:id/danger-room/version', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await readVersion(resolved.context.directory));
 });
 
-addRoute('GET', '/api/danger-room/deploy', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await readDeployLog());
+addRoute('GET', '/api/projects/:id/danger-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await readDeployLog(resolved.context.logsDir));
 });
 
-addRoute('GET', '/api/danger-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
-  const stats = await readContextStats();
-  sendJson(res, 200, stats);
+addRoute('GET', '/api/projects/:id/danger-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+  // Context stats are global (user-scoped Claude session) — no project resolution needed
+  sendJson(res, 200, await readContextStats());
 });
 
-addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+addRoute('GET', '/api/projects/:id/danger-room/experiments', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
   try {
     const { listExperiments } = await import('../lib/experiment.js');
     const experiments = await listExperiments();
@@ -150,59 +162,66 @@ addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, re
   }
 });
 
-addRoute('GET', '/api/danger-room/tests', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await readTestResults());
+addRoute('GET', '/api/projects/:id/danger-room/tests', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await readTestResults(resolved.context.directory, resolved.context.logsDir));
 });
 
-addRoute('GET', '/api/danger-room/git-status', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await readGitStatus());
+addRoute('GET', '/api/projects/:id/danger-room/git-status', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await readGitStatus(resolved.context.directory));
 });
 
-addRoute('GET', '/api/danger-room/drift', async (_req: IncomingMessage, res: ServerResponse) => {
-  sendJson(res, 200, await detectDeployDrift());
+addRoute('GET', '/api/projects/:id/danger-room/drift', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  sendJson(res, 200, await detectDeployDrift(resolved.context.logsDir, resolved.context.directory));
 });
 
 // ── Danger Room-specific endpoints ───────────────
 
-addRoute('GET', '/api/danger-room/heartbeat', async (_req: IncomingMessage, res: ServerResponse) => {
-  // Global paths — will be replaced with per-project paths in M1 via resolveProject()
-  const voidforgeDir = join(homedir(), '.voidforge');
-  const treasuryDir = join(voidforgeDir, 'treasury');
-  const vaultCheckPath = join(treasuryDir, 'vault.enc');
-  const stateFilePath = join(voidforgeDir, 'heartbeat.json');
-
-  const snapshot = await readHeartbeatSnapshot(treasuryDir, stateFilePath, vaultCheckPath);
+addRoute('GET', '/api/projects/:id/danger-room/heartbeat', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  const ctx = resolved.context;
+  // Financial vault check uses global treasury dir (vault stays user-scoped per ADR-040 §4)
+  const vaultCheckPath = join(TREASURY_DIR, 'vault.enc');
+  const snapshot = await readHeartbeatSnapshot(ctx.treasuryDir, ctx.stateFile, vaultCheckPath);
   sendJson(res, 200, snapshot);
 });
 
-addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: ServerResponse) => {
-  // RBAC enforced by ROUTE_ROLES in server.ts (deployer+ required).
-  // Previous implementation checked client-supplied X-VoidForge-Role header (SEC-R1-001 — privilege escalation).
-  // v18.0: Removed client-header check. Session-based role verification happens in server middleware.
+addRoute('POST', '/api/projects/:id/danger-room/freeze', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  const ctx = resolved.context;
 
-  // v17.0: Wire to daemon Unix socket with auth token.
   try {
     const net = await import('node:net');
     const { readFile: fsReadFile } = await import('node:fs/promises');
-    const { SOCKET_PATH, TOKEN_FILE } = await import('../lib/daemon-core.js');
-    const { existsSync } = await import('node:fs');
 
-    if (!existsSync(SOCKET_PATH)) {
+    if (!existsSync(ctx.socketPath)) {
       sendJson(res, 503, { ok: false, error: 'Heartbeat daemon not running. Start with: voidforge heartbeat start' });
       return;
     }
 
-    // Read auth token from TOKEN_FILE
     let authToken = '';
     try {
-      authToken = (await fsReadFile(TOKEN_FILE, 'utf-8')).trim();
+      authToken = (await fsReadFile(ctx.tokenFile, 'utf-8')).trim();
     } catch {
-      sendJson(res, 503, { ok: false, error: 'Cannot read daemon auth token — heartbeat may not be running' });
-      return;
+      // Fallback to global token (pre-v22.0 daemons)
+      try {
+        const { TOKEN_FILE } = await import('../lib/daemon-core.js');
+        authToken = (await fsReadFile(TOKEN_FILE, 'utf-8')).trim();
+      } catch {
+        sendJson(res, 503, { ok: false, error: 'Cannot read daemon auth token — heartbeat may not be running' });
+        return;
+      }
     }
 
     const response = await new Promise<string>((resolve, reject) => {
-      const socket = net.connect(SOCKET_PATH);
+      const socket = net.connect(ctx.socketPath);
       let data = '';
       socket.on('data', (chunk: Buffer) => { data += chunk.toString(); });
       socket.on('end', () => resolve(data));
@@ -211,7 +230,6 @@ addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: S
       socket.write(`POST /freeze HTTP/1.0\r\nAuthorization: Bearer ${authToken}\r\nContent-Length: 0\r\n\r\n`);
     });
 
-    // Parse daemon response — expects JSON body after HTTP headers
     const bodyStart = response.indexOf('\r\n\r\n');
     const body = bodyStart >= 0 ? response.slice(bodyStart + 4) : response;
     const parsed = JSON.parse(body) as { ok: boolean; message?: string };
@@ -222,13 +240,12 @@ addRoute('POST', '/api/danger-room/freeze', async (_req: IncomingMessage, res: S
   }
 });
 
-// ── Deep Current endpoints (v12.x) ─────────────────
-// TODO(M1): Replace PROJECT_ROOT with ProjectContext.logsDir from resolveProject()
+// ── Deep Current endpoints ─────────────────
 
-addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: ServerResponse) => {
-  // PROJECT_ROOT is broken when running from npm (resolves to package dir).
-  // M1 will replace this with per-project logsDir from resolveProject().
-  const logsDir = join(PROJECT_ROOT, 'logs');
+addRoute('GET', '/api/projects/:id/danger-room/current', async (req: IncomingMessage, res: ServerResponse) => {
+  const resolved = await resolveProject(req, res);
+  if (!resolved) return;
+  const logsDir = resolved.context.logsDir;
   const situationPath = join(logsDir, 'deep-current', 'situation.json');
   const content = await readFileOrNull(situationPath);
   if (!content) {
@@ -240,7 +257,6 @@ addRoute('GET', '/api/danger-room/current', async (_req: IncomingMessage, res: S
     const proposalsDir = join(logsDir, 'deep-current', 'proposals');
     let latestProposal = null;
     try {
-      // existsSync imported statically at top (Infinity Gauntlet ARCH-009)
       if (existsSync(proposalsDir)) {
         const files = await readdir(proposalsDir);
         const mdFiles = files.filter(f => f.endsWith('.md')).sort().reverse();
