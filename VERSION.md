@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 22.0.0
+**Current:** 23.1.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.1.0 | 2026-04-09 | The Injection — knowledge injection into 35 agent definitions, 6 knowledge flow breaks closed (ADR-045), debrief→agent promotion path, vault agent recommendations, scaffold migration, distribution pipeline fixes. Campaign 33. |
+| 23.0.0 | 2026-04-09 | The Materialization — 263 Claude Code subagent definitions with 3-tier model routing (Opus/Sonnet/Haiku), 4-category tool restrictions, description-driven dynamic dispatch. 18 commands migrated, 13 method docs updated. ADR-044. Campaign 32, 8 missions. |
+| 22.2.0 | 2026-04-09 | The Polish — first-run onboarding UX, portfolio per-project reads, legacy route deprecation (19 routes, sunset July 2026), growth tutorial prerequisites, 263-agent accuracy pass, dynamic agent dispatch (ADR-042), max-by-default flag inversion (ADR-043). Campaign 31, 7 missions. |
+| 22.1.0 | 2026-04-09 | The Migration — treasury migration CLI, treasury summary cache (O(1) reads), per-project vault with HKDF-SHA256 key derivation. 45 new tests. Campaign 30, 3 missions. |
 | 22.0.0 | 2026-04-09 | The Scope — project-scoped dashboards, per-project financial isolation, router param matching, ProjectContext middleware, WebSocket subscription rooms, 5-tab project dashboard, dual-daemon guard, RBAC fixes. 696 tests. 2 campaigns (28+29), 15 missions, 52 files changed. ADR-040 + ADR-041. |
 | 21.0.0 | 2026-04-08 | The Extraction — wizard becomes standalone npm package. Monorepo (packages/voidforge + packages/methodology). CLI router with 12 commands. .voidforge marker file. Project creation (headless init). Extension system (danger-room + cultivation). Methodology update (replaces /void git-fetch). Daemon aggregator for multi-project heartbeat. v20.x migration with rollback. 675 tests (618→675). ADR-038. |
 | 20.2.0 | 2026-04-03 | Graceful Tier Degradation — scaffold cleanup (408→134 files), Spring Cleaning /void migration, tier gate sentinel fix, /grow Phase 1-3 fallback, /cultivation graceful skip, 6 field reports triaged (#271-#276, 11 methodology fixes). |

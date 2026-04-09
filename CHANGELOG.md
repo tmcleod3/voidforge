@@ -6,6 +6,79 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.1.0] - 2026-04-09
+
+### The Injection (ADR-045, Campaign 33)
+
+### Added
+- **Knowledge injection:** 35 agent definitions enriched with `## Operational Learnings` from method docs, LESSONS.md, and LEARNINGS.md (20 leads + 15 key sub-agents)
+- **Debrief→agent pipeline:** Wong's promotion and Nog's solution proposals now target `.claude/agents/` definitions
+- **Vault Step 1.6:** Captures agent definition update recommendations for next session
+- **ADR-045:** Knowledge Injection architecture — closes 6 breaks in the learning-to-agent flow
+
+### Fixed
+- **Distribution gap:** `project-init.ts`, `updater.ts`, FORGE_KEEPER.md, and void.md now include `.claude/agents/` in sync
+- **Scaffold migration:** void.md on scaffold branch updated to pull from main (was hardcoded to scaffold)
+- **ADR-044 doc gap:** Dynamic Dispatch section added to 4 remaining commands (ux, devops, ai, test)
+
+### Changed
+- `lessons-global.json` honestly documented as DESIGNED NOT IMPLEMENTED in FIELD_MEDIC.md
+- Archive branches created: `archive/scaffold`, `archive/core`
+- CLAUDE.md Team table: added Haku (Deploy Wizard) and Gandalf (Setup Wizard)
+
+---
+
+## [23.0.0] - 2026-04-09
+
+### The Materialization (ADR-044, Campaign 32)
+
+### Added
+- **263 subagent definitions** in `.claude/agents/` — every named agent from NAMING_REGISTRY.md
+- **3-tier model routing:** Opus (20 leads), Sonnet (205 specialists/adversarial), Haiku (38 scouts)
+- **4-category tool restrictions:** Builder (full), Reviewer (read+bash), Scout (read-only), Adversarial (read+bash)
+- **Description-driven dynamic dispatch:** Opus matches `git diff --stat` against agent descriptions
+- **Agent Classification manifest:** `docs/AGENT_CLASSIFICATION.md` with full tier/tool/ID mapping
+- **ADR-044:** Full Subagent Materialization architecture
+
+### Changed
+- 18 command files migrated from inline prompts to `subagent_type:` references
+- ADR-042 static dispatch tables replaced with ADR-044 Dynamic Dispatch sections in 8 commands
+- Agent count updated from 259 to 263 across all methodology docs
+- Distribution pipeline (prepack, copy-assets, new-project) includes `.claude/agents/`
+- Cross-Domain Triggers sections removed from 3 method docs (replaced by description-driven dispatch)
+
+---
+
+## [22.2.0] - 2026-04-09
+
+### The Polish (ADR-042, ADR-043, Campaign 31)
+
+### Added
+- **First-run onboarding UX:** Empty project detection, guided wizard entry, enhanced empty states
+- **ADR-042:** Dynamic agent dispatch — content-triggered cross-domain spot-checks
+- **ADR-043:** Max by default — flag taxonomy inversion (autonomous + full roster is now default)
+
+### Changed
+- Portfolio command reads per-project treasury data via `getStatusForUser()`
+- 19 legacy routes get Deprecation + Sunset headers (sunset July 2026)
+- Growth tutorial commands require external account prerequisites
+- Flag taxonomy inverted: `--light`, `--interactive`, `--solo` opt OUT. `--blitz`, `--muster`, `--infinity` retired as no-ops.
+- In-repo accuracy pass: 263 agents verified, 741 tests confirmed
+
+---
+
+## [22.1.0] - 2026-04-09
+
+### The Migration (Campaign 30)
+
+### Added
+- **Treasury migration CLI:** `voidforge migrate treasury --project=<id>` — archives global treasury, starts per-project fresh
+- **Treasury summary cache:** `writeTreasurySummaryFile()` for O(1) dashboard reads (replaces O(n) JSONL scan)
+- **Per-project vault:** HKDF-SHA256 key derivation from global master key per project ID
+- 45 new tests (treasury migrator, summary cache, project vault)
+
+---
+
 ## [22.0.0] - 2026-04-09
 
 ### Breaking Changes — The Scope (ADR-040, ADR-041)

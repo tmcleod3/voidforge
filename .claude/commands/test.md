@@ -7,6 +7,12 @@
 2. Read `/docs/methods/QA_ENGINEER.md`
 3. Read `/docs/methods/TESTING.md` — testing pyramid, patterns, framework mapping
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Step 0 — Orient
 **Oracle** `subagent_type: oracle-static-analysis` orients:
 1. Detect: test framework, test runner, test directory structure, existing coverage

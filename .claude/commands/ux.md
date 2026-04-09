@@ -2,6 +2,12 @@
 
 **AGENT DEPLOYMENT IS MANDATORY.** Step 2 specifies parallel agent launches via the Agent tool. You MUST launch Elrond, Arwen, Samwise, and Celeborn as separate sub-processes. Do NOT shortcut to inline analysis. (Field report #68)
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/PRODUCT_DESIGN_FRONTEND.md`

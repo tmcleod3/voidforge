@@ -5,6 +5,12 @@
 2. Read `/docs/PRD.md` frontmatter — check `deploy` value to determine target
 3. Read `/docs/methods/DEVOPS_ENGINEER.md`
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Agent Deployment Manifest
 
 **Lead:** Kusanagi (`subagent_type: kusanagi-devops`)

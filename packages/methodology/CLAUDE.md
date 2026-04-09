@@ -230,6 +230,8 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | Deep Current | **Tuvok** (Star Trek) | Autonomous campaign intelligence — scan, analyze, propose, learn |
 | Treasury | **Dockson** (Cosmere) | Revenue ingest, budget allocation, spend execution, reconciliation |
 | AI Intelligence | **Hari Seldon** (Foundation) | Model selection, prompts, tool-use, orchestration, safety, evals |
+| Deploy Wizard | **Haku** (Anime) | Browser-based deploy wizard, infrastructure provisioning |
+| Setup Wizard | **Gandalf** (Tolkien) | Project scaffolding, initialization, dependency setup |
 
 263 sub-agent names in `/docs/NAMING_REGISTRY.md`. No duplicates across active sessions. All agents materialized as subagent definitions in `.claude/agents/` (ADR-044).
 

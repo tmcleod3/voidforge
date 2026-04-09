@@ -9,6 +9,12 @@ The AI Intelligence Audit reviews every LLM-powered component in your applicatio
 2. Read the PRD — check for `ai: yes` in frontmatter
 3. Scan the codebase for LLM integration points: imports from `anthropic`, `@anthropic-ai/sdk`, `openai`, `@langchain`, prompt files, tool definitions
 
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all 263 agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
+
 ## Phase 0 — AI Surface Map (`subagent_type: seldon-ai`)
 
 Reconnaissance — find all AI integration points:

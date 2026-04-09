@@ -1,55 +1,43 @@
-# State of the Codebase — VoidForge v23.0
+# State of the Codebase — VoidForge v23.1
 
-## Date: 2026-04-09 (post-Campaign 32)
-## Assessors: Picard (Architecture), Thanos (Assessment Gauntlet), Spock (Dead Code), Troi (Cross-Reference)
+## Date: 2026-04-09 (post-Campaigns 32+33)
+## Assessors: Picard (Architecture), Thanos (Assessment Gauntlet)
 
 ## Architecture Summary
 
-VoidForge is a monorepo: runtime wizard (`packages/voidforge/`, 231 TS files) + methodology (263 agents, 28 commands, 29 method docs, 37 code patterns).
+Monorepo: runtime wizard (231 TS files, 7 deps) + methodology (263 agents, 28 commands, 29 method docs, 37 patterns). TypeScript strict. 0 type errors. 2 `any` total. 741/741 tests passing.
 
-**Runtime:** Vanilla Node.js HTTP server with custom parameterized router, WebSocket upgrade, PTY terminal, static file serving. 7 runtime dependencies (5 AWS SDK, node-pty, ws). TypeScript strict mode. 0 type errors. 2 `any` usages total.
+**Agent layer: LIVE.** 263 definitions with 3-tier model routing. 35 enriched with operational learnings. 122 command references, all resolve. Distribution pipeline complete (prepack, copy-assets, init, update, void).
 
-**Methodology:** 263 subagent definitions in `.claude/agents/` with 3-tier model routing (Opus/Sonnet/Haiku) and 4-category tool restrictions. 28 slash commands with `subagent_type:` references. Description-driven dynamic dispatch (ADR-044).
+**Knowledge loop: CLOSED.** Build → debrief → learn → inject into agents → build better. Wong promotes to agent definitions. Nog checks agent definitions. Vault captures agent recommendations.
 
-**Tests:** 741/741 passing across 56 unit + 4 E2E test files. Vitest + Playwright.
+## Root Causes
 
-## Agent Layer Status: LIVE
+### RC-1: Version Drift (HIGH)
+VERSION.md + both package.json files at v22.0.0. ROADMAP says v23.0.0. Four version entries missing (v22.1, v22.2, v23.0, v23.1). npm publish would ship v23 features under v22 version number.
 
-- 263 `.claude/agents/*.md` files with valid Claude Code frontmatter
-- 122 `subagent_type:` references across 18 command files — all resolve
-- Zero old-style inline prompts remain — migration complete
-- Model distribution: 20 inherit (Opus) + 205 sonnet + 38 haiku = 263
-- Tool restrictions enforced: Builder (20 leads), Reviewer (208), Scout (35)
-- Distribution: prepack, copy-assets, new-project all include agents
+### RC-2: ADR-044 Documentation Gap (MEDIUM)
+Dynamic Dispatch section missing from 4 command files that use `subagent_type:`: ux.md, devops.md, ai.md, test.md. Dispatch flags (--light, --solo) not documented locally in these commands.
 
-## Root Causes (grouped)
+### RC-3: Pattern File Throws (INFO — pre-existing)
+3 throws in ad-billing-adapter.ts reference pattern (not production). Intentional integration boundary markers.
 
-### RC-1: File Size Violations (MEDIUM)
-33+ source files exceed ~300-line guideline. Worst: treasury-heartbeat.ts (1,444), heartbeat.ts (1,051), projects.ts (769), aws-vps.ts (663), provision.ts (642). Organic growth across v20-v22.
+## PRD Alignment
 
-### RC-2: Test Coverage Gaps (HIGH)
-48 source modules lack test coverage: server.ts, router.ts, all 13 API route handlers, treasury-heartbeat.ts, heartbeat.ts, deep-current.ts, all provisioners, financial adapters. Coverage ratio: ~36%.
-
-### RC-3: Orphaned Source Files (MEDIUM)
-11 files (2,271 lines) never imported by production code: natural-language-deploy.ts, desktop-notify.ts, anomaly-detection.ts, correlation-engine.ts, build-analytics.ts, service-install.ts, asset-scanner.ts, daemon-aggregator.ts, autonomy-controller.ts, image-gen.ts, project-vault.ts.
-
-### RC-4: Pattern File Throws (MEDIUM)
-3 `throw new Error('Implementation requires...')` in ad-billing-adapter.ts pattern (Google/Meta adapters). Reference pattern, not production, but would throw if instantiated.
-
-### RC-5: Context Endpoint Project Validation (LOW)
-war-room/context and danger-room/context skip resolveProject(). Return global stats regardless of :id. Auth-protected but inconsistent.
+No standalone PRD. ROADMAP.md serves as feature plan.
+- v23.0 "The Materialization": 8/8 missions COMPLETE
+- v23.1 "The Injection": 7/7 missions COMPLETE
+- All 6 ADR-045 knowledge flow breaks: CLOSED
+- Scaffold migration: committed, archive branches created
 
 ## Remediation Plan
 
 | Priority | Root Cause | Recommended Action |
 |----------|-----------|-------------------|
-| HIGH | RC-2: Test gaps | v23.1: Test coverage campaign — API routes, treasury-heartbeat, provisioners |
-| MEDIUM | RC-1: File size | v23.2: Refactor treasury-heartbeat.ts into focused modules |
-| MEDIUM | RC-3: Orphaned files | v23.1: Audit + delete or re-wire |
-| MEDIUM | RC-4: Pattern throws | Add runtime guard or remove constructors |
-| LOW | RC-5: Context endpoints | Add resolveProject() or remove :id |
-| DONE | CLAUDE.md Team table | Missing Haku + Gandalf — **FIXED** |
+| HIGH | RC-1: Version drift | Run `/git` to bump VERSION.md + package.json to v23.1.0, update CHANGELOG |
+| MEDIUM | RC-2: Dispatch docs | Add ADR-044 Dynamic Dispatch section to ux.md, devops.md, ai.md, test.md |
+| LOW | Stale worktree | Cleaned during this assessment |
 
 ## Recommendation
 
-**Ready to ship v23.0.** The agent layer is live and consistent. HIGH finding (test coverage) is pre-existing debt from v20-v22, not introduced by v23.0. Recommend v23.1 focus on test coverage.
+**Ready to ship v23.1.** Run `/git` for version bump. The version drift is the only action item before npm publish.
