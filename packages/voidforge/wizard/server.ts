@@ -167,11 +167,13 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     const path = url.pathname;
     const isLanSafe = path.startsWith('/api/danger-room/')
       || path.startsWith('/api/war-room/')
+      || path.startsWith('/api/project/')
+      || path.startsWith('/api/projects')
       || path === '/api/danger-room/heartbeat'
       || path.endsWith('.html') || path.endsWith('.js') || path.endsWith('.css')
       || path.endsWith('.svg') || path.endsWith('.png') || path.endsWith('.ico')
       || path === '/' || path === '/danger-room.html' || path === '/war-room.html'
-      || path === '/lobby.html' || path.startsWith('/styles');
+      || path === '/lobby.html' || path === '/index.html' || path.startsWith('/styles');
     if (!isLanSafe) {
       sendJson(res, 403, { success: false, error: 'Endpoint not available in LAN mode. Use --remote for full access.' });
       return;
