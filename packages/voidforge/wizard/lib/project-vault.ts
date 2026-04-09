@@ -280,7 +280,7 @@ export function projectVaultLock(projectDir: string): void {
 
 /** Clear ALL per-project vault caches — call on daemon shutdown. */
 export function projectVaultLockAll(): void {
-  for (const [path, cache] of sessionCaches) {
+  for (const [, cache] of sessionCaches) {
     cache.password = '\0'.repeat(cache.password.length);
   }
   sessionCaches.clear();

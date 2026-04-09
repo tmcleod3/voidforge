@@ -13,6 +13,7 @@ import { addRoute } from '../router.js';
 import { sendJson } from '../lib/http-helpers.js';
 import { resolveProject, createProjectContext } from '../lib/project-scope.js';
 import { getProjectsForUser } from '../lib/project-registry.js';
+import { isRemoteMode, isLanMode } from '../lib/tower-auth.js';
 import {
   parseCampaignState,
   parseBuildState,
@@ -97,7 +98,12 @@ async function getDefaultContext() {
   return createProjectContext(projects[0]);
 }
 
-async function getLegacyContext(req: IncomingMessage) {
+async function getLegacyContext(req: IncomingMessage, res: ServerResponse): Promise<ReturnType<typeof createProjectContext> | null> {
+  // SEC-014 fix: block legacy routes in remote/LAN mode (no auth on these routes)
+  if (isRemoteMode() || isLanMode()) {
+    sendJson(res, 404, { success: false, error: 'Use /api/projects/:id/war-room/* endpoints' });
+    return null;
+  }
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const projectId = url.searchParams.get('project');
   if (projectId) {
@@ -110,43 +116,51 @@ async function getLegacyContext(req: IncomingMessage) {
 
 addRoute('GET', '/api/war-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/campaign');
-  const ctx = await getLegacyContext(req);
-  sendJson(res, 200, ctx ? await parseCampaignState(ctx.logsDir) : null);
+  const ctx = await getLegacyContext(req, res);
+  if (!ctx) return;
+  sendJson(res, 200, await parseCampaignState(ctx.logsDir));
 });
 
 addRoute('GET', '/api/war-room/build', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/build');
-  const ctx = await getLegacyContext(req);
-  sendJson(res, 200, ctx ? await parseBuildState(ctx.logsDir) : null);
+  const ctx = await getLegacyContext(req, res);
+  if (!ctx) return;
+  sendJson(res, 200, await parseBuildState(ctx.logsDir));
 });
 
 addRoute('GET', '/api/war-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/findings');
-  const ctx = await getLegacyContext(req);
-  sendJson(res, 200, ctx ? await parseFindings(ctx.logsDir) : null);
+  const ctx = await getLegacyContext(req, res);
+  if (!ctx) return;
+  sendJson(res, 200, await parseFindings(ctx.logsDir));
 });
 
 addRoute('GET', '/api/war-room/version', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/version');
-  const ctx = await getLegacyContext(req);
-  sendJson(res, 200, ctx ? await readVersion(ctx.directory) : null);
+  const ctx = await getLegacyContext(req, res);
+  if (!ctx) return;
+  sendJson(res, 200, await readVersion(ctx.directory));
 });
 
 addRoute('GET', '/api/war-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/deploy');
-  const ctx = await getLegacyContext(req);
-  sendJson(res, 200, ctx ? await readDeployLog(ctx.logsDir) : null);
+  const ctx = await getLegacyContext(req, res);
+  if (!ctx) return;
+  sendJson(res, 200, await readDeployLog(ctx.logsDir));
 });
 
-addRoute('GET', '/api/war-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+addRoute('GET', '/api/war-room/context', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/context');
+  if (isRemoteMode() || isLanMode()) { sendJson(res, 404, { success: false, error: 'Use project-scoped endpoints' }); return; }
   sendJson(res, 200, await readContextStats());
 });
 
-addRoute('GET', '/api/war-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+addRoute('GET', '/api/war-room/experiments', async (req: IncomingMessage, res: ServerResponse) => {
   setDeprecationHeaders(res, '/api/projects/:id/war-room/experiments');
+  if (isRemoteMode() || isLanMode()) { sendJson(res, 404, { success: false, error: 'Use project-scoped endpoints' }); return; }
   try {
     const { listExperiments } = await import('../lib/experiment.js');
-    sendJson(res, 200, { experiments: await listExperiments(), total: (await listExperiments()).length });
+    const experiments = await listExperiments();
+    sendJson(res, 200, { experiments, total: experiments.length });
   } catch { sendJson(res, 200, { experiments: [], total: 0 }); }
 });

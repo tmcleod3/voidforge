@@ -664,25 +664,26 @@ addRoute('GET', '/api/projects/portfolio', async (req: IncomingMessage, res: Ser
   }
 
   const projects = await getProjectsForUser(session.username, session.role);
-  const portfolio: Array<{
-    projectId: string;
-    projectName: string;
-    treasury: TreasurySummary;
-  }> = [];
 
+  // Concurrent reads — each project's treasury summary is independent (ARCH-001 fix)
+  const results = await Promise.allSettled(
+    projects.map(async (project) => {
+      const ctx = createProjectContext(project);
+      const treasury = await readTreasurySummary(ctx.treasuryDir);
+      return { projectId: project.id, projectName: project.name, treasury };
+    }),
+  );
+
+  const portfolio: Array<{ projectId: string; projectName: string; treasury: TreasurySummary }> = [];
   let totalSpend = 0;
   let totalRevenue = 0;
 
-  for (const project of projects) {
-    const ctx = createProjectContext(project);
-    const treasury = await readTreasurySummary(ctx.treasuryDir);
-    portfolio.push({
-      projectId: project.id,
-      projectName: project.name,
-      treasury,
-    });
-    totalSpend += treasury.spend;
-    totalRevenue += treasury.revenue;
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      portfolio.push(result.value);
+      totalSpend += result.value.treasury.spend;
+      totalRevenue += result.value.treasury.revenue;
+    }
   }
 
   const combinedRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
