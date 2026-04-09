@@ -1,6 +1,6 @@
 {
   "name": "thevoidforge",
-  "version": "21.0.0",
+  "version": "21.0.1",
   "description": "From nothing, everything. A methodology framework for building with Claude Code.",
   "type": "module",
   "engines": {
@@ -12,7 +12,7 @@
   "scripts": {
     "wizard": "npx tsx scripts/voidforge.ts init",
     "deploy": "npx tsx scripts/voidforge.ts deploy",
-    "build": "tsc",
+    "build": "tsc && bash scripts/copy-assets.sh",
     "prepack": "bash scripts/prepack-patterns.sh && npm run build",
     "typecheck": "npx tsc --noEmit",
     "test": "vitest run --pool forks",
