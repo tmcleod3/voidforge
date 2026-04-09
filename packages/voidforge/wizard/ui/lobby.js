@@ -688,6 +688,12 @@
     window.location.href = '/index.html';
   });
 
+  // v22.2 M1: Import button in empty state
+  const btnImportEmpty = document.getElementById('btn-import-empty');
+  if (btnImportEmpty) {
+    btnImportEmpty.addEventListener('click', openImportModal);
+  }
+
   document.getElementById('btn-import').addEventListener('click', openImportModal);
   importCancel.addEventListener('click', closeImportModal);
   importConfirm.addEventListener('click', handleImport);

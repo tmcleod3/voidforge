@@ -116,6 +116,38 @@
       font-size: 12px;
     }
 
+    /* Onboarding (v22.2 M1 — first-run experience) */
+    .onboarding { padding: 32px 24px; max-width: 640px; margin: 0 auto; }
+    .onboarding h2 { font-size: 20px; margin-bottom: 4px; }
+    .onboarding .subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+    .onboarding-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius, 8px);
+      margin-bottom: 12px;
+      background: var(--bg-card, #1a1a2e);
+      transition: border-color 0.2s;
+    }
+    .onboarding-step:hover { border-color: var(--accent); }
+    .onboarding-step .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .onboarding-step .step-body h3 { font-size: 14px; margin-bottom: 4px; color: var(--text); }
+    .onboarding-step .step-body p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
     /* Tower iframe container */
     #tower-container {
       flex: 1;
@@ -150,6 +182,32 @@
 
   <!-- Tab panels -->
   <div role="tabpanel" id="panel-overview" class="tab-panel active" aria-labelledby="tab-overview">
+    <!-- First-run onboarding (v22.2 M1) — shown when project has no data -->
+    <div class="onboarding" id="overview-onboarding" style="display: none;">
+      <h2>Welcome to your project</h2>
+      <p class="subtitle">Every great forge starts with a plan. Here's how to get building.</p>
+      <div class="onboarding-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Write your PRD</h3>
+          <p>Run <code>/prd</code> in Claude Code to generate a structured product requirements document.</p>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Run your first build</h3>
+          <p>Run <code>/campaign --blitz</code> to build the entire PRD mission by mission, autonomously.</p>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Install Cultivation</h3>
+          <p>Run <code>npx voidforge install cultivation</code> for growth campaigns, ad spend tracking, and financial ops.</p>
+        </div>
+      </div>
+    </div>
     <div class="panel-grid" id="overview-grid">
       <div class="panel-card" id="card-version">
         <h3>Version</h3>
@@ -194,8 +252,12 @@
     <div id="danger-room-content">
       <div class="empty-state" id="dr-empty">
         <h3>No campaign or heartbeat data</h3>
-        <p>Build the project first, or install Cultivation for financial tracking.</p>
-        <p>Run <code>/campaign --blitz</code> to begin.</p>
+        <p>The Danger Room monitors builds, campaigns, and financial operations.</p>
+        <p style="text-align: left; max-width: 420px; margin: 16px auto;">
+          <strong>1.</strong> Run <code>/campaign --blitz</code> to start building<br>
+          <strong>2.</strong> Run <code>npx voidforge install cultivation</code> for growth tracking<br>
+          <strong>3.</strong> Run <code>voidforge heartbeat start</code> to enable live monitoring
+        </p>
       </div>
     </div>
   </div>

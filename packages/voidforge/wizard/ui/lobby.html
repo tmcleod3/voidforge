@@ -150,8 +150,14 @@
     <main class="project-grid" id="project-grid" role="list">
       <div class="empty-state" id="empty-state">
         <h2>The Lobby is quiet... for now</h2>
-        <p>Every great forge starts with its first project. Gandalf is ready when you are.</p>
-        <button class="btn btn-primary" id="btn-new-empty">+ New Project</button>
+        <p>Every great forge starts with its first project.</p>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+          <button class="btn btn-primary" id="btn-new-empty">+ New Project</button>
+          <button class="btn" id="btn-import-empty">Import Existing</button>
+        </div>
+        <p style="margin-top: 16px; font-size: 12px;">
+          Or from the terminal: <code>npx voidforge init --headless --name "My App"</code>
+        </p>
       </div>
     </main>
 

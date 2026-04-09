@@ -120,6 +120,17 @@
       fetchJson(apiUrl('findings')),
     ]);
 
+    // v22.2 M1: Detect empty project — show onboarding if no meaningful data
+    var isEmpty = !campaign && !deploy && (!tests || tests.total === 0)
+      && (!findings || (findings.critical + findings.high + findings.medium + findings.low === 0));
+
+    var onboarding = document.getElementById('overview-onboarding');
+    var grid = document.getElementById('overview-grid');
+    if (onboarding) {
+      onboarding.style.display = isEmpty ? '' : 'none';
+      grid.style.display = isEmpty ? 'none' : '';
+    }
+
     // Version
     if (version) {
       document.getElementById('overview-version').textContent = version.version || '—';
