@@ -16,8 +16,9 @@ import { watch, existsSync } from 'node:fs';
 import { readHeartbeatSnapshot } from '../lib/treasury-reader.js';
 import { addRoute } from '../router.js';
 import { sendJson, readFileOrNull } from '../lib/http-helpers.js';
-import { resolveProject } from '../lib/project-scope.js';
+import { resolveProject, createProjectContext } from '../lib/project-scope.js';
 import { TREASURY_DIR } from '../lib/financial-core.js';
+import { getProjectsForUser } from '../lib/project-registry.js';
 import {
   parseCampaignState,
   parseBuildState,
@@ -276,4 +277,95 @@ addRoute('GET', '/api/projects/:id/danger-room/current', async (req: IncomingMes
   } catch {
     sendJson(res, 200, { initialized: false, error: 'Failed to parse situation model' });
   }
+});
+
+// ── Legacy backward-compat routes (v22.0.x P0-B) ────────
+// Old danger-room.js/war-room.js UI files fetch from /api/danger-room/*
+// These shim routes use ?project=<id> or the first registered project.
+
+async function getDefaultContext() {
+  const projects = await getProjectsForUser('local', 'admin');
+  if (projects.length === 0) return null;
+  return createProjectContext(projects[0]);
+}
+
+async function getLegacyContext(req: IncomingMessage) {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const projectId = url.searchParams.get('project');
+  if (projectId) {
+    const { getProject } = await import('../lib/project-registry.js');
+    const project = await getProject(projectId);
+    if (project) return createProjectContext(project);
+  }
+  return getDefaultContext();
+}
+
+addRoute('GET', '/api/danger-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseCampaignState(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/danger-room/build', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseBuildState(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/danger-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseFindings(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/danger-room/version', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readVersion(ctx.directory) : null);
+});
+
+addRoute('GET', '/api/danger-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readDeployLog(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/danger-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+  sendJson(res, 200, await readContextStats());
+});
+
+addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+  try {
+    const { listExperiments } = await import('../lib/experiment.js');
+    sendJson(res, 200, { experiments: await listExperiments(), total: (await listExperiments()).length });
+  } catch { sendJson(res, 200, { experiments: [], total: 0 }); }
+});
+
+addRoute('GET', '/api/danger-room/tests', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readTestResults(ctx.directory, ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/danger-room/git-status', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readGitStatus(ctx.directory) : null);
+});
+
+addRoute('GET', '/api/danger-room/drift', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await detectDeployDrift(ctx.logsDir, ctx.directory) : null);
+});
+
+addRoute('GET', '/api/danger-room/heartbeat', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  if (!ctx) { sendJson(res, 200, { cultivationInstalled: false, heartbeat: null, campaigns: [], treasury: null }); return; }
+  const vaultCheckPath = join(TREASURY_DIR, 'vault.enc');
+  sendJson(res, 200, await readHeartbeatSnapshot(ctx.treasuryDir, ctx.stateFile, vaultCheckPath));
+});
+
+addRoute('GET', '/api/danger-room/current', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  if (!ctx) { sendJson(res, 200, { initialized: false }); return; }
+  const situationPath = join(ctx.logsDir, 'deep-current', 'situation.json');
+  const content = await readFileOrNull(situationPath);
+  if (!content) { sendJson(res, 200, { initialized: false }); return; }
+  try {
+    const situation = JSON.parse(content);
+    sendJson(res, 200, { initialized: true, situation, latestProposal: null });
+  } catch { sendJson(res, 200, { initialized: false }); }
 });

@@ -11,7 +11,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { addRoute } from '../router.js';
 import { sendJson } from '../lib/http-helpers.js';
-import { resolveProject } from '../lib/project-scope.js';
+import { resolveProject, createProjectContext } from '../lib/project-scope.js';
+import { getProjectsForUser } from '../lib/project-registry.js';
 import {
   parseCampaignState,
   parseBuildState,
@@ -78,4 +79,59 @@ addRoute('GET', '/api/projects/:id/war-room/experiments', async (req: IncomingMe
   } catch {
     sendJson(res, 200, { experiments: [], total: 0 });
   }
+});
+
+// ── Legacy backward-compat routes (v22.0.x P0-B) ────────
+
+async function getDefaultContext() {
+  const projects = await getProjectsForUser('local', 'admin');
+  if (projects.length === 0) return null;
+  return createProjectContext(projects[0]);
+}
+
+async function getLegacyContext(req: IncomingMessage) {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const projectId = url.searchParams.get('project');
+  if (projectId) {
+    const { getProject } = await import('../lib/project-registry.js');
+    const project = await getProject(projectId);
+    if (project) return createProjectContext(project);
+  }
+  return getDefaultContext();
+}
+
+addRoute('GET', '/api/war-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseCampaignState(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/war-room/build', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseBuildState(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/war-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await parseFindings(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/war-room/version', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readVersion(ctx.directory) : null);
+});
+
+addRoute('GET', '/api/war-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
+  const ctx = await getLegacyContext(req);
+  sendJson(res, 200, ctx ? await readDeployLog(ctx.logsDir) : null);
+});
+
+addRoute('GET', '/api/war-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+  sendJson(res, 200, await readContextStats());
+});
+
+addRoute('GET', '/api/war-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+  try {
+    const { listExperiments } = await import('../lib/experiment.js');
+    sendJson(res, 200, { experiments: await listExperiments(), total: (await listExperiments()).length });
+  } catch { sendJson(res, 200, { experiments: [], total: 0 }); }
 });
