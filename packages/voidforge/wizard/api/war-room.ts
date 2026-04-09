@@ -82,6 +82,14 @@ addRoute('GET', '/api/projects/:id/war-room/experiments', async (req: IncomingMe
 });
 
 // ── Legacy backward-compat routes (v22.0.x P0-B) ────────
+// v22.2 M3: Deprecated — sunset 2026-07-01, removed in v23.0.
+
+/** Set deprecation headers on legacy route responses (v22.2 M3). */
+function setDeprecationHeaders(res: ServerResponse, newPath: string): void {
+  res.setHeader('Deprecation', 'true');
+  res.setHeader('Sunset', 'Wed, 01 Jul 2026 00:00:00 GMT');
+  res.setHeader('Link', `<${newPath}>; rel="successor-version"`);
+}
 
 async function getDefaultContext() {
   const projects = await getProjectsForUser('local', 'admin');
@@ -101,35 +109,42 @@ async function getLegacyContext(req: IncomingMessage) {
 }
 
 addRoute('GET', '/api/war-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/campaign');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseCampaignState(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/war-room/build', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/build');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseBuildState(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/war-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/findings');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseFindings(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/war-room/version', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/version');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readVersion(ctx.directory) : null);
 });
 
 addRoute('GET', '/api/war-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/deploy');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readDeployLog(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/war-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/context');
   sendJson(res, 200, await readContextStats());
 });
 
 addRoute('GET', '/api/war-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/war-room/experiments');
   try {
     const { listExperiments } = await import('../lib/experiment.js');
     sendJson(res, 200, { experiments: await listExperiments(), total: (await listExperiments()).length });

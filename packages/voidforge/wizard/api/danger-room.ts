@@ -277,6 +277,14 @@ addRoute('GET', '/api/projects/:id/danger-room/current', async (req: IncomingMes
 // ── Legacy backward-compat routes (v22.0.x P0-B) ────────
 // Old danger-room.js/war-room.js UI files fetch from /api/danger-room/*
 // These shim routes use ?project=<id> or the first registered project.
+// v22.2 M3: Deprecated — sunset 2026-07-01, removed in v23.0.
+
+/** Set deprecation headers on legacy route responses (v22.2 M3). */
+function setDeprecationHeaders(res: ServerResponse, newPath: string): void {
+  res.setHeader('Deprecation', 'true');
+  res.setHeader('Sunset', 'Wed, 01 Jul 2026 00:00:00 GMT');
+  res.setHeader('Link', `<${newPath}>; rel="successor-version"`);
+}
 
 async function getDefaultContext() {
   const projects = await getProjectsForUser('local', 'admin');
@@ -296,35 +304,42 @@ async function getLegacyContext(req: IncomingMessage) {
 }
 
 addRoute('GET', '/api/danger-room/campaign', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/campaign');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseCampaignState(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/danger-room/build', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/build');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseBuildState(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/danger-room/findings', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/findings');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await parseFindings(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/danger-room/version', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/version');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readVersion(ctx.directory) : null);
 });
 
 addRoute('GET', '/api/danger-room/deploy', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/deploy');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readDeployLog(ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/danger-room/context', async (_req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/context');
   sendJson(res, 200, await readContextStats());
 });
 
 addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/experiments');
   try {
     const { listExperiments } = await import('../lib/experiment.js');
     sendJson(res, 200, { experiments: await listExperiments(), total: (await listExperiments()).length });
@@ -332,21 +347,25 @@ addRoute('GET', '/api/danger-room/experiments', async (_req: IncomingMessage, re
 });
 
 addRoute('GET', '/api/danger-room/tests', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/tests');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readTestResults(ctx.directory, ctx.logsDir) : null);
 });
 
 addRoute('GET', '/api/danger-room/git-status', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/git-status');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await readGitStatus(ctx.directory) : null);
 });
 
 addRoute('GET', '/api/danger-room/drift', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/drift');
   const ctx = await getLegacyContext(req);
   sendJson(res, 200, ctx ? await detectDeployDrift(ctx.logsDir, ctx.directory) : null);
 });
 
 addRoute('GET', '/api/danger-room/heartbeat', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/heartbeat');
   const ctx = await getLegacyContext(req);
   if (!ctx) { sendJson(res, 200, { cultivationInstalled: false, heartbeat: null, campaigns: [], treasury: null }); return; }
   const vaultCheckPath = join(TREASURY_DIR, 'vault.enc');
@@ -354,6 +373,7 @@ addRoute('GET', '/api/danger-room/heartbeat', async (req: IncomingMessage, res: 
 });
 
 addRoute('GET', '/api/danger-room/current', async (req: IncomingMessage, res: ServerResponse) => {
+  setDeprecationHeaders(res, '/api/projects/:id/danger-room/current');
   const ctx = await getLegacyContext(req);
   if (!ctx) { sendJson(res, 200, { initialized: false }); return; }
   const situationPath = join(ctx.logsDir, 'deep-current', 'situation.json');
