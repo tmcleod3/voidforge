@@ -2,14 +2,14 @@
 
 > The plan for the plan-maker.
 
-**Current:** v21.0.17 (2026-04-08)
-**Next:** v22.0 — The Scope (project-scoped dashboards, per-project financial isolation)
-**Status:** v21.0 shipped + published to npm as `thevoidforge`. v21.1 shipped (build pipeline + CI/CD). 12 patch releases fixing LAN mode, auth, CWD assumptions.
+**Current:** v22.0.0 (2026-04-09)
+**Next:** v22.0.x — The Scope Hardening (Muster remediation patches)
+**Status:** v22.0 Campaign 28 complete (7 missions). Post-build Muster (17 agents, 3 waves) found 4 CRITICAL, 4 HIGH. Core architecture production-ready; hardening patches needed before npm publish.
 **675 tests**, 9 universes, 260+ agents, 28 slash commands, 38 code patterns.
 
 ---
 
-## v22.0 — The Scope (BREAKING)
+## v22.0 — The Scope (COMPLETE — needs hardening patches)
 
 *"A captain doesn't monitor the fleet from inside one ship."*
 
@@ -95,6 +95,88 @@
 **Global vault stays global** — credentials are user-scoped (one Stripe account across projects). Per-project vault encryption deferred to v22.1 (Kenobi's HKDF proposal).
 
 **Dissent preserved (Stark):** Financial data staying global (user's ad spend spans projects) was a viable alternative. If multi-project users report data confusion post-v22.0, revisit with project-as-filter-view on global data rather than per-project files.
+
+---
+
+## v22.0.x — The Scope Hardening
+
+*"The first duty of every Starfleet officer is to the truth." — Picard*
+
+**Architecture: ADR-041. Campaign 29. Depends on: v22.0 complete.**
+
+**The problem:** Post-v22.0 Muster review (17 agents, 3 waves) found 14 findings the campaign missed. 4 CRITICAL blockers must be fixed before npm publish. The core architecture (routing, access control, financial paths, UI) is sound — these are integration gaps, not design flaws.
+
+**Muster source:** `/logs/assessment.md` (2026-04-09), ADR-041 agent table.
+
+**Missions (10, in 4 priority tiers):**
+
+### P0-A: RBAC Bypass on Freeze Endpoint [CRITICAL — security]
+- `ROUTE_ROLES` in server.ts uses old path prefix `/api/danger-room/freeze` → deployer
+- New path `/api/projects/:id/danger-room/freeze` doesn't match → any authenticated user can freeze
+- Freeze handler calls `resolveProject()` which returns `resolved.role` but **never checks it**
+- **Fix:** Add deployer role check in freeze handler: `if (resolved.role !== 'deployer' && resolved.role !== 'admin')` → 404
+- **Also:** Add ROUTE_ROLES entries for new `/api/projects/` path prefixes (future-proofing)
+- Source: Tuvok + Deathstroke (Wave 2-3)
+
+### P0-B: Old UI Uses Legacy API Paths [CRITICAL — breakage]
+- `danger-room.js` and `war-room.js` fetch from `/api/danger-room/*` (old paths)
+- Routes moved to `/api/projects/:id/danger-room/*` in M1 — old paths return 404
+- E2E tests in `danger-room.test.ts` also use old URL patterns
+- **Fix:** Register backward-compatible routes at old paths that proxy to the new project-scoped handlers. Old routes use `?project=<id>` query param or the first registered project as default. This preserves the standalone Danger Room/War Room pages while the new project dashboard is the primary UI.
+- Source: Constantine (Wave 3)
+
+### P0-C: prepack-patterns.sh Overwrites Financial Functions [CRITICAL — build]
+- `prepack-patterns.sh` copies `docs/patterns/financial-transaction.ts` → `wizard/lib/patterns/financial-transaction.ts`
+- The wizard version has `getTreasuryDir()`, `getSpendLog()`, `getRevenueLog()`, `getPendingOps()`, `getBudgetsFile()` that the docs/ version does NOT
+- Running `npm run prepack` wipes these functions → breaks financial-core.ts, treasury-reader.ts, heartbeat.ts
+- **Fix:** Sync docs/patterns/financial-transaction.ts with the wizard version (add the getTreasuryDir functions to the canonical pattern source). This makes prepack safe.
+- Source: Constantine (Wave 3)
+
+### P1-A: Daemon CLI Wiring [CRITICAL — functionality]
+- `configurePaths()`, `setDaemonProjectDir()`, `setDaemonProjectId()` exported but never called
+- CLI `voidforge heartbeat start` doesn't parse `--project-dir` argument
+- Per-project daemons silently write to global `~/.voidforge/` paths
+- **Fix:** Add `--project-dir <path>` flag to heartbeat start command in `voidforge.ts`. On receipt: call `configurePaths(projectDir)`, `setDaemonProjectDir(projectDir)`, look up project in registry for `setDaemonProjectId(project.id)`
+- Source: Picard + Assessment (RC-1)
+
+### P1-B: Remove Old WebSocket Paths [HIGH — data leakage]
+- `/ws/danger-room` and `/ws/war-room` still active in server.ts upgrade handler
+- Clients on old paths receive broadcasts without project filtering
+- **Fix:** Remove old path handlers. Add new handlers at `/ws/projects/:id/danger-room` that extract project ID from URL, validate access, pass projectId to `handleUpgrade()`
+- Source: Kenobi + Kusanagi (Wave 1)
+
+### P1-C: Remove Token Fallback in Freeze [HIGH — trust model]
+- Freeze endpoint falls back to global `TOKEN_FILE` when per-project token is missing
+- Fragile trust model — global token should not authenticate against per-project sockets
+- **Fix:** Remove fallback. If per-project token missing, return 503 "Heartbeat daemon not configured for this project"
+- Source: Batman + Deathstroke (Wave 1-3)
+
+### P2-A: Unit Tests for New Modules [HIGH — safety net]
+- Zero test coverage on `dashboard-data.ts` (10 functions), `project-scope.ts`, `treasury-reader.ts`, router param matching
+- **Fix:** Write unit tests with mocked filesystem. Test: valid project, missing project, unauthorized, empty ID, stale directory
+- Source: Batman + Constantine (Wave 1-3)
+
+### P2-B: Treasury Migration CLI [HIGH — migration]
+- No `voidforge migrate treasury --project=<id>` command exists
+- Existing users with global treasury data at `~/.voidforge/treasury/` can't migrate
+- **Fix:** Add CLI command: stop daemon check, archive global → `treasury-pre-v22/`, per-project logs start fresh (genesis hash), write migration manifest
+- Source: Dockson (pre-build Muster Wave 2)
+
+### P2-C: Treasury Summary File [HIGH — performance]
+- Heartbeat endpoint scans entire JSONL files O(n) per 30-second poll
+- **Fix:** Daemon writes `treasury-summary.json` with running totals after each financial operation. Dashboard reads this O(1) file. JSONL remains the authoritative append-only log.
+- Source: Torres (pre-build Muster Wave 2)
+
+### P3: Minor Hardening [LOW — polish]
+- Add skip-to-content link in project.html (Galadriel)
+- Add heading hierarchy in project dashboard panels (Galadriel)
+- Add `maxPayload` option on WebSocket server (Kusanagi)
+- Add filesystem existence check in resolveProject() — return 404 for stale registry entries (Batman)
+- Add catch around Deep Current JSON parse (Stark)
+
+**Execution order:** P0-A → P0-B → P0-C → P1-A → P1-B → P1-C → P2-A → P2-B → P2-C → P3
+
+**P0 (3 missions) are SHIP BLOCKERS.** P1 should ship with v22.0.0. P2-P3 can be v22.0.1-v22.0.3.
 
 ---
 
