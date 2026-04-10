@@ -7,7 +7,7 @@
 - **Domain:** [DOMAIN]
 - **Repo:** [REPO_URL]
 
-> **DEPRECATED:** This branch is deprecated and will be deleted on 2026-05-08. Run `/void` to sync from `main`, then switch to `npm`-based updates: `npx voidforge update`. See `DEPRECATION.md` for full migration guide.
+> **DEPRECATED:** This branch is kept alive as a redirect. Running `/void` here will update your void.md to point to `main`, enabling future syncs from the latest methodology. For npm-based updates: `npx voidforge update`. See `DEPRECATION.md` for full migration guide.
 
 ## Personality
 

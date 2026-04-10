@@ -1,7 +1,9 @@
-# Scaffold Branch — DEPRECATED
+# Scaffold Branch — DEPRECATED (Tombstone Redirect)
 
 **Deprecated:** 2026-04-08 (v21.0)
-**Deletion date:** 2026-05-08 (30 days)
+**Status:** Kept alive as a redirect. No new methodology updates are published here.
+
+This branch is kept alive as a redirect. Running `/void` here will update your void.md to point to `main`, enabling future syncs from the latest methodology.
 
 ## What Changed
 
@@ -37,9 +39,9 @@ Your existing project files (PRD, application code, logs) are unaffected. Only t
 
 The scaffold branch required manual cherry-picking of every methodology change across 3 branches. With 28 commands, 29 methods, and 38 patterns, this was unsustainable. npm packages provide atomic versioned updates with zero git surgery.
 
-## Deadline
+## Branch Retention Policy
 
-This branch is deprecated and will be deleted on 2026-05-08. After that date, `git fetch <remote> scaffold` will fail and `/void` will break if you haven't migrated.
+This branch is no longer updated but remains available as a migration path for users who haven't updated since pre-v21.0. It will only be deleted once npm download stats show zero scaffold fetches for 90 consecutive days.
 
 ## Step-by-Step Migration
 
