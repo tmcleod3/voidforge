@@ -25,10 +25,14 @@ Orient to the current state:
 Fetch the latest from upstream. Two transports supported:
 
 **Transport A (npm — v21.0+):** If `npx voidforge` is available:
-1. Check: run `which npx` and then `npx voidforge --version` to confirm availability
-2. Run `npx voidforge update` — this auto-upgrades the CLI first if behind npm latest, then diffs and applies all methodology changes including `.claude/agents/`. One pass, done.
-3. If no changes → "The forge burns bright! You're on the latest." → Stop
-4. If changes applied → skip to Step 4 (npm transport handles Steps 2-3)
+1. Check: run `npx voidforge --version` to get the installed CLI version
+2. **CLI freshness check (MANDATORY):** Run `npm view thevoidforge version` to get the latest npm version. Compare the two:
+   - If the CLI version is BEHIND npm latest → run `npm install -g thevoidforge@latest` FIRST. This is critical: old CLIs (pre-v23.1.1) compare against their own bundled methodology and will falsely report "up to date." The upgrade must happen BEFORE `npx voidforge update`.
+   - If the install fails (permissions) → try `sudo npm install -g thevoidforge@latest` or suggest the user run it manually
+   - After upgrading, verify with `npx voidforge --version` that the new version is active
+3. Run `npx voidforge update` — now using the latest CLI, which has the full methodology including `.claude/agents/`
+4. If no changes → "The forge burns bright! You're on the latest." → Stop
+5. If changes applied → skip to Step 4 (npm transport handles Steps 2-3)
 
 **Transport B (git — legacy):** If `npx voidforge` is NOT available:
 1. Offer to install: "Install VoidForge CLI for one-pass updates: `npm install -g thevoidforge`. Or continue with git transport (may require two passes for new file categories)."
