@@ -1,5 +1,7 @@
 # /void — Bombadil's Forge Sync
 
+> **Note:** This branch is a tombstone redirect. Running `/void` here upgrades your methodology to the latest from `main`. For the best experience, install the VoidForge CLI: `npm install -g thevoidforge`
+
 ## Context Setup
 1. Read `/docs/methods/FORGE_KEEPER.md`
 2. Read `VERSION.md` (~30 lines — current version + history)
@@ -23,17 +25,27 @@ Orient to the current state:
 Fetch the latest from upstream. Two transports supported:
 
 **Transport A (npm — v21.0+):** If `npx voidforge` is available:
-1. Run `npx voidforge update` — this auto-upgrades the CLI first if behind npm latest, then diffs and applies methodology changes. The auto-upgrade ensures users on old CLI versions (e.g., v21) get the full v23+ methodology including `.claude/agents/`.
-2. If no changes → "The forge burns bright! You're on the latest." → Stop
-3. If changes applied → skip to Step 4 (npm transport handles Steps 2-3)
+1. Check: run `npx voidforge --version` to get the installed CLI version
+2. **CLI freshness check (MANDATORY):** Run `npm view thevoidforge version` to get the latest npm version. Compare the two:
+   - If the CLI version is BEHIND npm latest → run `npm install -g thevoidforge@latest` FIRST. This is critical: old CLIs (pre-v23.1.1) compare against their own bundled methodology and will falsely report "up to date." The upgrade must happen BEFORE `npx voidforge update`.
+   - If the install fails (permissions) → try `sudo npm install -g thevoidforge@latest` or suggest the user run it manually
+   - After upgrading, verify with `npx voidforge --version` that the new version is active
+3. Run `npx voidforge update` — now using the latest CLI, which has the full methodology including `.claude/agents/`
+4. If no changes → "The forge burns bright! You're on the latest." → Stop
+5. If changes applied → skip to Step 4 (npm transport handles Steps 2-3)
 
-**Transport B (git — legacy):** If `npx voidforge` is not installed:
-1. Run `git remote -v` — look for a remote pointing to `tmcleod3/voidforge`
-2. If no VoidForge remote exists → add: `git remote add voidforge https://github.com/tmcleod3/voidforge.git`
-3. Run `git fetch <remote> main` — get the latest main branch
-4. Read remote VERSION.md: `git show <remote>/main:VERSION.md`
-5. Compare versions numerically (parse major.minor.patch as integers, not strings)
-   - If current version matches or is ahead → "The forge burns bright!" → Stop
+**Transport B (git — legacy):** If `npx voidforge` is NOT available:
+1. Offer to install: "Install VoidForge CLI for one-pass updates: `npm install -g thevoidforge`. Or continue with git transport (may require two passes for new file categories)."
+2. If user declines or npm unavailable, proceed with git:
+3. Run `git remote -v` — look for a remote pointing to `tmcleod3/voidforge`
+4. If no VoidForge remote exists:
+   - Run `git remote add voidforge https://github.com/tmcleod3/voidforge.git`
+   - Use `voidforge` as the remote name
+5. If a matching remote exists, use that name (could be `origin` or `voidforge`)
+6. Run `git fetch <remote> main` — get the latest main branch
+7. Read remote VERSION.md: `git show <remote>/main:VERSION.md`
+8. Compare versions numerically (parse major.minor.patch as integers, not strings — "3.10.0" is newer than "3.9.0"):
+   - If current version matches or is ahead → announce "The forge burns bright! You're on the latest." → Stop
    - If behind → continue to Step 2
 
 ## Step 1.5 — Spring Cleaning (Treebeard)
@@ -46,7 +58,7 @@ Check the **Migration Registry** in `/docs/methods/FORGE_KEEPER.md` for one-time
 6. Present the cleanup plan alongside the update plan in Step 2
 7. Apply cleanup in Step 3 alongside updates — same confirmation prompt ("all / selective / skip")
 8. For tracked `logs/*` files, use `git rm --cached` (untrack but keep on disk)
-9. If `package.json` has `dependencies`/`devDependencies` AND wizard/ is being kept → leave package.json alone. Only strip to minimal if wizard/ is being removed
+9. If `package.json` has `dependencies`/`devDependencies` on scaffold/core AND wizard/ is being kept → leave package.json alone. Only strip to minimal if wizard/ is being removed
 
 ## Step 2 — Walk the Forest (Treebeard)
 Compare every shared methodology file:
