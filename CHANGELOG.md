@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.3.0] - 2026-04-10
+
+### The Coverage + The Splitting (Campaigns 34+35)
+
+### Added
+- **599 new tests** across 60 test files — API routes (141), server core (35), provisioners (111), financial modules (107), high-risk lib/ (98), remaining modules (107). Total: 741 → 1,340 tests, 77% module coverage.
+- **16 new split modules** from 9 oversized files — treasury-heartbeat (1,495→5), heartbeat (1,067→3), projects (769→3), provision (642→4), aws-vps (663→4), railway (454→3), 3 campaign adapters (→7 + campaign-common)
+- **5 planned features wired in** — daemon-aggregator (Danger Room), project-vault (shutdown lock), autonomy-controller (hourly breaker check), treasury-backup (daily snapshots), platform-planner (invoice settlement + debit protection)
+- **Phase 12.75 distribution verification gate** in BUILD_PROTOCOL.md — verify all 6 consumption paths after adding shared file categories
+- **2 new lessons** — instruction-level self-update, consumption path verification
+
+### Changed
+- 4 agent operational learnings enriched (sisko-campaign, fury-initiative, bombadil-forge-sync, coulson-release)
+- Treasury heartbeat jobs count: 8 → 9 (treasury-backup added)
+
+### Removed
+- 17 orphaned files (2,020 lines): 9 lib/ modules, 4 codegen/ modules, dead code shipping in dist/
+
+### Fixed
+- Field report #297 triaged: 8 of 9 proposed methodology fixes applied, 1 wontfix (Transport B re-scan)
+
+---
+
 ## [23.1.0] - 2026-04-09
 
 ### The Injection (ADR-045, Campaign 33)

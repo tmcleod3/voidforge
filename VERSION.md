@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.1.0
+**Current:** 23.3.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.3.0 | 2026-04-10 | The Coverage + The Splitting — 599 new tests (741→1340, 77% coverage), 17 orphans purged, 9 oversized files split into 25 focused modules, field report #297 triaged. Campaigns 34+35. |
 | 23.1.0 | 2026-04-09 | The Injection — knowledge injection into 35 agent definitions, 6 knowledge flow breaks closed (ADR-045), debrief→agent promotion path, vault agent recommendations, scaffold migration, distribution pipeline fixes. Campaign 33. |
 | 23.0.0 | 2026-04-09 | The Materialization — 263 Claude Code subagent definitions with 3-tier model routing (Opus/Sonnet/Haiku), 4-category tool restrictions, description-driven dynamic dispatch. 18 commands migrated, 13 method docs updated. ADR-044. Campaign 32, 8 missions. |
 | 22.2.0 | 2026-04-09 | The Polish — first-run onboarding UX, portfolio per-project reads, legacy route deprecation (19 routes, sunset July 2026), growth tutorial prerequisites, 263-agent accuracy pass, dynamic agent dispatch (ADR-042), max-by-default flag inversion (ADR-043). Campaign 31, 7 missions. |
