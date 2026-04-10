@@ -3,8 +3,8 @@
 > The plan for the plan-maker.
 
 **Current:** v23.1.0 (2026-04-09)
-**Next:** v23.1 — The Injection (operational knowledge into agent definitions, distribution fixes, debrief pipeline)
-**Status:** v23.0 complete (Campaign 32). 263 agents materialized. Assessment found knowledge gap (ADR-045).
+**Next:** v23.2 — The Coverage (test 112 untested modules, purge 17 orphaned files, target ~980 tests)
+**Status:** v23.1 complete (Campaign 33). 263 agents materialized + knowledge injected. 6 ADR-045 breaks closed.
 **741 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.
 
 ---
@@ -282,6 +282,119 @@
 - No runtime code changes — purely methodology
 
 **Execution order:** M1 → M2 → M3 → M4 → M5 → M6 → M7 (M4+M5 parallel, M6+M7 parallel)
+
+---
+
+## v23.3 — The Splitting
+
+*"There is a way to be good again." — Tanjiro*
+
+**Depends on: v23.2 complete. Campaign 35.**
+
+**The problem:** 40 files exceed the project's ~300-line standard. treasury-heartbeat.ts is 1,444 lines (4.8x limit), heartbeat.ts is 1,051 (3.5x), projects.ts is 769, aws-vps.ts is 663. These are the hardest files to review, test, and modify. Splitting them reduces cognitive load and enables targeted testing.
+
+**Missions (6):**
+
+### Mission 1: Split treasury-heartbeat.ts (1,444 → 4 modules)
+- Extract treasury job definitions into `treasury-jobs.ts`
+- Extract treasury JSONL reader/writer into `treasury-io.ts`
+- Extract treasury summary computation into `treasury-summary.ts`
+- Retain `treasury-heartbeat.ts` as the orchestrator (~300 lines)
+- Move existing tests, add new tests for extracted modules
+
+### Mission 2: Split heartbeat.ts (1,051 → 3 modules)
+- Extract daemon startup/shutdown into `heartbeat-lifecycle.ts`
+- Extract job scheduling into `heartbeat-scheduler.ts`
+- Retain `heartbeat.ts` as the main loop (~350 lines)
+- Preserve the 45 existing heartbeat tests
+
+### Mission 3: Split API routes (projects.ts 769, provision.ts 642)
+- `projects.ts` → split by resource (project CRUD vs dashboard data vs portfolio)
+- `provision.ts` → split by phase (validate, provision, status polling)
+- Each resulting file under 300 lines
+
+### Mission 4: Split provisioners (aws-vps 663, railway 454, cloudflare 344)
+- `aws-vps.ts` → split into `aws-ec2.ts`, `aws-rds.ts`, `aws-config.ts`
+- `railway.ts` → split into `railway-deploy.ts`, `railway-config.ts`
+- Each under 300 lines
+
+### Mission 5: Split financial campaigns (google 560, tiktok 478, meta 413)
+- Each campaign adapter → split into `{platform}-api.ts` (raw API) + `{platform}-campaign.ts` (orchestration)
+- Shared patterns extracted to `campaign-common.ts`
+
+### Mission 6: Victory Gauntlet
+- Verify all extracted modules maintain the same exports
+- Run full test suite (must stay at 741+ passing)
+- Verify no file in wizard/ exceeds 400 lines (relaxed threshold for entry points)
+- Run `/review` on the refactored modules
+
+**Execution order:** M1 → M2 → M3 + M4 + M5 (parallel) → M6
+
+---
+
+## v23.2 — The Coverage
+
+*"I'm not the QA engineer this codebase deserves. I'm the one it needs." — Batman*
+
+**Depends on: v23.1 complete. Campaign 34.**
+
+**The problem:** 112 of 165 source files (68%) have zero test coverage. This includes all 12 API route handlers, the main server entry point, all 13 provisioners, all 13 financial modules, and the 1,444-line treasury-heartbeat.ts. 741 tests pass, but they cover only 32% of modules. The untested code is the code users actually hit — HTTP endpoints, deploy pipelines, financial operations. 17 orphaned files (3,003 lines) ship in dist/ as dead code.
+
+**Missions (8):**
+
+### Mission 1: Dead Code Purge (17 orphaned files, 3,003 lines)
+- Delete 13 orphaned lib/ files: natural-language-deploy.ts, desktop-notify.ts, anomaly-detection.ts, correlation-engine.ts, build-analytics.ts, service-install.ts, asset-scanner.ts, image-gen.ts, route-optimizer.ts + 4 codegen/ files (seed-gen, erd-gen, openapi-gen, prisma-types)
+- **Triage 5 orphans with tests** (daemon-aggregator, project-vault, autonomy-controller, treasury-backup, platform-planner): are these planned features or disconnected code? Wire in or delete.
+- Remove corresponding test files for deleted modules
+- Verify: `npm run build` still clean, test count adjusts
+
+### Mission 2: Test API Routes (12 files, 4,103 lines)
+- Write unit tests for all 12 API route handlers: auth, blueprint, cloud-providers, credentials, deploy, prd, project, projects, provision, terminal, users, war-room
+- Pattern: mock request/response, verify status codes, verify service calls, verify error handling
+- Target: 3-5 tests per route handler (happy path, auth failure, validation error, not found)
+- Estimated: ~60 new tests
+
+### Mission 3: Test Server Core (server.ts 435 + router.ts 79)
+- Test server startup, middleware chain, CORS/CSRF, auth enforcement, WebSocket upgrade
+- Test router param matching, exact-match fast path, wildcard handling
+- Target: ~20 new tests
+
+### Mission 4: Test Provisioners (13 files, 2,504 lines)
+- Test each provisioner: aws-vps, railway, vercel, cloudflare, static-s3, docker, self-deploy
+- Test provisioner scripts: provision-vps, deploy-vps, dockerfile, docker-compose, caddyfile, ecosystem-config, rollback-vps
+- Mock external APIs (AWS SDK, Railway API, Vercel API, Cloudflare API)
+- Target: ~40 new tests
+
+### Mission 5: Test Financial Modules (13 files, 3,621 lines)
+- Test campaign adapters: google-campaign, meta-campaign, tiktok-campaign, sandbox-campaign
+- Test billing adapters: google-billing, meta-billing (tiktok-billing already tested)
+- Test stablecoin adapters: circle, mercury
+- Test support modules: adapter-factory, reporting, funding-auto, registry
+- Mock external APIs (Google Ads, Meta Marketing, TikTok, Circle, Mercury)
+- Target: ~50 new tests
+
+### Mission 6: Test High-Risk lib/ Modules (15 files, ~4,000 lines)
+- treasury-heartbeat.ts (1,444 lines — the biggest untested file)
+- deep-current.ts, site-scanner.ts, headless-deploy.ts, project-registry.ts
+- ssh-deploy.ts, treasury-reader.ts, experiment.ts, gap-analysis.ts
+- env-validator.ts, ci-generator.ts, agent-memory.ts, provision-manifest.ts
+- Target: ~40 new tests
+
+### Mission 7: Test Remaining Modules + DNS
+- dns/cloudflare-dns.ts, dns/cloudflare-registrar.ts
+- dashboard-ws.ts, health-monitor.ts, health-poller.ts, cost-estimator.ts, cost-tracker.ts
+- lib/adapters/ (sandbox-bank.ts, index.ts, types.ts)
+- sentry-generator.ts, anthropic.ts, deploy-coordinator.ts, deploy-log.ts
+- Target: ~30 new tests
+
+### Mission 8: Victory Gauntlet
+- Run full test suite: target 741 + ~240 = ~980 tests
+- Verify 0 TypeScript errors
+- Run `/qa` focused on test quality (no assertion-free tests, no tautological expects)
+- Coverage report: target >80% of source modules have at least 1 test file
+- Run `/review` on new test files
+
+**Execution order:** M1 → M2 + M3 (parallel) → M4 + M5 (parallel) → M6 + M7 (parallel) → M8
 
 ---
 
