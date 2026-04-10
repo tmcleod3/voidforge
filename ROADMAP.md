@@ -2,7 +2,7 @@
 
 > The plan for the plan-maker.
 
-**Current:** v23.0.0 (2026-04-09)
+**Current:** v23.1.0 (2026-04-09)
 **Next:** v23.1 — The Injection (operational knowledge into agent definitions, distribution fixes, debrief pipeline)
 **Status:** v23.0 complete (Campaign 32). 263 agents materialized. Assessment found knowledge gap (ADR-045).
 **741 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.
