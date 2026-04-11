@@ -51,6 +51,8 @@ Adversarial UX/UI QA review. Identify usability issues, inconsistencies, broken 
 7. Spin up all seven agents. Radagast checks everyone's work.
 8. Validation is manual + automated: run the app, click through, written regression checklist. Reference `/docs/patterns/component.tsx` for state handling patterns.
 9. **Confidence scoring:** All findings include a confidence score (0-100). High confidence (90+) skips re-verification in Step 7.5. Low confidence (<60) must be escalated to a second agent from a different universe before presenting — if the second agent disagrees, drop the finding. See GAUNTLET.md "Agent Confidence Scoring" for full ranges.
+10. **Slash command prompt convention:** In documentation and tutorials, slash commands use `>` prefix (Claude Code prompt), not `$` (shell prompt). `$ /build` is wrong — it implies a shell command. `> /build` or just `/build` is correct. (Field report #298.)
+11. **No version qualifiers in tutorial prose:** Tutorial text states facts without version references. "VoidForge supports 263 agents" — not "Since v23.0, VoidForge supports 263 agents." Readers don't care when a feature shipped; version tags make tutorials feel like changelogs. Version history belongs in CHANGELOG.md. (Field report #298.)
 
 ## Step 0 — Orient
 

@@ -52,6 +52,7 @@ Structure all findings as:
 - **Validate SSH_HOST, SSH_KEY before any deploy:** (1) SSH_HOST is set, (2) SSH key file exists, (3) SSH test connection succeeds (`ssh -o ConnectTimeout=5`). If any check fails, abort. Check `~/.voidforge/deploys/` and `~/.voidforge/projects.json` for historical data if `.env` is missing values.
 - **Process manager discipline:** If PM2/systemd/Docker owns the port, NEVER kill the port directly (`fuser -k`). Always reload through the process manager. Killing the port causes auto-restart of the old build, creating a race condition. (Field report #123: 30+ minutes of stale code serving.)
 - **Build artifact freshness:** Before deploying, verify compiled output is newer than source. `find src/ -name '*.ts' -newer dist/index.js` -- if source is newer, rebuild. A stale build artifact deploys old code that passes all source-level tests.
+- **Run test suite before deploy, not just build:** `npm test` (or equivalent) is a mandatory pre-flight check alongside `npm run build`. Broken tests can ship silently if only the build is verified — 4 broken tests shipped across 3 commits before being caught by a review agent. (Field report #298.)
 - **CronCreate `durable` flag silently fails:** The cron appears created but doesn't survive session end. For persistent operations, use OS-level crons (launchd on macOS, systemd timers on Linux) calling the `claude` CLI directly.
 
 ## Required Context

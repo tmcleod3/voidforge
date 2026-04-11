@@ -130,6 +130,10 @@ When a function delegates to another function (e.g., `handleRequest` calls `proc
 
 **Robots.txt & Domain Reference Audit:** Verify robots.txt sitemap URL and hardcoded domain references match production hostname. Grep for hardcoded domains across all config files, sitemap generators, canonical tags, and OG meta tags. A staging domain in robots.txt blocks production indexing; a wrong sitemap URL means search engines never find your pages. (Triage fix from field report batch #149-#153.)
 
+**Dynamic Count Check:** Grep for hardcoded numeric claims ("263 agents", "37 patterns", "33+ campaigns") across all pages and data files. Every count that can change between releases must be computed from the authoritative source (array length, directory listing, config object keys), not hardcoded in copy. Hardcoded counts go stale every release and erode user trust. (Field report #298.)
+
+**Cross-Array Uniqueness Audit:** When a codebase uses multiple data arrays for entity categories (e.g., leadAgents + subAgents), verify no entity appears in more than one array. Duplicates inflate totals and cause display bugs. Grep for entity identifiers across all arrays and flag overlaps. (Field report #298: Gandalf and Haku in both leadAgents and subAgents inflated count 263 → 265.)
+
 **CTA Fact-Check Pass:** Fact-check every CTA claim ("start with X", "X first", "no dependencies required") against actual dependency chain. If the landing page says "run one command to start," verify that one command actually works without prerequisites. If it says "no account required," verify the feature works without auth. Marketing claims that contradict the actual user experience are credibility bugs. (Triage fix from field report batch #149-#153.)
 
 **Copy Accuracy Pass:** Grep for numeric claims in rendered content (e.g., "10 lead agents", "12 commands", "53 pages"). Cross-reference against actual data counts. Any mismatch is a bug — inaccurate numbers undermine credibility. This is automatable and should run on every QA pass.

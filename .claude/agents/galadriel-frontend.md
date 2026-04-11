@@ -52,6 +52,7 @@ Structure all findings as:
 - **Async Polling State Machine (4 states required):** idle -> syncing -> success -> failure. Never show "success" before async confirmation resolves. Never show the old value alongside an "updated" banner. The polling result replaces the displayed value atomically.
 - **Iframe stacking context defeats z-index:** Iframes with `allow-same-origin` create impenetrable stacking contexts. `z-index: 9999` has no effect across boundaries. Use `createPortal(element, document.body)` for overlays coexisting with iframes.
 - **CSS animation replay requires reflow:** To replay an animation, remove class -> `void element.offsetWidth` (force reflow) -> re-add class. Without the reflow, the browser batches remove+add as a no-op.
+- **Slash command prompt convention:** In docs and tutorials, slash commands use `>` prefix (Claude Code prompt) or no prefix — never `$` (shell prompt). `$ /build` implies a shell command. `> /build` or just `/build` is correct. Tutorial prose states facts without version qualifiers ("VoidForge supports X" — not "Since v23.0, VoidForge supports X"). Version history belongs in CHANGELOG.md. (Field report #298.)
 - **CSS percentage heights in flex items:** Percentage heights on flex items resolve to the parent's explicit height, which in a flex layout is often undefined (produces 0px). Use px, vh, or `flex: 1` instead.
 
 ## Required Context
