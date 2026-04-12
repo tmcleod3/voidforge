@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.3.1
+**Current:** 23.4.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.4.0 | 2026-04-12 | The Remediation — wizard UI audit: 3 critical API fixes, 4 WCAG a11y fixes, retired --blitz cleanup, content accuracy, 7 UX improvements. -2,400 lines legacy code. ADR-046. Campaign 36. |
 | 23.3.1 | 2026-04-12 | Wizard UI fix — "Files to be created" list matched actual init output |
 | 23.3.0 | 2026-04-10 | The Coverage + The Splitting — 599 new tests (741→1340, 77% coverage), 17 orphans purged, 9 oversized files split into 25 focused modules, field report #297 triaged. Campaigns 34+35. |
 | 23.1.0 | 2026-04-09 | The Injection — knowledge injection into 35 agent definitions, 6 knowledge flow breaks closed (ADR-045), debrief→agent promotion path, vault agent recommendations, scaffold migration, distribution pipeline fixes. Campaign 33. |

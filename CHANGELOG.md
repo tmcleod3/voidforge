@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.4.0] - 2026-04-12
+
+### The Remediation (ADR-046, Campaign 36)
+
+### Added
+- **WCAG compliance:** Visible validation error messages with `aria-invalid` and `role="alert"` on Step 3 inputs
+- **Tab keyboard navigation:** ArrowLeft/Right/Home/End on PRD tabs (WAI-ARIA Tabs pattern)
+- **Deploy wizard footer:** Consistent Back/Next navigation matching setup wizard
+- **Lobby error state:** Distinct "Could not connect to server" with Retry button (vs empty state)
+- **Blueprint dismiss:** Close button on Blueprint Detected banner
+- **Tower CDN retry:** Retry button when xterm.js fails to load
+- **Login password help:** "Forgot password?" guidance text
+- **Tower responsive:** Header actions wrap on mobile viewports
+
+### Changed
+- Standalone Danger Room and War Room pages redirect to project dashboard (legacy API shims removed per ADR-046)
+- CLAUDE.md pattern count: 35 → 37 reference implementations
+
+### Fixed
+- **3 critical API fixes:** Legacy `/api/danger-room/*` and `/api/war-room/*` endpoints removed — always 404'd in remote/LAN mode, freeze button had no shim at all
+- **Retired `--blitz` flag** removed from 4 UI locations (was a no-op since ADR-043)
+- Import modal Escape key now handled inside focus trap (consistency with other modals)
+- Lobby header and Tower header overflow on mobile viewports
+- Step 7 heading visible during creating state (was hidden, leaving section unlabeled)
+- Stale comments in prophecy.js files updated
+
+### Removed
+- ~2,400 lines of legacy dashboard code (danger-room.js, war-room.js, legacy API shims)
+
+---
+
 ## [23.3.1] - 2026-04-12
 
 ### Fixed
