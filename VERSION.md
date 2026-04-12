@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.8.5
+**Current:** 23.8.6
 
 ## Versioning Scheme
 

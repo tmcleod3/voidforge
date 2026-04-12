@@ -51,7 +51,7 @@ Read the `heralding:` field from `.claude/agents/silver-surfer-herald.md` and an
 ## Step 2 — Baseline
 Get the project running. Verify manually: app starts, primary flow works, auth works (if applicable), data persists, error states display.
 
-**Dynamic count check:** Grep for hardcoded numeric claims ("263 agents", "37 patterns", etc.) across all pages and data files. Every count that can change between releases must be computed from the source, not hardcoded. (Field report #298.)
+**Dynamic count check:** Grep for hardcoded numeric claims (agent counts, pattern counts, command counts, etc.) across all pages and data files. Every count that can change between releases must be computed from the source, not hardcoded. (Field report #298.)
 
 **Cross-array uniqueness audit:** If the codebase uses multiple data arrays for entity categories (e.g., leadAgents + subAgents), verify no entity appears in more than one array. Duplicates inflate totals. (Field report #298.)
 

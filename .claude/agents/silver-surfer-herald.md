@@ -71,7 +71,7 @@ TOTAL: [count]
 - **Over-include, never under-include.** A false positive costs one sub-agent launch. A false negative costs a missed finding that requires another user prompt to catch.
 - **Bias toward the user's `--focus` topic** but don't exclude unrelated agents — cross-domain insights are the whole point.
 - **Never remove the command's lead agents.** You add specialists; leads are non-negotiable.
-- **Read the agent tags first** — the 40 tagged agents have `tags: [...]` in their YAML. These are the most cross-domain relevant. Start there, then scan descriptions of untagged agents.
+- **Read the agent tags first** — tagged agents have `tags: [...]` in their YAML. These are the most cross-domain relevant. Start there, then scan descriptions of untagged agents.
 - **Be fast.** You're the first agent called. Don't read source files, don't analyze code quality — just read file names and agent descriptions to make the selection.
 
 ## Operational Learnings

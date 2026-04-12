@@ -304,7 +304,7 @@ VoidForge uses 18 lead agents across 9 fictional universes, each commanding a ro
 | Forge Sync | **Bombadil** | Lord of the Rings | VoidForge self-update from upstream | Ancient, joyful, sings while he works, tends the forge itself |
 | Worm Rider | **Chani** | Dune | Telegram bridge, Gom Jabbar, sandworm relay | Desert-born, fierce, speaks across any distance |
 | The Initiative | **Fury** | Marvel | Full pipeline orchestration, crossfire, council | Assembles the team. Doesn't leave until the mission is complete. |
-| The Gauntlet | **Thanos** | Marvel | Comprehensive 5-round review, 30+ agents | "I am inevitable." Tests everything. The project survives or it doesn't. |
+| The Gauntlet | **Thanos** | Marvel | Comprehensive 5-round review, agents across all domains | "I am inevitable." Tests everything. The project survives or it doesn't. |
 | Campaign Command | **Sisko** | Star Trek | PRD-to-product campaign, mission sequencing | The builder, the prophet, the war commander. Reads the plan, picks the next fight. |
 | Forge Artist | **Celebrimbor** | Lord of the Rings | AI image generation from PRD descriptions | Hand of Silver. Greatest elven smith. Forges visual assets from prose. |
 | Field Medic | **Bashir** | Star Trek | Post-mortem analysis, upstream feedback | Genetically enhanced diagnostician. Traces root causes, sends field reports to Starfleet. |
@@ -479,7 +479,7 @@ Setup: `/thumper setup` (one-time). Control: `/thumper on` / `/thumper off` / `/
 
 Fury assembles every agent in VoidForge and runs the complete pipeline: architecture review, full build, three rounds of code review, UX pass, two rounds of security audit, infrastructure review, QA, and test suite — then the Crossfire (adversarial agents from four universes attack each other's work) and the Council (domain specialists verify nobody broke anyone else's fixes).
 
-13 phases, all 9 universes, 40+ agents. Checkpoints after every phase so you can resume across sessions with `/assemble --resume`. Skip the build with `--skip-build` to re-run reviews on existing code. Skip the Crossfire and Council with `--fast` for lower-stakes projects.
+Multi-phase protocol, all 9 universes, agents across all domains. Checkpoints after every phase so you can resume across sessions with `/assemble --resume`. Skip the build with `--skip-build` to re-run reviews on existing code. Skip the Crossfire and Council with `--fast` for lower-stakes projects.
 
 This is the nuclear option. Use it when quality is non-negotiable.
 

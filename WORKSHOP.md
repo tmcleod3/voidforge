@@ -146,7 +146,7 @@ Type:
 /ux
 ```
 
-**Galadriel** and her team of 12 agents check that your app is usable: **Samwise** tests keyboard navigation and screen readers, **Arwen** checks visual design and contrast, **Bilbo** audits the copy, **Radagast** hunts edge cases. They fix what they find.
+**Galadriel** and her full UX team check that your app is usable: **Samwise** tests keyboard navigation and screen readers, **Arwen** checks visual design and contrast, **Bilbo** audits the copy, **Radagast** hunts edge cases. They fix what they find.
 
 ---
 
@@ -303,11 +303,11 @@ If Claude mentions these, here's what they mean:
 | `/prd` | Sisko | Generates a PRD from an interview |
 | `/build` | Picard + Stark + Galadriel | Builds the app phase by phase |
 | `/review` | Picard + Stark | Code review for quality and patterns |
-| `/ux` | Galadriel + 12 sub-agents | UX, accessibility, and visual review |
-| `/qa` | Batman + 7 sub-agents | Full QA: edge cases, error states, boundaries |
-| `/security` | Kenobi + 8 sub-agents | OWASP security audit |
+| `/ux` | Galadriel + full UX team | UX, accessibility, and visual review |
+| `/qa` | Batman + QA specialists | Full QA: edge cases, error states, boundaries |
+| `/security` | Kenobi + security specialists | OWASP security audit |
 | `/campaign` | Sisko | Multi-mission build from PRD to ship |
-| `/gauntlet` | Thanos + 30 agents | The ultimate 5-round review |
+| `/gauntlet` | Thanos + comprehensive review team | The ultimate 5-round review |
 | `/git` | Coulson | Version bump, changelog, commit |
 | `/test` | Batman | Write missing tests |
 | `/devops` | Kusanagi | Infrastructure and deploy review |

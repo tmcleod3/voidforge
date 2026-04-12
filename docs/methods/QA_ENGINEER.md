@@ -130,7 +130,7 @@ When a function delegates to another function (e.g., `handleRequest` calls `proc
 
 **Robots.txt & Domain Reference Audit:** Verify robots.txt sitemap URL and hardcoded domain references match production hostname. Grep for hardcoded domains across all config files, sitemap generators, canonical tags, and OG meta tags. A staging domain in robots.txt blocks production indexing; a wrong sitemap URL means search engines never find your pages. (Triage fix from field report batch #149-#153.)
 
-**Dynamic Count Check:** Grep for hardcoded numeric claims ("263 agents", "37 patterns", "33+ campaigns") across all pages and data files. Every count that can change between releases must be computed from the authoritative source (array length, directory listing, config object keys), not hardcoded in copy. Hardcoded counts go stale every release and erode user trust. (Field report #298.)
+**Dynamic Count Check:** Grep for hardcoded numeric claims (agent counts, pattern counts, command counts, campaign counts, etc.) across all pages and data files. Every count that can change between releases must be computed from the authoritative source (array length, directory listing, config object keys), not hardcoded in copy. Hardcoded counts go stale every release and erode user trust. (Field report #298.)
 
 **Cross-Array Uniqueness Audit:** When a codebase uses multiple data arrays for entity categories (e.g., leadAgents + subAgents), verify no entity appears in more than one array. Duplicates inflate totals and cause display bugs. Grep for entity identifiers across all arrays and flag overlaps. (Field report #298: Gandalf and Haku in both leadAgents and subAgents inflated count 263 → 265.)
 

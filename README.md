@@ -205,7 +205,7 @@ voidforge/
 | `/campaign` | Sisko | Danger Room — autonomous PRD-to-product mission sequencing |
 | `/imagine` | Celebrimbor | Forge — AI image generation from PRD visual descriptions |
 | `/debrief` | Bashir | Field Report — post-mortem analysis, upstream feedback |
-| `/gauntlet` | Thanos | Comprehensive review — 5 rounds, 30+ agents, 6 domains |
+| `/gauntlet` | Thanos | Comprehensive review — 5 rounds, agents across all domains |
 | `/deploy` | Kusanagi | Deploy agent — target detection, health check, rollback |
 | `/prd` | Sisko | PRD generator — 5-act structured interview |
 | `/assess` | Picard | Pre-build assessment — architecture + gap analysis |

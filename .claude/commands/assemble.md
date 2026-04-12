@@ -36,7 +36,7 @@ When `/assemble` invokes each sub-command, it deploys the FULL roster for that c
 | Phase | Lead (`subagent_type`) | Full Team Deployed |
 |-------|------|--------------------|
 | Architecture | `picard-architecture` | spock-schema, + Star Trek architecture specialists |
-| Build | `stark-backend` + `galadriel-frontend` + `kusanagi-devops` | Full /build roster (~35 agents across 4 universes) |
+| Build | `stark-backend` + `galadriel-frontend` + `kusanagi-devops` | Full /build roster across relevant universes |
 | Smoke Test | `barton-smoke-test` | Solo — runtime verification |
 | Code Review (×3) | `picard-architecture` | spock-schema, seven-optimization + Marvel review team + cross-domain (nightwing-regression, bilbo-microcopy, troi-prd-compliance, constantine-cursed-code, samwise-accessibility) |
 | UX | `galadriel-frontend` | elrond-ux-strategy, arwen-ui-polish, samwise-accessibility, bilbo-microcopy, legolas-precision, gimli-performance, radagast-edge-cases, eowyn-delight, celeborn-design-system |
