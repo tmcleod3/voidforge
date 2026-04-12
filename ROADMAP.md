@@ -2,7 +2,7 @@
 
 > The plan for the plan-maker.
 
-**Current:** v23.4.0 (2026-04-12)
+**Current:** v23.4.1 (2026-04-12)
 **Next:** v23.5 (TBD)
 **Status:** v23.3 complete (Campaigns 34+35). Test coverage + file splitting done.
 **1340 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.

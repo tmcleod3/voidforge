@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.4.1] - 2026-04-12
+
+### Security
+- **XSS fix:** Blueprint validation banner now escapes `data.summary` and `data.frontmatterErrors` before innerHTML rendering (Gauntlet Round 1 finding SEC-1/SEC-2)
+
+### Fixed
+- ROADMAP.md header updated to v23.4.0 (was stale at v23.3.1)
+- Lobby error state gets `role="alert"` and `aria-live="polite"` for screen reader announcement
+
+---
+
 ## [23.4.0] - 2026-04-12
 
 ### The Remediation (ADR-046, Campaign 36)
