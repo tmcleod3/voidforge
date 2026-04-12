@@ -211,7 +211,7 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
 
 export function selfUpdate(): { success: boolean; message: string } {
   try {
-    execSync('npm update -g voidforge', { stdio: 'pipe' });
+    execSync('npm install -g thevoidforge@latest', { stdio: 'pipe' });
     return { success: true, message: 'VoidForge updated successfully.' };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

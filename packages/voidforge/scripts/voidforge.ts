@@ -421,7 +421,7 @@ async function main(): Promise<void> {
                   console.log(`  Upgraded to v${npmLatest}. Re-running update with new version...\n`);
                   // Re-exec with the new version — the new binary has the updated methodology
                   try {
-                    execSync('npx voidforge update --no-self-update', { stdio: 'inherit' });
+                    execSync('npx thevoidforge update --no-self-update', { stdio: 'inherit' });
                   } catch { /* exit code propagated */ }
                   process.exit(0);
                 } else {

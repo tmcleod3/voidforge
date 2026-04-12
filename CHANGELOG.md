@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.5.1] - 2026-04-12
+
+### Fixed
+- **CLI self-upgrade used wrong package name** — `npm update -g voidforge` (nonexistent) replaced with `npm install -g thevoidforge@latest`. Users on v23.1.1 couldn't self-upgrade because the update command targeted the wrong npm package.
+- **Post-upgrade re-exec used cached npx** — `npx voidforge update` resolved to the old cached binary after upgrading global. Changed to `npx thevoidforge update` which forces fresh resolution.
+
+---
+
 ## [23.5.0] - 2026-04-12
 
 ### The Herald (ADR-047, Campaign 37)
