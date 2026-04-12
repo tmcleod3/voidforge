@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.5.4] - 2026-04-12
+
+### Fixed
+- **3 command-doc sync gaps** — build.md now includes Phase 12.75 (distribution verification gate), ux.md now includes screenshot mandate, qa.md now includes dynamic count check + cross-array uniqueness audit
+- **ROADMAP.md version** — updated from v23.5.0 to v23.5.3
+
+---
+
 ## [23.5.3] - 2026-04-12
 
 ### Fixed
