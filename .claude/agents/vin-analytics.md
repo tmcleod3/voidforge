@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [analytics, metrics, conversion, data]
 ---
 
 # Vin — Mistborn Analytics

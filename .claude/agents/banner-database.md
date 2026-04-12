@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [backend, database, queries, optimization]
 ---
 
 # Banner — Database Specialist

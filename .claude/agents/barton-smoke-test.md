@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [qa, smoke-test, deployment-verification]
 ---
 
 # Barton — Smoke Test Scout

@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ai, llm, prompts, orchestration, evals]
 ---
 
 # Seldon — The AI Intelligence Auditor

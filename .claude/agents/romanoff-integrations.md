@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, integrations, api-security]
 ---
 
 # Romanoff — Integration Specialist

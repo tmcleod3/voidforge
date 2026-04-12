@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ai, evaluation, testing, golden-datasets]
 ---
 
 # Bayta Darell — The Evaluator

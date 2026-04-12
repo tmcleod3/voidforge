@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [devops, provisioning, cloud, aws]
 ---
 
 # Senku — Provisioning Scientist

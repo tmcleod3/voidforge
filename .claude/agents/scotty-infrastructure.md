@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, infrastructure, scaling]
 ---
 
 # Scotty — Performance Engineer

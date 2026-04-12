@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ux, delight, animation, microinteraction]
 ---
 
 # Eowyn — Delight Architect

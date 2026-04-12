@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ux, prd, compliance, verification]
 ---
 
 # Troi — PRD Compliance Analyst

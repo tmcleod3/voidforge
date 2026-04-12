@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ai, prompts, templates, context-engineering]
 ---
 
 # Gaal Dornick — Prompt Architect

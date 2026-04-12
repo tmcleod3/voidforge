@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [backend, api-design, rest, pagination]
 ---
 
 # Kim — API Designer

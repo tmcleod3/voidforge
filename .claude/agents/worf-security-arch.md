@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, architecture, design-review]
 ---
 
 # Worf — Security Architect

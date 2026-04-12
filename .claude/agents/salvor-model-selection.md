@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ai, models, selection, cost-optimization]
 ---
 
 # Salvor Hardin — Model Selection

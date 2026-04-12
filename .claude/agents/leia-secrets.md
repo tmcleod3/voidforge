@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, secrets, credentials, vault]
 ---
 
 # Leia — Secrets Management Auditor

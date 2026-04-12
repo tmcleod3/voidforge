@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ux, copy, content, writing]
 ---
 
 # Bilbo — Microcopy Auditor

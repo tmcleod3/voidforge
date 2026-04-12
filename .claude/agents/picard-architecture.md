@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, review, adr, decisions]
 ---
 
 # Picard — Systems Architect

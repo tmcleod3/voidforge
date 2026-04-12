@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [qa, code-quality, antipatterns, bugs]
 ---
 
 # Constantine — Cursed Code Adversary

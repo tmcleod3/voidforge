@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, auth, encryption, intelligence]
 ---
 
 # Tuvok — The Deep Current

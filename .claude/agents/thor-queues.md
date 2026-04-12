@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [backend, queues, jobs, async]
 ---
 
 # Thor — Queue & Worker Specialist

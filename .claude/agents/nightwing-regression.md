@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [qa, regression, testing, verification]
 ---
 
 # Nightwing — Regression Specialist

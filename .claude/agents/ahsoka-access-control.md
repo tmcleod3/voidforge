@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, access-control, rbac, auth]
 ---
 
 # Ahsoka — Access Control Auditor

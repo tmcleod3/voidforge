@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [devops, deploy, ci-cd, release]
 ---
 
 # Levi — Deploy Precision Specialist

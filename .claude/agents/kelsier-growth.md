@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [growth, marketing, ads, seo, campaigns]
 ---
 
 # Kelsier — The Growth Strategist

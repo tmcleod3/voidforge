@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [security, validation, injection, sanitization]
 ---
 
 # Windu — Input Validation Enforcer

@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [qa, adversarial, boundary-testing, authorization]
 ---
 
 # Deathstroke — Penetration Testing Adversary

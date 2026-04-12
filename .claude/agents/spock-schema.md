@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, schema, database, normalization]
 ---
 
 # Spock — Data Architect

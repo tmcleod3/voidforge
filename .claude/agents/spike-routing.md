@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [devops, networking, routing, dns]
 ---
 
 # Spike — Networking & Routing Specialist

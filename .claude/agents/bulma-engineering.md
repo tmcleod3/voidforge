@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [devops, backup, disaster-recovery]
 ---
 
 # Bulma — Recovery Engineer

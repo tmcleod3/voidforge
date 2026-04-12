@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [orchestration, pipeline, assembly, multi-agent]
 ---
 
 # Fury — The Initiative

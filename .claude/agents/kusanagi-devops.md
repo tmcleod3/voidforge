@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [devops, deploy, monitoring, infrastructure]
 ---
 
 # Kusanagi — DevOps Engineer

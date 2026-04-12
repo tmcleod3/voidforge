@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [financial, treasury, billing, reconciliation]
 ---
 
 # Dockson — The Treasury

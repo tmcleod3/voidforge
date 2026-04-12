@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, microservices, service-boundaries]
 ---
 
 # Strange — Service Architecture Specialist

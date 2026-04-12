@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [ux, accessibility, a11y, wcag]
 ---
 
 # Samwise — Accessibility Champion

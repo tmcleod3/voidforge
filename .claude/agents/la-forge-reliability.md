@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, reliability, failure-analysis]
 ---
 
 # La Forge — Reliability Engineer

@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [financial, budget, portfolio, cost]
 ---
 
 # Steris — The Planner

@@ -7,6 +7,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [architecture, tech-debt, refactoring]
 ---
 
 # Data — Tech Debt Analyst

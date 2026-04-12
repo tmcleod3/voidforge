@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [backend, api, database, services]
 ---
 
 # Stark — Backend Engineer

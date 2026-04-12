@@ -9,6 +9,7 @@ tools:
   - Bash
   - Grep
   - Glob
+tags: [campaign, orchestration, planning, missions]
 ---
 
 # Sisko — Campaign Commander
