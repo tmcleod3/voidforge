@@ -1,6 +1,7 @@
 ---
 name: Sasha
 description: "Resource scanning — provision inventory, resource allocation checks, supply chain verification"
+heralding: "Sasha inventories the supplies. Your resource allocation is being checked."
 model: haiku
 tools:
   - Read

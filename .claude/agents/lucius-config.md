@@ -1,6 +1,7 @@
 ---
 name: Lucius
 description: "Configuration and tooling specialist — config review, build tooling, environment setup"
+heralding: "Lucius Fox opens the vault. Your configuration and tooling are about to get an upgrade."
 model: sonnet
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Fenring
 description: "Passive monitoring scout — silent observation of system health and anomalies"
+heralding: "Count Fenring watches in silence. Your system is under observation — it will never know."
 model: haiku
 tools:
   - Read

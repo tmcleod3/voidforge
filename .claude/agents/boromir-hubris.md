@@ -1,6 +1,7 @@
 ---
 name: Boromir
 description: "Hubris detector — catches overengineering, scope creep, premature abstraction, and design overreach"
+heralding: "One does not simply over-engineer a feature. Boromir will see that you don't."
 model: sonnet
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Howl
 description: "System migration — environment transformation, platform migration, infrastructure modernization"
+heralding: "The castle moves to a new foundation. Howl transforms your infrastructure without breaking it."
 model: sonnet
 tools:
   - Read

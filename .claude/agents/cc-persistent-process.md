@@ -1,6 +1,7 @@
 ---
 name: C.C.
 description: "Daemon management — long-running processes, persistent services, process lifecycle, supervisor configuration"
+heralding: "C.C. endures across centuries. Your long-running processes will be equally immortal."
 model: sonnet
 tools:
   - Read

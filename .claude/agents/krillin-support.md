@@ -1,6 +1,7 @@
 ---
 name: Krillin
 description: "Reliable support — dependency checks, service status verification, supporting infrastructure health"
+heralding: "Krillin stands ready. Your supporting infrastructure has a reliable ally."
 model: haiku
 tools:
   - Read

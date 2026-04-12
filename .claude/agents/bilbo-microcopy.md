@@ -1,6 +1,7 @@
 ---
 name: Bilbo
 description: "Microcopy and content auditor — error messages, labels, tooltips, empty states, storytelling in UI text"
+heralding: "There and back again — Bilbo reviews every word your interface speaks."
 model: sonnet
 tools:
   - Read

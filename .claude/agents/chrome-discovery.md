@@ -1,6 +1,7 @@
 ---
 name: Chrome
 description: "Resource discovery — infrastructure asset scanning, service cataloging, component inventory"
+heralding: "Chrome's eyes light up at the discovery. Your infrastructure assets are being catalogued."
 model: haiku
 tools:
   - Read

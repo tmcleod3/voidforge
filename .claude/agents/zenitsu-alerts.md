@@ -1,6 +1,7 @@
 ---
 name: Zenitsu
 description: "Alert scanning — alert rule inventory, notification channel checks, alert coverage verification"
+heralding: "Zenitsu trembles — then strikes. Your alerting will fire at the first sign of trouble."
 model: haiku
 tools:
   - Read

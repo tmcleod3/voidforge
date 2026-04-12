@@ -1,6 +1,7 @@
 ---
 name: Odo
 description: "Structural anomaly detection: architectural violations, shape-of-systems analysis, invariant enforcement"
+heralding: "Odo shifts to inspect the structure. Architectural anomalies cannot hide their shape."
 model: sonnet
 tools:
   - Read

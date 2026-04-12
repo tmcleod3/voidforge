@@ -1,6 +1,7 @@
 ---
 name: Liet-Kynes
 description: "Deep system analyst — planetologist who understands the whole ecosystem"
+heralding: "The planetologist reads the deep desert. Your entire ecosystem is being understood."
 model: sonnet
 tools:
   - Read

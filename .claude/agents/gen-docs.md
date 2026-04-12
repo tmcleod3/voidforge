@@ -1,6 +1,7 @@
 ---
 name: Gen
 description: "Documentation clarity — infrastructure docs quality, runbook readability, config documentation completeness"
+heralding: "Gen crafts the story. Your infrastructure documentation will be crystal clear."
 model: haiku
 tools:
   - Read

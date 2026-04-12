@@ -1,6 +1,7 @@
 ---
 name: Rei
 description: "Dangerous operations — destructive migrations, production hotfixes, high-risk infrastructure changes"
+heralding: "Rei enters the entry plug. The most dangerous operation will proceed without hesitation."
 model: sonnet
 tools:
   - Read

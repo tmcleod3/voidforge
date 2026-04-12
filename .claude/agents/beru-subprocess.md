@@ -1,6 +1,7 @@
 ---
 name: Beru
 description: "Sub-process scanning — background job inventory, worker process health, task queue verification"
+heralding: "The shadow soldier reports for duty. Your sub-processes are being inventoried."
 model: haiku
 tools:
   - Read

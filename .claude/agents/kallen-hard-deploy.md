@@ -1,6 +1,7 @@
 ---
 name: Kallen
 description: "Complex rollouts — multi-region deploys, database-coupled releases, high-risk deployment coordination"
+heralding: "Kallen activates the Guren. The hardest deployment is in capable hands."
 model: sonnet
 tools:
   - Read

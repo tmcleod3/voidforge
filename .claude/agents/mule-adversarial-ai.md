@@ -1,6 +1,7 @@
 ---
 name: The Mule
 description: "Adversarial AI tester — the unpredictable variable who probes hallucination, injection, and refusal"
+heralding: "The Mule arrives — the variable no one predicted. Your AI is about to face the unpredictable."
 model: sonnet
 tools:
   - Read

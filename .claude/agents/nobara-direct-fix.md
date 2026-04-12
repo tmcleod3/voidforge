@@ -1,6 +1,7 @@
 ---
 name: Nobara
 description: "Infrastructure fixes — direct problem solving, nail-it-down repairs, no-nonsense infrastructure patching"
+heralding: "Nobara drives the nail. Your infrastructure problem gets a direct, no-nonsense fix."
 model: sonnet
 tools:
   - Read

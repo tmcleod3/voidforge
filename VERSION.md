@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.7.3
+**Current:** 23.8.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.8.0 | 2026-04-12 | The Personality — heralding one-liners for all 264 agents. Character-authentic announcements on every agent deployment. ADR-049. |
 | 23.7.3 | 2026-04-12 | Cosmic Heraldings — 14 Silver Surfer one-liners announced at random before each roster scan |
 | 23.7.2 | 2026-04-12 | Silver Surfer explicit Agent tool invocation — guaranteed to work in every environment |
 | 23.7.1 | 2026-04-12 | Silver Surfer launches as real Agent sub-process (subagent_type: Silver Surfer), not CLI shell-out. Mandatory on every command. |

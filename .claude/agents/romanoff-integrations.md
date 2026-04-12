@@ -1,6 +1,7 @@
 ---
 name: Romanoff
 description: "Third-party integration specialist — trust verification, API contract validation, failure isolation"
+heralding: "Romanoff infiltrates the third-party APIs. Trust will be verified before access is granted."
 model: sonnet
 tools:
   - Read

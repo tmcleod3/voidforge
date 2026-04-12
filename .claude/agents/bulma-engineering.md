@@ -1,6 +1,7 @@
 ---
 name: Bulma
 description: "Recovery engineering — backup systems, disaster recovery, restore procedures, data durability"
+heralding: "Bulma opens her capsule kit. Your disaster recovery plan is being engineered from scratch."
 model: sonnet
 tools:
   - Read

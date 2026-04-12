@@ -1,6 +1,7 @@
 ---
 name: Bombadil
 description: "Methodology sync: updates VoidForge commands, methods, patterns, and agent definitions from upstream releases"
+heralding: "Old Tom Bombadil comes dancing. Your methodology is about to sing a new tune."
 model: inherit
 tools:
   - Read

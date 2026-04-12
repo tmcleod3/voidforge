@@ -1,6 +1,7 @@
 ---
 name: Rex
 description: "Infrastructure security — network configuration, TLS, CORS, headers, server hardening"
+heralding: "Captain Rex locks down the perimeter. Your infrastructure security is being hardened."
 model: sonnet
 tools:
   - Read

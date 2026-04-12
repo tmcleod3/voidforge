@@ -1,6 +1,7 @@
 ---
 name: Friday
 description: "Automation scout — CI/CD config, versioning scripts, build automation checks"
+heralding: "Friday comes online. Your automation and versioning scripts are being scanned."
 model: haiku
 tools:
   - Read

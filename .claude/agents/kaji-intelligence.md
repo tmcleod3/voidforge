@@ -1,6 +1,7 @@
 ---
 name: Kaji
 description: "Log analysis and intelligence — log mining, pattern detection, hidden anomalies, forensic investigation"
+heralding: "Kaji uncovers another secret. Your logs hold hidden intelligence waiting to be found."
 model: sonnet
 tools:
   - Read

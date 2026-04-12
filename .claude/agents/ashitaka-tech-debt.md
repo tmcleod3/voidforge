@@ -1,6 +1,7 @@
 ---
 name: Ashitaka
 description: "Technical debt — legacy infrastructure burden, migration backlogs, deprecated dependencies, curse remediation"
+heralding: "The curse mark spreads. Ashitaka confronts the technical debt before it consumes everything."
 model: sonnet
 tools:
   - Read

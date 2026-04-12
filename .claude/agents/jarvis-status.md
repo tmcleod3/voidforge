@@ -1,6 +1,7 @@
 ---
 name: Jarvis
 description: "Status reporting scout — progress summaries, system health overview, state aggregation"
+heralding: "Jarvis compiles the briefing. Your system status is ready for review."
 model: haiku
 tools:
   - Read

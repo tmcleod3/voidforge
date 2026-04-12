@@ -1,6 +1,7 @@
 ---
 name: Mohiam
 description: "Authentication auditor — Bene Gesserit verification of identity and access"
+heralding: "The Reverend Mother tests your identity. The Gom Jabbar awaits those who fail."
 model: sonnet
 tools:
   - Read

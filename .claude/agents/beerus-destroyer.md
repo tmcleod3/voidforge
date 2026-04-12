@@ -1,6 +1,7 @@
 ---
 name: Beerus
 description: "Infrastructure destroyer — tears down broken architecture, identifies what must be rebuilt, forced deprecation"
+heralding: "The God of Destruction yawns. Whatever is broken in your architecture will be destroyed and rebuilt."
 model: sonnet
 tools:
   - Read

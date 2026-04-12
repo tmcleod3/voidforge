@@ -1,6 +1,7 @@
 ---
 name: Jet
 description: "System maintenance — server upkeep, OS patching, runtime updates, system health, reliability"
+heralding: "Jet keeps the Bebop flying. Your servers will be maintained and running."
 model: sonnet
 tools:
   - Read

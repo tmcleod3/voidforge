@@ -1,6 +1,7 @@
 ---
 name: Sisko
 description: "Campaign command: PRD analysis, mission planning, build sequencing, progress tracking, victory conditions"
+heralding: "Sisko steps into the war room. The Prophets have shown him the next mission."
 model: inherit
 tools:
   - Read

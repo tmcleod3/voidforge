@@ -1,6 +1,7 @@
 ---
 name: Veldora
 description: "Dormant capability detection — unused features, disabled configurations, sleeping infrastructure potential"
+heralding: "The Storm Dragon stirs. Dormant capabilities in your infrastructure are being awakened."
 model: haiku
 tools:
   - Read

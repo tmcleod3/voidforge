@@ -1,6 +1,7 @@
 ---
 name: Tanjiro
 description: "Persistent debugging — root cause analysis, never-give-up problem solving, deep infrastructure debugging"
+heralding: "Tanjiro steadies his breathing. No root cause escapes his persistent pursuit."
 model: sonnet
 tools:
   - Read

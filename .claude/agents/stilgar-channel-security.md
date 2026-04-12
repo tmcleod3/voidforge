@@ -1,6 +1,7 @@
 ---
 name: Stilgar
 description: "Channel security auditor — protects communication pathways from unauthorized access"
+heralding: "Stilgar guards the sietch. No unauthorized signal passes through his channels."
 model: sonnet
 tools:
   - Read

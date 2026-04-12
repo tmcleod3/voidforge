@@ -1,6 +1,7 @@
 ---
 name: Kohaku
 description: "Rapid response scanning — fast triage, quick health assessment, first-responder infrastructure checks"
+heralding: "Kohaku sprints to the scene. Your infrastructure gets first-responder triage."
 model: haiku
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Uhura
 description: "Integration architecture: API contracts, service boundaries, communication protocols, interface compatibility"
+heralding: "All frequencies open. Uhura ensures every service can communicate flawlessly."
 model: sonnet
 tools:
   - Read

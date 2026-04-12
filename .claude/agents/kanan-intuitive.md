@@ -1,6 +1,7 @@
 ---
 name: Kanan
 description: "Intuitive security sensing — pattern-based threat detection, sees security issues others overlook"
+heralding: "The Force whispers. Kanan senses security threats before they materialize."
 model: sonnet
 tools:
   - Read

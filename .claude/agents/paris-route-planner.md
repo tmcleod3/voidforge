@@ -1,6 +1,7 @@
 ---
 name: Paris
 description: "Route planner: optimal campaign sequences, dependency analysis, fastest safe build path"
+heralding: "Paris plots the course. The fastest safe path through your campaign has been calculated."
 model: sonnet
 tools:
   - Read

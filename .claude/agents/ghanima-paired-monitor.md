@@ -1,6 +1,7 @@
 ---
 name: Ghanima
 description: "Paired system monitor — twin awareness for detecting drift between coupled components"
+heralding: "The twins sense each other. Ghanima detects drift between paired systems."
 model: haiku
 tools:
   - Read

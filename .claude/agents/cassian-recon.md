@@ -1,6 +1,7 @@
 ---
 name: Cassian
 description: "Security reconnaissance — intelligence gathering, hidden threat discovery, pre-audit scanning"
+heralding: "Cassian slips behind enemy lines. Your system's hidden threats are being scouted."
 model: haiku
 tools:
   - Read

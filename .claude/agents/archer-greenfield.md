@@ -1,6 +1,7 @@
 ---
 name: Archer
 description: "Greenfield architecture: first-of-kind systems, technology selection, foundation design for new projects"
+heralding: "Captain Archer launches the expedition. New territory awaits — foundations will be laid."
 model: sonnet
 tools:
   - Read

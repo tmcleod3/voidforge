@@ -1,6 +1,7 @@
 ---
 name: Ezri
 description: "Session analysis: log reading, multi-perspective review, state recovery, context reconstruction"
+heralding: "Ezri reviews the session logs. Multiple perspectives on your state will be reconstructed."
 model: haiku
 tools:
   - Read

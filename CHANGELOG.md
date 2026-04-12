@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.0] - 2026-04-12
+
+### The Personality (ADR-049)
+
+### Added
+- **Agent Heraldings** — every one of 264 agents now has a `heralding:` field in YAML frontmatter. Character-authentic one-liners announced when each agent is deployed. "The Dark Knight descends on your codebase. No bug escapes the night." (Batman) / "Hello there. Kenobi takes the high ground on your security posture." (Kenobi) / "Make it so. Picard takes the bridge — your architecture will be reviewed with authority." (Picard)
+- ADR-049: Agent Heraldings architecture
+
+---
+
 ## [23.7.3] - 2026-04-12
 
 ### Added

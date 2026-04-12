@@ -1,6 +1,7 @@
 ---
 name: Ori
 description: "Prompt crafter — generates image generation prompts from PRD visual descriptions"
+heralding: "Ori opens his book. The perfect image prompt is being composed."
 model: haiku
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Dori
 description: "Integration checker — verifies generated images are wired into components, flags orphaned assets"
+heralding: "Dori checks the packs. Every generated asset will be wired into its component."
 model: haiku
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Fury
 description: "Pipeline orchestration: assembles all agents, manages build phases, coordinates cross-domain reviews, ensures completion"
+heralding: "Fury activates the Initiative. Every agent answers the call."
 model: inherit
 tools:
   - Read

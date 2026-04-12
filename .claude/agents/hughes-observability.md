@@ -1,6 +1,7 @@
 ---
 name: Hughes
 description: "Logging and observability scanning — log format checks, trace configuration, metric endpoint inventory"
+heralding: "Hughes shows you the photos — of your logs. Every trace and metric will be inspected."
 model: haiku
 tools:
   - Read

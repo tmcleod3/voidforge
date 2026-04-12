@@ -1,6 +1,7 @@
 ---
 name: Green Arrow
 description: "Precision targeting specialist — hits the exact bug, pinpoint accuracy, targeted debugging"
+heralding: "Green Arrow nocks an arrow. The exact bug will be pinpointed and struck."
 model: sonnet
 tools:
   - Read

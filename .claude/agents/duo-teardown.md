@@ -1,6 +1,7 @@
 ---
 name: Duo
 description: "Teardown and cleanup scanning — orphan detection, stale resource identification, decommission readiness"
+heralding: "Duo arrives with the Deathscythe. Orphaned resources and stale infrastructure face the reaper."
 model: haiku
 tools:
   - Read

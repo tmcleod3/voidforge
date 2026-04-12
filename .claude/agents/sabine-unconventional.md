@@ -1,6 +1,7 @@
 ---
 name: Sabine
 description: "Unconventional attack vectors — creative security testing, non-standard exploitation techniques"
+heralding: "Sabine paints outside the lines. Your security will be tested from angles nobody expected."
 model: sonnet
 tools:
   - Read

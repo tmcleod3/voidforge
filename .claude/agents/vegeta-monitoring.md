@@ -1,6 +1,7 @@
 ---
 name: Vegeta
 description: "Monitoring and observability — metrics thresholds, alerting rules, dashboard completeness, SLI/SLO validation"
+heralding: "The Prince of all Saiyans reads the power levels. Your monitoring is over 9000."
 model: sonnet
 tools:
   - Read

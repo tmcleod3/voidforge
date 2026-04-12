@@ -1,6 +1,7 @@
 ---
 name: Jake
 description: "Report writing: post-mortem readability, findings synthesis, clear communication for human audiences"
+heralding: "Jake Sisko writes the story. Your post-mortem will be readable by humans."
 model: haiku
 tools:
   - Read

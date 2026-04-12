@@ -1,6 +1,7 @@
 ---
 name: Gohan
 description: "Burst capacity — reserve capacity planning, peak load handling, emergency scaling procedures"
+heralding: "Gohan's hidden power awakens. Your emergency scaling reserves are being activated."
 model: sonnet
 tools:
   - Read

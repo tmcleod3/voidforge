@@ -1,6 +1,7 @@
 ---
 name: Totoro
 description: "Passive monitoring — silent system oversight, ambient health checks, watchful presence, baseline tracking"
+heralding: "Totoro watches silently from the tree. Your system is under the guardian's gentle care."
 model: sonnet
 tools:
   - Read

@@ -1,6 +1,7 @@
 ---
 name: Heero
 description: "Zero-downtime deployment — blue-green, canary releases, traffic shifting, deployment verification"
+heralding: "Mission accepted. Heero initiates zero-downtime deployment."
 model: sonnet
 tools:
   - Read

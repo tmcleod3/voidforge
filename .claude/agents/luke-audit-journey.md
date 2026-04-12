@@ -1,6 +1,7 @@
 ---
 name: Luke
 description: "Full security audit journey — end-to-end security walkthrough following the hero's path"
+heralding: "A farm boy picks up his father's lightsaber. The full security audit journey begins."
 model: sonnet
 tools:
   - Read

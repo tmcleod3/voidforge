@@ -1,6 +1,7 @@
 ---
 name: Janov Pelorat
 description: "Context engineering specialist — RAG pipelines, embeddings, retrieval, and chunking strategies"
+heralding: "Pelorat opens the ancient texts. Your context engineering and retrieval will be scholarly."
 model: sonnet
 tools:
   - Read

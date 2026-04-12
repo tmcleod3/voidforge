@@ -1,6 +1,7 @@
 ---
 name: Grogu
 description: "Tiny vulnerability finder — spots small but real security issues through pattern matching"
+heralding: "Small but mighty. Grogu spots the tiny vulnerabilities that slip through the cracks."
 model: haiku
 tools:
   - Read

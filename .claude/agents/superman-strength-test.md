@@ -1,6 +1,7 @@
 ---
 name: Superman
 description: "Strength testing specialist — unbreakable standards, load resilience, reliability under pressure"
+heralding: "Superman lifts the weight of your entire test suite. Nothing breaks under this pressure."
 model: sonnet
 tools:
   - Read

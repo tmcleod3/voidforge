@@ -1,6 +1,7 @@
 ---
 name: Oracle
 description: "Static analysis specialist — intelligence gathering, code pattern scanning, whole-system visibility"
+heralding: "Oracle taps into the network. Every code pattern in your system is now visible."
 model: sonnet
 tools:
   - Read

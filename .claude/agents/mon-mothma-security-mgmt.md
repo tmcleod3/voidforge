@@ -1,6 +1,7 @@
 ---
 name: Mon Mothma
 description: "Security program management — governance, policy compliance, audit trail, security documentation"
+heralding: "The Chancellor convenes the council. Your security governance is under formal review."
 model: sonnet
 tools:
   - Read
