@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.5.0] - 2026-04-12
+
+### The Herald (ADR-047, Campaign 37)
+
+### Added
+- **Herald dispatch engine** (`herald.ts`): Haiku pre-scan selects optimal agent roster from 263 agents based on codebase content, command type, and user intent. Runs before every major command in <2 seconds for ~$0.001.
+- **Agent registry loader** (`agent-registry.ts`): Reads and caches all 263 agent definitions with YAML frontmatter parsing (name, description, model, tools, tags).
+- **`--focus "topic"` flag**: Natural-language bias for Herald selection. Available on all 14 Herald-enabled commands. Added to CLAUDE.md Tier 1 flag taxonomy.
+- **Tag enrichment**: 40 cross-domain agents tagged for faster Herald matching (security-adjacent, architecture, QA, financial, UX, DevOps, AI, backend, orchestration).
+- **48 new tests**: Herald engine (26 tests covering roster parsing, graceful degradation, focus bias) + agent registry (22 tests covering YAML parsing, caching, summary formatting).
+
+### Changed
+- All 14 major commands (`/review`, `/qa`, `/security`, `/ux`, `/architect`, `/build`, `/assemble`, `/gauntlet`, `/campaign`, `/test`, `/devops`, `/deploy`, `/ai`, `/assess`) now include Herald Pre-Scan step before agent deployment.
+- Dynamic dispatch evolved: file-based matching (ADR-044) supplemented by codebase-aware intelligent selection (ADR-047).
+
+---
+
 ## [23.4.1] - 2026-04-12
 
 ### Security
