@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.7.1] - 2026-04-12
+
+### Changed
+- **Silver Surfer launches as a real Agent sub-process** — no longer shells out to CLI. Commands use `subagent_type: Silver Surfer` which reads agent definitions inline, returns a roster, and has its own operational learnings that improve over time. This is mandatory on every major command — not optional, not skippable.
+- Silver Surfer agent upgraded from Haiku to Sonnet tier (needs to read and reason about agent descriptions, not just classify)
+
+---
+
 ## [23.7.0] - 2026-04-12
 
 ### The Decount — Dynamic Agent References

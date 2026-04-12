@@ -15,16 +15,15 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 ## Silver Surfer Pre-Scan (ADR-048)
 
-Before agent deployment, the Silver Surfer selects the optimal roster:
+**MANDATORY.** Before deploying any domain agents, launch **Silver Surfer** `subagent_type: Silver Surfer` as a sub-agent. The Surfer reads all agent definitions, assesses the codebase, and returns the optimal roster for this command. This is not optional — skipping the Surfer means the command uses a generic team instead of one tailored to the codebase.
 
-Run: `npx thevoidforge herald --command /assemble --json`
-(Add `--focus "<topic>"` if the user provided `--focus`)
+**Prompt the Surfer with:** "Command: /assemble. User args: <user's arguments>. Focus: <focus if provided, otherwise 'none'>. Select the optimal agent roster."
 
-Parse the JSON output. The `roster` array contains agent IDs to deploy alongside this command's lead agents. If the command fails or returns an empty roster, use the hardcoded manifest below.
+**Merge the Surfer's roster** with this command's hardcoded lead agents below. Leads are non-negotiable; the Surfer adds specialists.
 
-**`--focus "topic"`** biases the Surfer toward agents matching the topic.
-**`--light`** skips the Surfer — uses only hardcoded core roster.
-**`--solo`** skips Surfer and all sub-agents — lead only.
+**`--focus "topic"`** — pass to the Surfer as the focus bias.
+**`--light`** — skip the Surfer, use only hardcoded roster below.
+**`--solo`** — skip Surfer and all sub-agents, lead only.
 
 ## Agent Deployment Manifest — The Full Initiative
 
