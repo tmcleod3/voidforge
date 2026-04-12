@@ -8,7 +8,7 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
-**Promoted agent:** **Constantine** `subagent_type: constantine-cursed-code` runs on every `/qa` final pass — finds code that works by accident.
+**Promoted agent:** **Constantine** `subagent_type: Constantine` runs on every `/qa` final pass — finds code that works by accident.
 
 ## Herald Pre-Scan (ADR-047)
 
@@ -36,22 +36,22 @@ Before agent deployment, run the Herald to select the optimal roster:
 2. Create `/logs/phase-09-qa-audit.md` (or appropriate phase log)
 
 ## Step 1 — Attack Plan
-**Green Lantern** `subagent_type: green-lantern-scenarios` generates the test matrix first — what inputs x what states x what conditions should be tested. Then assign targets:
-- **Oracle** `subagent_type: oracle-static-analysis` — Static: critical flows, missing awaits, null checks, type mismatches, race conditions.
-- **Red Hood** `subagent_type: red-hood-aggressive` — Dynamic: empty/huge/unicode inputs, network failures, malformed JSON, rapid clicking.
-- **Alfred** `subagent_type: alfred-dependencies` — Dependencies: `npm audit`, outdated libs, deprecated APIs, version conflicts.
-- **Lucius** `subagent_type: lucius-config` — Config: .env completeness, secrets not in git, prod vs dev mismatches.
-- **Deathstroke** `subagent_type: deathstroke-adversarial` — Adversarial: bypass validations, chain interactions, exploit business logic.
-- **Constantine** `subagent_type: constantine-cursed-code` — Cursed code: unreachable branches, dead state, impossible conditions, accidental correctness.
-- **Cyborg** `subagent_type: cyborg-system-integration` — Integration: trace full data path across 3+ module boundaries, inconsistent response shapes.
-- **Raven** `subagent_type: raven-deep-analysis` — Deep analysis: bugs hidden beneath 3 layers of abstraction, logic correct per function but wrong in composition.
-- **Wonder Woman** `subagent_type: wonder-woman-truth` — Truth: code that says one thing and does another, misleading names, stale docs.
+**Green Lantern** `subagent_type: Green Lantern` generates the test matrix first — what inputs x what states x what conditions should be tested. Then assign targets:
+- **Oracle** `subagent_type: Oracle` — Static: critical flows, missing awaits, null checks, type mismatches, race conditions.
+- **Red Hood** `subagent_type: Red Hood` — Dynamic: empty/huge/unicode inputs, network failures, malformed JSON, rapid clicking.
+- **Alfred** `subagent_type: Alfred` — Dependencies: `npm audit`, outdated libs, deprecated APIs, version conflicts.
+- **Lucius** `subagent_type: Lucius` — Config: .env completeness, secrets not in git, prod vs dev mismatches.
+- **Deathstroke** `subagent_type: Deathstroke` — Adversarial: bypass validations, chain interactions, exploit business logic.
+- **Constantine** `subagent_type: Constantine` — Cursed code: unreachable branches, dead state, impossible conditions, accidental correctness.
+- **Cyborg** `subagent_type: Cyborg` — Integration: trace full data path across 3+ module boundaries, inconsistent response shapes.
+- **Raven** `subagent_type: Raven` — Deep analysis: bugs hidden beneath 3 layers of abstraction, logic correct per function but wrong in composition.
+- **Wonder Woman** `subagent_type: Wonder Woman` — Truth: code that says one thing and does another, misleading names, stale docs.
 
 ## Step 2 — Baseline
 Get the project running. Verify manually: app starts, primary flow works, auth works (if applicable), data persists, error states display.
 
 ## Step 2.5 — Smoke Tests
-After build + restart, **Flash** `subagent_type: flash-rapid-test` parallelizes curl commands against the running server for each new or modified feature:
+After build + restart, **Flash** `subagent_type: Flash` parallelizes curl commands against the running server for each new or modified feature:
 - **Primary user flow:** Execute via curl/fetch against localhost — verify the end-to-end path works
 - **File uploads:** Upload a file, then fetch the returned URL and verify HTTP 200 + correct content-type
 - **Form submissions:** Submit valid data (verify 200), then submit invalid/duplicate data (verify error message is specific, not generic)
@@ -62,20 +62,20 @@ This catches integration failures that static code review misses. If the server 
 
 ## Step 3 — Pass 1: Find Bugs (parallel analysis)
 Use the Agent tool to run these in parallel — these are read-only analysis tasks:
-- **Agent 1** `subagent_type: oracle-static-analysis` — Scan /src/lib/ and /src/app/ for logic flaws, missing awaits, unsafe assumptions.
-- **Agent 2** `subagent_type: red-hood-aggressive` — Test all API endpoints with malformed inputs, empty bodies, missing auth.
-- **Agent 3** `subagent_type: alfred-dependencies` — Run `npm audit`, check package.json for deprecated/vulnerable packages.
-- **Agent 4** `subagent_type: deathstroke-adversarial` — Adversarial probing: bypass validations, chain unexpected interactions, test authorization boundaries.
-- **Agent 5** `subagent_type: constantine-cursed-code` — Hunt cursed code: dead branches, impossible conditions, accidental correctness, shadowed variables.
-- **Agent 6** `subagent_type: batgirl-detail` — Deep per-module audit: every edge of every form, every boundary of every validation, every regex. Not broad -- *thorough*.
-- **Agent 7** `subagent_type: aquaman-deep-dive` — Deep dive on the hardest/largest module (500+ lines or 10+ functions). Exhaustive testing of one complex area.
+- **Agent 1** `subagent_type: Oracle` — Scan /src/lib/ and /src/app/ for logic flaws, missing awaits, unsafe assumptions.
+- **Agent 2** `subagent_type: Red Hood` — Test all API endpoints with malformed inputs, empty bodies, missing auth.
+- **Agent 3** `subagent_type: Alfred` — Run `npm audit`, check package.json for deprecated/vulnerable packages.
+- **Agent 4** `subagent_type: Deathstroke` — Adversarial probing: bypass validations, chain unexpected interactions, test authorization boundaries.
+- **Agent 5** `subagent_type: Constantine` — Hunt cursed code: dead branches, impossible conditions, accidental correctness, shadowed variables.
+- **Agent 6** `subagent_type: Batgirl` — Deep per-module audit: every edge of every form, every boundary of every validation, every regex. Not broad -- *thorough*.
+- **Agent 7** `subagent_type: Aquaman` — Deep dive on the hardest/largest module (500+ lines or 10+ functions). Exhaustive testing of one complex area.
 
 Synthesize findings from all agents into a unified list.
 
-**Lucius** `subagent_type: lucius-config` reviews config separately (reads .env files -- sensitive, don't delegate to sub-agent).
+**Lucius** `subagent_type: Lucius` reviews config separately (reads .env files -- sensitive, don't delegate to sub-agent).
 
 ## Step 3.5 — Automated Tests
-Run `npm test`. Analyze failures. Cross-reference with findings from Step 3. **Huntress** `subagent_type: huntress-flaky-bugs` identifies flaky/non-deterministic tests — race conditions, timing dependencies, order-dependent assertions. For every bug found, ask: "Can this be caught by an automated test?" If yes, write the test.
+Run `npm test`. Analyze failures. Cross-reference with findings from Step 3. **Huntress** `subagent_type: Huntress` identifies flaky/non-deterministic tests — race conditions, timing dependencies, order-dependent assertions. For every bug found, ask: "Can this be caught by an automated test?" If yes, write the test.
 
 ## Step 4 — Bug Tracker
 Log all findings in this format in the phase log:
@@ -88,25 +88,25 @@ Severity: Critical (security/data loss) > High (broken flow) > Medium (degraded)
 **Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, launch a second agent from a different universe (e.g., if Oracle found it, escalate to Spock or Kenobi) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 6.5.
 
 ## Step 5 — Fix (small batches)
-One batch = fixes for one area or severity level. **Green Arrow** `subagent_type: green-arrow-precision` narrows vague findings to exact lines and conditions. After each batch:
+One batch = fixes for one area or severity level. **Green Arrow** `subagent_type: Green Arrow` narrows vague findings to exact lines and conditions. After each batch:
 1. Re-run `npm test`
 2. Re-verify affected manual flows
 3. Update bug tracker in phase log
 4. Add new test for each fix where applicable
 
 ## Step 6 — Harden
-Normalize error handling (reference `/docs/patterns/error-handling.ts`). Add guardrails. Improve structured logging. **Superman** `subagent_type: superman-strength-test` verifies the codebase meets its own stated standards — linting clean, type-safe, naming conventions consistent, no unresolved TODOs.
+Normalize error handling (reference `/docs/patterns/error-handling.ts`). Add guardrails. Improve structured logging. **Superman** `subagent_type: Superman` verifies the codebase meets its own stated standards — linting clean, type-safe, naming conventions consistent, no unresolved TODOs.
 
 ## Step 6.5 — Pass 2: Re-Verify Fixes
 After all fixes are applied, run a verification pass:
-- **Nightwing** `subagent_type: nightwing-regression` re-runs full test suite, reports any new failures
-- **Red Hood** `subagent_type: red-hood-aggressive` re-probes fixed areas — verify fixes hold under adversarial input
-- **Deathstroke** `subagent_type: deathstroke-adversarial` re-tests authorization boundaries and business logic exploits that were remediated
+- **Nightwing** `subagent_type: Nightwing` re-runs full test suite, reports any new failures
+- **Red Hood** `subagent_type: Red Hood` re-probes fixed areas — verify fixes hold under adversarial input
+- **Deathstroke** `subagent_type: Deathstroke` re-tests authorization boundaries and business logic exploits that were remediated
 
 If Pass 2 finds new issues, fix and re-verify until clean.
 
 ## Step 7 — Regression Checklist
-**Nightwing** `subagent_type: nightwing-regression` builds the checklist. Template:
+**Nightwing** `subagent_type: Nightwing` builds the checklist. Template:
 
 | # | Flow | Steps | Expected | Status |
 |---|------|-------|----------|--------|

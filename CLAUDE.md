@@ -255,4 +255,4 @@ The agents, characters, and personality are VoidForge's identity — they ship i
 
 ## How to Build
 
-Read the PRD. Run `/build`. Or see `/docs/methods/BUILD_PROTOCOL.md`.
+Read the PRD. Run `/campaign` to build the entire PRD mission by mission. For a single feature, use `/assemble`. For manual batch control, use `/build`.

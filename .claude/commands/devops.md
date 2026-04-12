@@ -28,27 +28,27 @@ Before agent deployment, run the Herald to select the optimal roster:
 
 ## Agent Deployment Manifest
 
-**Lead:** Kusanagi (`subagent_type: kusanagi-devops`)
+**Lead:** Kusanagi (`subagent_type: Kusanagi`)
 
 **Core team (always deployed):**
-- **Senku** (`subagent_type: senku-provisioning`) — provisioning: server setup, dependencies, runtime, idempotent scripts
-- **Levi** (`subagent_type: levi-deploy`) — deployment: process management, zero-downtime, rollback scripts
-- **Spike** (`subagent_type: spike-routing`) — networking: reverse proxy, DNS, TLS, firewall, CORS headers
+- **Senku** (`subagent_type: Senku`) — provisioning: server setup, dependencies, runtime, idempotent scripts
+- **Levi** (`subagent_type: Levi`) — deployment: process management, zero-downtime, rollback scripts
+- **Spike** (`subagent_type: Spike`) — networking: reverse proxy, DNS, TLS, firewall, CORS headers
 - **L** — monitoring: health checks, uptime, alerting, log aggregation (honorary — no agent definition)
-- **Bulma** (`subagent_type: bulma-engineering`) — backup: database dumps, file backup, retention, restore testing
+- **Bulma** (`subagent_type: Bulma`) — backup: database dumps, file backup, retention, restore testing
 - **Holo** — cost: resource sizing, instance selection, cost estimation, optimization (honorary — no agent definition)
 
 **Extended team (deployed on full infra reviews):**
-- **Valkyrie** (`subagent_type: valkyrie-recovery`) — disaster recovery: failover, data center redundancy, RTO/RPO
-- **Vegeta** (`subagent_type: vegeta-monitoring`) — scaling: horizontal scaling, load balancing, auto-scaling policies
-- **Trunks** (`subagent_type: trunks-rollback`) — migration: database migration strategy, zero-downtime schema changes
-- **Mikasa** (`subagent_type: mikasa-protection`) — security hardening: SSH config, fail2ban, unattended upgrades
-- **Erwin** (`subagent_type: erwin-strategy`) — strategy: multi-environment management, staging/production parity
-- **Mustang** (`subagent_type: mustang-cleanup`) — orchestration: Docker Compose, container networking, service discovery
-- **Olivier** (`subagent_type: olivier-hardening`) — cold region: CDN configuration, edge caching, geographic distribution
-- **Hughes** (`subagent_type: hughes-observability`) — documentation: runbook writing, infrastructure diagrams, onboarding docs
-- **Calcifer** (`subagent_type: calcifer-daemon`) — energy: resource efficiency, idle scaling, sleep/wake optimization
-- **Duo** (`subagent_type: duo-teardown`) — CI/CD: GitHub Actions, pipeline design, automated testing in deploy
+- **Valkyrie** (`subagent_type: Valkyrie`) — disaster recovery: failover, data center redundancy, RTO/RPO
+- **Vegeta** (`subagent_type: Vegeta`) — scaling: horizontal scaling, load balancing, auto-scaling policies
+- **Trunks** (`subagent_type: Trunks`) — migration: database migration strategy, zero-downtime schema changes
+- **Mikasa** (`subagent_type: Mikasa`) — security hardening: SSH config, fail2ban, unattended upgrades
+- **Erwin** (`subagent_type: Erwin`) — strategy: multi-environment management, staging/production parity
+- **Mustang** (`subagent_type: Mustang`) — orchestration: Docker Compose, container networking, service discovery
+- **Olivier** (`subagent_type: Olivier`) — cold region: CDN configuration, edge caching, geographic distribution
+- **Hughes** (`subagent_type: Hughes`) — documentation: runbook writing, infrastructure diagrams, onboarding docs
+- **Calcifer** (`subagent_type: Calcifer`) — energy: resource efficiency, idle scaling, sleep/wake optimization
+- **Duo** (`subagent_type: Duo`) — CI/CD: GitHub Actions, pipeline design, automated testing in deploy
 
 ## Deploy Target Branching
 

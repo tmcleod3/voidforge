@@ -40,8 +40,8 @@ Run `/gauntlet --assess` — Rounds 1-2 only (Discovery + First Strike). No fix 
 
 ### Step 3 — PRD Gap Analysis
 If a PRD exists:
-1. **Dax** `subagent_type: dax-legacy-wisdom` diffs PRD requirements against implemented features (structural + semantic)
-2. **Troi** `subagent_type: troi-prd-compliance` reads PRD prose section-by-section and verifies claims against reality
+1. **Dax** `subagent_type: Dax` diffs PRD requirements against implemented features (structural + semantic)
+2. **Troi** `subagent_type: Troi` reads PRD prose section-by-section and verifies claims against reality
 3. Check for YAML frontmatter — if missing, flag it (see CAMPAIGN.md Step 1)
 
 If no PRD exists:

@@ -7,8 +7,8 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
 **Promoted agents:**
-- **Troi** `subagent_type: troi-prd-compliance` runs after every build mission completion — catches PRD drift before it compounds.
-- **Riker** `subagent_type: riker-review` runs whenever an ADR is written during the build — prevents rubber-stamped decisions.
+- **Troi** `subagent_type: Troi` runs after every build mission completion — catches PRD drift before it compounds.
+- **Riker** `subagent_type: Riker` runs whenever an ADR is written during the build — prevents rubber-stamped decisions.
 
 ## Herald Pre-Scan (ADR-047)
 
@@ -36,7 +36,7 @@ Before agent deployment, run the Herald to select the optimal roster:
 4. Extract from PRD: tech stack, database schema, API routes, page routes, integrations, env vars
 5. Read `/docs/LESSONS.md` — check for relevant lessons from previous projects. If any lessons match this project's tech stack (framework, database, auth, integrations), note them: "Lessons from prior builds: [list relevant ones]." These inform later phases — e.g., if a lesson says "React useEffect render loops escape review," trace render cycles proactively in Phase 4+.
 6. Flag any gaps or ambiguities — list them explicitly, don't guess
-7. **Troi** `subagent_type: troi-prd-compliance` confirms PRD extraction: reads the PRD prose and verifies the extraction matches — catches misinterpretations before 8+ build phases propagate them.
+7. **Troi** `subagent_type: Troi` confirms PRD extraction: reads the PRD prose and verifies the extraction matches — catches misinterpretations before 8+ build phases propagate them.
 8. **Save PRD snapshot:** Copy `/docs/PRD.md` to `/docs/PRD-snapshot-phase0.md`. This is the baseline for drift detection — the Living PRD feature compares the evolving PRD against this snapshot at phase gates and at Victory.
 9. Write initial ADRs to `/docs/adrs/`
 10. Create `/logs/build-state.md` and `/logs/phase-00-orient.md` with extraction results + relevant lessons

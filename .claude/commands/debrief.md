@@ -7,7 +7,7 @@ Bashir examines the patient. Time to diagnose.
 
 ## Step 0 — Reconstruct the Timeline
 
-**Ezri** `subagent_type: ezri-session-analyst` reads the session's history and reconstructs what happened:
+**Ezri** `subagent_type: Ezri` reads the session's history and reconstructs what happened:
 
 1. Read all `/logs/` files — build state, assemble state, campaign state, phase logs
 2. Read `git log` — all commits from this session/campaign
@@ -20,7 +20,7 @@ Default: auto-detect scope from available logs.
 
 ## Step 1 — Investigate Root Causes
 
-**O'Brien** `subagent_type: obrien-root-cause` investigates. For each failure, difficulty, or retry identified by Ezri:
+**O'Brien** `subagent_type: O'Brien` investigates. For each failure, difficulty, or retry identified by Ezri:
 
 Classify the root cause:
 - **Methodology gap** — missing step, wrong order, blind spot in the protocol
@@ -34,7 +34,7 @@ Map each root cause to the VoidForge component responsible (which command, which
 
 ## Step 2 — Propose Solutions
 
-**Nog** `subagent_type: nog-solutions` proposes a fix for each root cause that works within VoidForge's existing framework:
+**Nog** `subagent_type: Nog` proposes a fix for each root cause that works within VoidForge's existing framework:
 
 - New agent? → name it from the correct universe, define the role
 - New step in existing command? → specify where it goes in the sequence
@@ -56,7 +56,7 @@ Approved entries written to `docs/LEARNINGS.md` (created on first use). Hard cap
 
 ## Step 2.5b — Promotion Analysis
 
-After extraction, **Wong** `subagent_type: wong-documentation` checks `docs/LESSONS.md` for lesson clusters AND checks `docs/LEARNINGS.md` for promotable entries (appeared in 2+ projects):
+After extraction, **Wong** `subagent_type: Wong` checks `docs/LESSONS.md` for lesson clusters AND checks `docs/LEARNINGS.md` for promotable entries (appeared in 2+ projects):
 - If 3+ lessons share the same category AND target the same method doc → Wong drafts a specific method doc update
 - Present for user approval: "Wong recommends promoting these lessons into [method doc] [section]: [proposed text]. Approve?"
 - If approved: apply the change, mark lessons as "Promoted to: [doc]" in LESSONS.md
@@ -64,7 +64,7 @@ After extraction, **Wong** `subagent_type: wong-documentation` checks `docs/LESS
 
 ## Step 3 — Write the Report
 
-**Jake** `subagent_type: jake-reporter` produces a structured post-mortem:
+**Jake** `subagent_type: Jake` produces a structured post-mortem:
 
 ```markdown
 # Field Report — [Project Name]

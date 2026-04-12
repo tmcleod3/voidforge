@@ -32,26 +32,26 @@ Before agent deployment, run the Herald to select the optimal roster:
 
 ### Phase 0.5 — First Strike
 Before the deep audits, two agents do fast recon:
-- **Han** `subagent_type: han-vuln-hunter` — Quick OWASP top 10 scan: finds the obvious vulnerabilities that shouldn't require deep analysis. Shoots first.
-- **Cassian** `subagent_type: cassian-recon` — Threat modeling and attack surface mapping: all endpoints, high-value targets, threat model that guides the rest of the audit.
+- **Han** `subagent_type: Han` — Quick OWASP top 10 scan: finds the obvious vulnerabilities that shouldn't require deep analysis. Shoots first.
+- **Cassian** `subagent_type: Cassian` — Threat modeling and attack surface mapping: all endpoints, high-value targets, threat model that guides the rest of the audit.
 
 ### Phase 1 — Independent audits (parallel analysis)
 Use the Agent tool to run these simultaneously — all are read-only analysis:
-- **Agent 1** `subagent_type: leia-secrets` — Secrets: scan for hardcoded secrets, verify .env gitignored, check git history for leaked keys, verify different secrets dev/prod.
-- **Agent 2** `subagent_type: chewie-dependency-audit` — Dependencies: `npm audit`, critical/high vulns, lock file committed, deprecated packages.
-- **Agent 3** `subagent_type: rex-infrastructure` + `bo-katan-perimeter` — Infrastructure + perimeter: security headers (HSTS, CSP, X-Frame-Options, CORS), TLS config, exposed ports/debug endpoints, firewall rules, CORS enforcement.
-- **Agent 4** `subagent_type: maul-red-team` — Red team: exploit each endpoint/flow, chain vulnerabilities, test trust boundaries, attempt privilege escalation. **RUNTIME EXPLOITATION (mandatory):** Execute actual attack requests via curl/fetch -- not just theorize.
+- **Agent 1** `subagent_type: Leia` — Secrets: scan for hardcoded secrets, verify .env gitignored, check git history for leaked keys, verify different secrets dev/prod.
+- **Agent 2** `subagent_type: Chewie` — Dependencies: `npm audit`, critical/high vulns, lock file committed, deprecated packages.
+- **Agent 3** `subagent_type: Rex` + `bo-katan-perimeter` — Infrastructure + perimeter: security headers (HSTS, CSP, X-Frame-Options, CORS), TLS config, exposed ports/debug endpoints, firewall rules, CORS enforcement.
+- **Agent 4** `subagent_type: Maul` — Red team: exploit each endpoint/flow, chain vulnerabilities, test trust boundaries, attempt privilege escalation. **RUNTIME EXPLOITATION (mandatory):** Execute actual attack requests via curl/fetch -- not just theorize.
 
 ### Phase 2 — Sequential audits (depend on understanding the codebase)
 These require full codebase context — run sequentially:
 
-- **Yoda** `subagent_type: yoda-auth` — Auth: password hashing (bcrypt >= 12 rounds), session management (httpOnly/secure/sameSite), OAuth (state param, redirect whitelist), reset tokens (single-use, expiring, rate limited). Reference `/docs/patterns/middleware.ts`.
-- **Windu** `subagent_type: windu-input-validation` — Input: SQL injection (parameterized queries), XSS (escaped output, CSP), SSRF (URL allowlist), command injection, path traversal.
-- **Ahsoka** `subagent_type: ahsoka-access-control` — Access control: IDOR checks, UUIDs not sequential IDs, server-side admin/tier verification, rate limiting. **AUTH CHAIN TRACING (mandatory):** Trace the full chain from middleware registration through service to DB query. Reference `/docs/patterns/multi-tenant.ts`.
-- **Padme** `subagent_type: padme-data-protection` — Data protection: PII catalog, PII not in logs/errors/URLs, GDPR deletion, encrypted backups.
-- **Qui-Gon** `subagent_type: qui-gon-subtle-vulns` — Subtle vulnerabilities: timing attacks, race conditions in auth flows, logic errors that pass standard checks.
-- **Sabine** `subagent_type: sabine-unconventional` — (conditional) Unconventional: supply chain attacks, dependency confusion, prototype pollution, CSP bypass via CDN.
-- **Bail Organa** `subagent_type: bail-organa-governance` — (conditional) Governance: GDPR data handling, SOC2 controls, HIPAA mapping.
+- **Yoda** `subagent_type: Yoda` — Auth: password hashing (bcrypt >= 12 rounds), session management (httpOnly/secure/sameSite), OAuth (state param, redirect whitelist), reset tokens (single-use, expiring, rate limited). Reference `/docs/patterns/middleware.ts`.
+- **Windu** `subagent_type: Windu` — Input: SQL injection (parameterized queries), XSS (escaped output, CSP), SSRF (URL allowlist), command injection, path traversal.
+- **Ahsoka** `subagent_type: Ahsoka` — Access control: IDOR checks, UUIDs not sequential IDs, server-side admin/tier verification, rate limiting. **AUTH CHAIN TRACING (mandatory):** Trace the full chain from middleware registration through service to DB query. Reference `/docs/patterns/multi-tenant.ts`.
+- **Padme** `subagent_type: Padme` — Data protection: PII catalog, PII not in logs/errors/URLs, GDPR deletion, encrypted backups.
+- **Qui-Gon** `subagent_type: Qui-Gon` — Subtle vulnerabilities: timing attacks, race conditions in auth flows, logic errors that pass standard checks.
+- **Sabine** `subagent_type: Sabine` — (conditional) Unconventional: supply chain attacks, dependency confusion, prototype pollution, CSP bypass via CDN.
+- **Bail Organa** `subagent_type: Bail Organa` — (conditional) Governance: GDPR data handling, SOC2 controls, HIPAA mapping.
 
 ### Phase 3 — Remediate
 Write all findings to `/logs/phase-11-security-audit.md` (or appropriate phase log):
@@ -71,9 +71,9 @@ Fix critical and high findings immediately. Medium findings get tracked. For eac
 
 ### Phase 4 — Re-Verification
 After remediations are applied:
-- **Maul** `subagent_type: maul-red-team` re-probes all remediated vulnerabilities — verify fixes hold under adversarial conditions. Execute actual HTTP requests against the running server.
-- **Anakin** `subagent_type: anakin-dark-side` attempts to bypass remediations using dark-side techniques — JWT algorithm confusion, auth library edge cases, prototype pollution, framework misuse.
-- **Din Djarin** `subagent_type: din-djarin-bounty` bounty-hunts for anything Maul and Anakin missed — post-remediation sweep.
+- **Maul** `subagent_type: Maul` re-probes all remediated vulnerabilities — verify fixes hold under adversarial conditions. Execute actual HTTP requests against the running server.
+- **Anakin** `subagent_type: Anakin` attempts to bypass remediations using dark-side techniques — JWT algorithm confusion, auth library edge cases, prototype pollution, framework misuse.
+- **Din Djarin** `subagent_type: Din Djarin` bounty-hunts for anything Maul and Anakin missed — post-remediation sweep.
 
 If any agent finds new issues, fix and re-verify until clean.
 

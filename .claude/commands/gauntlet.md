@@ -36,11 +36,11 @@ Before agent deployment, run the Herald to select the optimal roster:
 
 Use the Agent tool to run all five in parallel — these are read-only analysis:
 
-- **Agent 1** `subagent_type: picard-architecture` — Schema review, service boundaries, dependency graph, scaling assessment. Read the full `/architect` protocol but produce findings only (no ADRs — this is review, not design).
-- **Agent 2** `subagent_type: stark-backend` — Pattern compliance, logic errors, type safety, cross-module data flow tracing. Read `/review` protocol. One pass across all source files.
-- **Agent 3** `subagent_type: galadriel-frontend` — Product surface map, usability walkthrough (Step 1.5), Éowyn's enchantment scan (Step 1.75). No fixes yet — discovery only.
-- **Agent 4** `subagent_type: kenobi-security` — List all endpoints, WebSocket handlers, file I/O, credential access points, user input parsing. Classify each by risk tier. No deep audit yet — just the map.
-- **Agent 5** `subagent_type: kusanagi-devops` — Scan deploy scripts, generated configs, provisioning scripts, CI/CD templates. Classify each by risk: hardcoded credentials, open ports, missing auth on generated services. No deep audit yet — just the map.
+- **Agent 1** `subagent_type: Picard` — Schema review, service boundaries, dependency graph, scaling assessment. Read the full `/architect` protocol but produce findings only (no ADRs — this is review, not design).
+- **Agent 2** `subagent_type: Stark` — Pattern compliance, logic errors, type safety, cross-module data flow tracing. Read `/review` protocol. One pass across all source files.
+- **Agent 3** `subagent_type: Galadriel` — Product surface map, usability walkthrough (Step 1.5), Éowyn's enchantment scan (Step 1.75). No fixes yet — discovery only.
+- **Agent 4** `subagent_type: Kenobi` — List all endpoints, WebSocket handlers, file I/O, credential access points, user input parsing. Classify each by risk tier. No deep audit yet — just the map.
+- **Agent 5** `subagent_type: Kusanagi` — Scan deploy scripts, generated configs, provisioning scripts, CI/CD templates. Classify each by risk: hardcoded credentials, open ports, missing auth on generated services. No deep audit yet — just the map.
 
 Synthesize all five into a unified findings list. Log to `/logs/gauntlet-round-1.md`.
 
@@ -50,10 +50,10 @@ Synthesize all five into a unified findings list. Log to `/logs/gauntlet-round-1
 
 Use the Agent tool to run all four in parallel — full domain audits:
 
-- **Agent 1** `subagent_type: batman-qa` — Run the complete `/qa` protocol. Oracle + Red Hood + Alfred + Deathstroke + Constantine + Nightwing + Lucius. Every edge case, every error state, every boundary.
-- **Agent 2** `subagent_type: galadriel-frontend` — Run the complete `/ux` protocol. Elrond + Arwen + Samwise + Bilbo + Legolas + Gimli + Radagast + Éowyn. Usability, visual, a11y, copy, performance, edge cases, enchantment.
-- **Agent 3** `subagent_type: kenobi-security` — Run the complete `/security` protocol. Leia + Chewie + Rex + Maul parallel scans, then Yoda → Windu → Ahsoka → Padmé sequential audits.
-- **Agent 4** `subagent_type: stark-backend` — For every API endpoint, trace the full data path: client request → validation → service → database → response. For every file upload, trace: upload → storage → retrieval → display. For every credential, trace: entry → vault → usage → cleanup.
+- **Agent 1** `subagent_type: Batman` — Run the complete `/qa` protocol. Oracle + Red Hood + Alfred + Deathstroke + Constantine + Nightwing + Lucius. Every edge case, every error state, every boundary.
+- **Agent 2** `subagent_type: Galadriel` — Run the complete `/ux` protocol. Elrond + Arwen + Samwise + Bilbo + Legolas + Gimli + Radagast + Éowyn. Usability, visual, a11y, copy, performance, edge cases, enchantment.
+- **Agent 3** `subagent_type: Kenobi` — Run the complete `/security` protocol. Leia + Chewie + Rex + Maul parallel scans, then Yoda → Windu → Ahsoka → Padmé sequential audits.
+- **Agent 4** `subagent_type: Stark` — For every API endpoint, trace the full data path: client request → validation → service → database → response. For every file upload, trace: upload → storage → retrieval → display. For every credential, trace: entry → vault → usage → cleanup.
 
 Merge all findings. Deduplicate across domains.
 
@@ -76,10 +76,10 @@ This catches runtime bugs invisible to static analysis: IPv6 binding, native mod
 
 Use the Agent tool to run all four in parallel — targeted re-verification:
 
-- **Agent 1** `subagent_type: batman-qa` — Nightwing re-runs the test suite. Red Hood re-probes fixed areas. Deathstroke tests new boundaries created by the fixes. Focus on regressions.
-- **Agent 2** `subagent_type: galadriel-frontend` — Samwise re-audits a11y on all modified components. Radagast re-checks edge cases on fixed flows. Bilbo re-checks microcopy on any changed UI.
-- **Agent 3** `subagent_type: kenobi-security` — Maul re-probes all remediated vulnerabilities. Ahsoka verifies access control across every role boundary. Padmé verifies the primary user flow still works (critical path smoke test).
-- **Agent 4** `subagent_type: kusanagi-devops` — Run the complete `/devops` protocol with full team: Senku (provisioning), Levi (deploy), Spike (networking), L (monitoring), Bulma (backup), Holo (cost), Valkyrie (disaster recovery). Deploy scripts, monitoring, backups, health checks, page weight gate, security headers.
+- **Agent 1** `subagent_type: Batman` — Nightwing re-runs the test suite. Red Hood re-probes fixed areas. Deathstroke tests new boundaries created by the fixes. Focus on regressions.
+- **Agent 2** `subagent_type: Galadriel` — Samwise re-audits a11y on all modified components. Radagast re-checks edge cases on fixed flows. Bilbo re-checks microcopy on any changed UI.
+- **Agent 3** `subagent_type: Kenobi` — Maul re-probes all remediated vulnerabilities. Ahsoka verifies access control across every role boundary. Padmé verifies the primary user flow still works (critical path smoke test).
+- **Agent 4** `subagent_type: Kusanagi` — Run the complete `/devops` protocol with full team: Senku (provisioning), Levi (deploy), Spike (networking), L (monitoring), Bulma (backup), Holo (cost), Valkyrie (disaster recovery). Deploy scripts, monitoring, backups, health checks, page weight gate, security headers.
 
 **→ FIX BATCH 2:** Fix remaining findings.
 
@@ -89,11 +89,11 @@ Use the Agent tool to run all four in parallel — targeted re-verification:
 
 Use the Agent tool to run all five in parallel — pure adversarial:
 
-- `subagent_type: maul-red-team` — Attacks code that passed /review. Looks for exploits in "clean" code.
-- `subagent_type: deathstroke-adversarial` — Probes endpoints that /security hardened. Tests if remediations can be bypassed.
-- `subagent_type: loki-chaos` — Chaos-tests features that /qa cleared. What breaks under unexpected conditions?
-- `subagent_type: constantine-cursed-code` — Hunts cursed code in FIXED areas specifically. Code that only works by accident.
-- `subagent_type: eowyn-delight` — Final enchantment pass on the polished, hardened product. Where can delight still be added without compromising security or stability?
+- `subagent_type: Maul` — Attacks code that passed /review. Looks for exploits in "clean" code.
+- `subagent_type: Deathstroke` — Probes endpoints that /security hardened. Tests if remediations can be bypassed.
+- `subagent_type: Loki` — Chaos-tests features that /qa cleared. What breaks under unexpected conditions?
+- `subagent_type: Constantine` — Hunts cursed code in FIXED areas specifically. Code that only works by accident.
+- `subagent_type: Eowyn` — Final enchantment pass on the polished, hardened product. Where can delight still be added without compromising security or stability?
 
 **→ FIX BATCH 3:** Fix all adversarial findings. If any fix is applied, re-run the affected adversarial agent on the fixed area only.
 
@@ -103,12 +103,12 @@ Use the Agent tool to run all five in parallel — pure adversarial:
 
 Use the Agent tool to run all six in parallel:
 
-- `subagent_type: spock-schema` — Did any QA/security/UX fix break code patterns or quality?
-- `subagent_type: ahsoka-access-control` — Did any fix introduce access control gaps?
-- `subagent_type: nightwing-regression` — Full regression: run the entire test suite. Any failures?
-- `subagent_type: samwise-accessibility` — Final accessibility audit on all modified components.
-- `subagent_type: padme-data-protection` — Critical path functional verification. Open the app, complete the main task, verify output.
-- `subagent_type: troi-prd-compliance` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Numeric claims, visual treatments, copy accuracy.
+- `subagent_type: Spock` — Did any QA/security/UX fix break code patterns or quality?
+- `subagent_type: Ahsoka` — Did any fix introduce access control gaps?
+- `subagent_type: Nightwing` — Full regression: run the entire test suite. Any failures?
+- `subagent_type: Samwise` — Final accessibility audit on all modified components.
+- `subagent_type: Padme` — Critical path functional verification. Open the app, complete the main task, verify output.
+- `subagent_type: Troi` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Numeric claims, visual treatments, copy accuracy.
 
 If the Council finds issues:
 1. Fix code discrepancies. Flag asset requirements as BLOCKED.

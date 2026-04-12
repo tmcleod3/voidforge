@@ -38,38 +38,38 @@ List all files in scope and their types (API route, service, component, middlewa
 
 ## Agent Deployment Manifest
 
-**Lead:** `subagent_type: picard-architecture` — architecture lens, final arbiter
+**Lead:** `subagent_type: Picard` — architecture lens, final arbiter
 **Core team (always deployed):**
-- `subagent_type: spock-schema` — pattern compliance + integration tracing
-- `subagent_type: seven-optimization` — code quality, dead code, complexity
-- `subagent_type: data-tech-debt` — maintainability, error paths, state flow
+- `subagent_type: Spock` — pattern compliance + integration tracing
+- `subagent_type: Seven` — code quality, dead code, complexity
+- `subagent_type: Data` — maintainability, error paths, state flow
 
 **Stark's Marvel team (deployed on backend-heavy reviews):**
-- `subagent_type: rogers-api-design` — API design: HTTP semantics, response shapes, REST conventions
-- `subagent_type: banner-database` — database: query patterns, N+1, missing indexes
-- `subagent_type: strange-service-arch` — service architecture: separation of concerns, logic placement
-- `subagent_type: barton-smoke-test` — error handling: try/catch completeness, error propagation
-- `subagent_type: romanoff-integrations` — security implications (lightweight — flags for Kenobi)
-- `subagent_type: thor-queues` — performance: re-renders, expensive computations, memoization
-- `subagent_type: wanda-state` — state management: store design, prop drilling, context boundaries
-- `subagent_type: tchalla-quality` — API integration: external service calls, retry logic, fallback
+- `subagent_type: Rogers` — API design: HTTP semantics, response shapes, REST conventions
+- `subagent_type: Banner` — database: query patterns, N+1, missing indexes
+- `subagent_type: Strange` — service architecture: separation of concerns, logic placement
+- `subagent_type: Barton` — error handling: try/catch completeness, error propagation
+- `subagent_type: Romanoff` — security implications (lightweight — flags for Kenobi)
+- `subagent_type: Thor` — performance: re-renders, expensive computations, memoization
+- `subagent_type: Wanda` — state management: store design, prop drilling, context boundaries
+- `subagent_type: T'Challa` — API integration: external service calls, retry logic, fallback
 
 **Cross-domain agents (deployed based on content):**
-- `subagent_type: nightwing-regression` — auth flow end-to-end: signup→verify→login→protected→logout
-- `subagent_type: bilbo-microcopy` — copy audit: error messages, UI text, API descriptions
-- `subagent_type: troi-prd-compliance` — PRD compliance: does the code match what the PRD describes?
-- `subagent_type: constantine-cursed-code` — cursed code: accidental correctness, tautological checks, shadowed vars
-- `subagent_type: samwise-accessibility` — a11y spot-check: keyboard nav and ARIA
+- `subagent_type: Nightwing` — auth flow end-to-end: signup→verify→login→protected→logout
+- `subagent_type: Bilbo` — copy audit: error messages, UI text, API descriptions
+- `subagent_type: Troi` — PRD compliance: does the code match what the PRD describes?
+- `subagent_type: Constantine` — cursed code: accidental correctness, tautological checks, shadowed vars
+- `subagent_type: Samwise` — a11y spot-check: keyboard nav and ARIA
 
 ## Step 1 — Parallel Analysis
 Use the Agent tool to run these in parallel — all are read-only analysis:
 
-- **Agent 1** `subagent_type: spock-schema` — Pattern compliance: check each file against its matching pattern in `/docs/patterns/` (api-route, service, component, middleware, error-handling, job-queue, multi-tenant). **INTEGRATION TRACING (mandatory):** When reviewed code generates URLs, references endpoints, constructs storage keys, or produces data consumed by other modules — read the consuming code to verify compatibility.
-- **Agent 2** `subagent_type: seven-optimization` — Code quality: unnecessary complexity, dead code, unused imports, duplicated logic, inconsistent naming, missing types/`any` usage, SRP violations.
-- **Agent 3** `subagent_type: data-tech-debt` — Maintainability + error paths + state flow: wrong abstractions, module coupling, missing boundary error handling, hardcoded values, misleading comments.
-- **Agent 4** `subagent_type: rogers-api-design` + `banner-database` + `strange-service-arch` — Backend review (if backend code in scope): REST conventions, response shapes, N+1 queries, indexes, separation of concerns.
-- **Agent 5** `subagent_type: nightwing-regression` + `constantine-cursed-code` — Cross-domain (if auth or complex logic in scope): auth flow tracing, accidental correctness detection.
-- **Agent 6** `subagent_type: bilbo-microcopy` + `troi-prd-compliance` — Copy + PRD (if UI or user-facing code in scope): clear error messages, PRD compliance verification.
+- **Agent 1** `subagent_type: Spock` — Pattern compliance: check each file against its matching pattern in `/docs/patterns/` (api-route, service, component, middleware, error-handling, job-queue, multi-tenant). **INTEGRATION TRACING (mandatory):** When reviewed code generates URLs, references endpoints, constructs storage keys, or produces data consumed by other modules — read the consuming code to verify compatibility.
+- **Agent 2** `subagent_type: Seven` — Code quality: unnecessary complexity, dead code, unused imports, duplicated logic, inconsistent naming, missing types/`any` usage, SRP violations.
+- **Agent 3** `subagent_type: Data` — Maintainability + error paths + state flow: wrong abstractions, module coupling, missing boundary error handling, hardcoded values, misleading comments.
+- **Agent 4** `subagent_type: Rogers` + `banner-database` + `strange-service-arch` — Backend review (if backend code in scope): REST conventions, response shapes, N+1 queries, indexes, separation of concerns.
+- **Agent 5** `subagent_type: Nightwing` + `constantine-cursed-code` — Cross-domain (if auth or complex logic in scope): auth flow tracing, accidental correctness detection.
+- **Agent 6** `subagent_type: Bilbo` + `troi-prd-compliance` — Copy + PRD (if UI or user-facing code in scope): clear error messages, PRD compliance verification.
 
 **ROUTE COLLISION CHECK (mandatory for web apps):** When a new router/route file is added, list ALL registered routes (method + path) across ALL routers. Check for duplicate method+path combinations. Frameworks like FastAPI silently shadow duplicate routes — the first registered wins.
 
@@ -116,8 +116,8 @@ Fix "Must Fix" and "Should Fix" items. After each batch:
 
 ## Step 3.5 — Re-Verify Fixes
 After fixes are applied:
-- **Spock** `subagent_type: spock-schema` re-checks pattern compliance on modified files
-- **Seven** `subagent_type: seven-optimization` confirms no new complexity or dead code introduced by fixes
+- **Spock** `subagent_type: Spock` re-checks pattern compliance on modified files
+- **Seven** `subagent_type: Seven` confirms no new complexity or dead code introduced by fixes
 
 If new issues found, fix and re-verify.
 

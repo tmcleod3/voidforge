@@ -8,7 +8,7 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
-**Promoted agent:** **Riker** `subagent_type: riker-review` runs on every ADR written — challenges trade-offs.
+**Promoted agent:** **Riker** `subagent_type: Riker` runs on every ADR written — challenges trade-offs.
 
 ## Herald Pre-Scan (ADR-047)
 
@@ -35,12 +35,12 @@ Before any deep analysis, scan the PRD frontmatter for structural contradictions
 
 ## Agent Deployment Manifest
 
-**Lead:** `subagent_type: picard-architecture`
+**Lead:** `subagent_type: Picard`
 **Full bridge crew:** `spock-schema`, `uhura-integration`, `worf-security-arch`, `tuvok-deep-current`, `scotty-infrastructure`, `kim-api-design`, `janeway-novel-arch`, `torres-site-scanner`, `la-forge-reliability`, `data-tech-debt`, `crusher-diagnostics`, `archer-greenfield`, `pike-bold-decisions`, `riker-review`, `troi-prd-compliance`
 
 ## Step 0 — System Discovery
-- **Crusher** `subagent_type: crusher-diagnostics` — System health baseline: test coverage, build time, dependency age, code complexity.
-- **Archer** `subagent_type: archer-greenfield` — (greenfield only) Initial directory structure, module boundaries, naming conventions.
+- **Crusher** `subagent_type: Crusher` — System health baseline: test coverage, build time, dependency age, code complexity.
+- **Archer** `subagent_type: Archer` — (greenfield only) Initial directory structure, module boundaries, naming conventions.
 
 Produce: system identity, component inventory, data flow diagram (ASCII), dependency graph.
 Write to `/logs/` (phase-00 if during orient, or a dedicated architecture log).
@@ -48,31 +48,31 @@ Write to `/logs/` (phase-00 if during orient, or a dedicated architecture log).
 ## Step 1 — Parallel Analysis
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 
-- **Agent 1** `subagent_type: spock-schema` — Schema review: normalization, index/query alignment, nullable fields, audit fields, PII isolation, data lifecycle, backup/recovery.
-- **Agent 2** `subagent_type: uhura-integration` — Integration review: service inventory (purpose, failure mode, fallback, cost, lock-in), API version pinning, response validation, abstraction layers.
-- **Agent 3** `subagent_type: worf-security-arch` — Security implications of architectural decisions: PII colocation, unauthenticated internal state access, permissive service boundaries. Audits *design*, not code.
-- **Agent 4** `subagent_type: tuvok-deep-current` — Security architecture: auth flow design, token storage, session architecture, encryption at rest vs in transit. Where Worf flags implications, Tuvok designs solutions.
+- **Agent 1** `subagent_type: Spock` — Schema review: normalization, index/query alignment, nullable fields, audit fields, PII isolation, data lifecycle, backup/recovery.
+- **Agent 2** `subagent_type: Uhura` — Integration review: service inventory (purpose, failure mode, fallback, cost, lock-in), API version pinning, response validation, abstraction layers.
+- **Agent 3** `subagent_type: Worf` — Security implications of architectural decisions: PII colocation, unauthenticated internal state access, permissive service boundaries. Audits *design*, not code.
+- **Agent 4** `subagent_type: Tuvok` — Security architecture: auth flow design, token storage, session architecture, encryption at rest vs in transit. Where Worf flags implications, Tuvok designs solutions.
 
 Synthesize findings from all four agents.
 
 ## Step 2 — Service Architecture + API Design
-- **Scotty** `subagent_type: scotty-infrastructure` — Boundary assessment, monolith vs services, async vs sync decisions.
-- **Kim** `subagent_type: kim-api-design` — API surface review: REST conventions, error shapes, pagination, versioning.
-- **Janeway** `subagent_type: janeway-novel-arch` — (conditional) When standard monolith doesn't fit: event-sourcing, CQRS, serverless, edge computing.
+- **Scotty** `subagent_type: Scotty` — Boundary assessment, monolith vs services, async vs sync decisions.
+- **Kim** `subagent_type: Kim` — API surface review: REST conventions, error shapes, pagination, versioning.
+- **Janeway** `subagent_type: Janeway` — (conditional) When standard monolith doesn't fit: event-sourcing, CQRS, serverless, edge computing.
 - Informed by Spock's schema, Uhura's integrations, and Worf/Tuvok's security findings.
 
 ## Step 3 — Scaling + Performance
-- **Scotty** `subagent_type: scotty-infrastructure` — First bottleneck identification, three-tier scaling plan (current → 10x vertical → 100x horizontal), cost estimates.
-- **Torres** `subagent_type: torres-site-scanner` — Performance architecture: N+1 patterns, missing indexes, connection pool sizing, caching strategy gaps.
+- **Scotty** `subagent_type: Scotty` — First bottleneck identification, three-tier scaling plan (current → 10x vertical → 100x horizontal), cost estimates.
+- **Torres** `subagent_type: Torres` — Performance architecture: N+1 patterns, missing indexes, connection pool sizing, caching strategy gaps.
 
 ## Step 4 — Parallel Analysis
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 
-- **Agent 1** `subagent_type: la-forge-reliability` — Failure analysis: for each component, answer "What happens when this fails?" (DB down, cache down, API down, worker crash).
-- **Agent 2** `subagent_type: data-tech-debt` — Tech debt catalog: wrong/missing abstraction, premature optimization, deferred decisions, dependency debt, documentation debt. Severity table with impact/risk/effort/urgency.
+- **Agent 1** `subagent_type: La Forge` — Failure analysis: for each component, answer "What happens when this fails?" (DB down, cache down, API down, worker crash).
+- **Agent 2** `subagent_type: Data` — Tech debt catalog: wrong/missing abstraction, premature optimization, deferred decisions, dependency debt, documentation debt. Severity table with impact/risk/effort/urgency.
 
 ## Step 5 — ADRs + Decision Review
-Write Architecture Decision Records to `/docs/adrs/` for every non-obvious choice. After writing, **Riker** `subagent_type: riker-review` reviews: challenges trade-offs, verifies alternatives were truly considered, checks for second-order effects.
+Write Architecture Decision Records to `/docs/adrs/` for every non-obvious choice. After writing, **Riker** `subagent_type: Riker` reviews: challenges trade-offs, verifies alternatives were truly considered, checks for second-order effects.
 ```
 # ADR-001: [Title]
 ## Status: Accepted

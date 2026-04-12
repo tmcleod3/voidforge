@@ -30,7 +30,7 @@ Before agent deployment, run the Herald to select the optimal roster:
 **`--light`** skips the Herald entirely — uses only the command's hardcoded core roster.
 **`--solo`** skips both Herald and all sub-agents — lead agent only.
 
-## Phase 0 — AI Surface Map (`subagent_type: seldon-ai`)
+## Phase 0 — AI Surface Map (`subagent_type: Seldon`)
 
 Reconnaissance — find all AI integration points:
 1. Grep for LLM SDK imports (`anthropic`, `openai`, `@ai-sdk`, `langchain`)
@@ -43,22 +43,22 @@ Reconnaissance — find all AI integration points:
 
 Use the Agent tool to run all four in parallel:
 
-- **Agent 1** `subagent_type: salvor-model-selection` — Model selection: right model per call? Smaller/faster alternative? Latency budget met? Cost tracked?
-- **Agent 2** `subagent_type: gaal-prompt-arch` — Prompt architecture: structured, versioned, testable? System prompt separated? Output format specified? Edge cases? Few-shot?
-- **Agent 3** `subagent_type: hober-tool-schema` — Tool schemas: clear descriptions? Correct parameter types? Required vs optional? No overlapping tools? Return types documented?
-- **Agent 4** `subagent_type: bliss-ai-safety` — AI safety: prompt injection risk? PII in prompts? Output content safety? System prompt extractable? Jailbreak vectors?
+- **Agent 1** `subagent_type: Salvor Hardin` — Model selection: right model per call? Smaller/faster alternative? Latency budget met? Cost tracked?
+- **Agent 2** `subagent_type: Gaal Dornick` — Prompt architecture: structured, versioned, testable? System prompt separated? Output format specified? Edge cases? Few-shot?
+- **Agent 3** `subagent_type: Hober Mallow` — Tool schemas: clear descriptions? Correct parameter types? Required vs optional? No overlapping tools? Return types documented?
+- **Agent 4** `subagent_type: Bliss` — AI safety: prompt injection risk? PII in prompts? Output content safety? System prompt extractable? Jailbreak vectors?
 
 ## Phase 2 — Sequential Audits (7 agents)
 
 Run sequentially — each builds on the previous:
 
-- **Bel Riose** `subagent_type: bel-riose-orchestration` — Orchestration: completion/chain/agent loop/workflow? Reliability appropriate? Loops bounded? State persisted?
-- **The Mule** `subagent_type: mule-adversarial-ai` — Failure modes: hallucination, refusal, timeout, context overflow, API down. Fallback? Circuit breaker? Bounded retries?
-- **Ducem Barr** `subagent_type: ducem-token-economics` — Token economics: usage tracked? Caching? Context window efficient? System prompts deduplicated? Streaming?
-- **Bayta Darell** `subagent_type: bayta-evals` — Evaluation: golden datasets? Automated scoring? Regression suite for prompt changes? Quality degradation detection?
-- **Dors Venabili** `subagent_type: dors-observability` — Observability: trace logging? Inputs/outputs logged (PII-scrubbed)? Latency tracked? Quality scores?
-- **Janov Pelorat** `subagent_type: janov-context-eng` — Context engineering: RAG retrieval relevance? Embedding dimensionality? Chunking strategy?
-- **R. Daneel Olivaw** `subagent_type: daneel-model-migration` — Versioning: behavior change on model updates? Prompts pinned? Migration strategy?
+- **Bel Riose** `subagent_type: Bel Riose` — Orchestration: completion/chain/agent loop/workflow? Reliability appropriate? Loops bounded? State persisted?
+- **The Mule** `subagent_type: The Mule` — Failure modes: hallucination, refusal, timeout, context overflow, API down. Fallback? Circuit breaker? Bounded retries?
+- **Ducem Barr** `subagent_type: Ducem Barr` — Token economics: usage tracked? Caching? Context window efficient? System prompts deduplicated? Streaming?
+- **Bayta Darell** `subagent_type: Bayta Darell` — Evaluation: golden datasets? Automated scoring? Regression suite for prompt changes? Quality degradation detection?
+- **Dors Venabili** `subagent_type: Dors Venabili` — Observability: trace logging? Inputs/outputs logged (PII-scrubbed)? Latency tracked? Quality scores?
+- **Janov Pelorat** `subagent_type: Janov Pelorat` — Context engineering: RAG retrieval relevance? Embedding dimensionality? Chunking strategy?
+- **R. Daneel Olivaw** `subagent_type: R. Daneel Olivaw` — Versioning: behavior change on model updates? Prompts pinned? Migration strategy?
 
 ## Phase 3 — Remediate
 
@@ -66,7 +66,7 @@ Fix all Critical and High findings. Use the standard finding format with confide
 
 ## Phase 4 — Re-Verify
 
-**The Mule** `subagent_type: mule-adversarial-ai` + **Wanda Seldon** `subagent_type: wanda-seldon-validation` re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
+**The Mule** `subagent_type: The Mule` + **Wanda Seldon** `subagent_type: Wanda Seldon` re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
 
 ## Arguments
 - `--focus "topic"` → Bias Herald toward topic (natural-language, additive)

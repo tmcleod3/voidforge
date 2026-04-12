@@ -147,10 +147,10 @@ Run the full `/test` protocol. Write missing unit tests, integration tests, and 
 
 Use the Agent tool to run these in parallel — all are adversarial, read-only analysis:
 
-- `subagent_type: maul-red-team` — attacks code that passed /review. Looks for exploits in "clean" code.
-- `subagent_type: deathstroke-adversarial` — probes endpoints that /security hardened. Tests if remediations can be bypassed.
-- `subagent_type: loki-chaos` — chaos-tests features that /qa cleared. Finds what breaks under unexpected conditions.
-- `subagent_type: constantine-cursed-code` — hunts cursed code in FIXED areas specifically. Code that works by accident.
+- `subagent_type: Maul` — attacks code that passed /review. Looks for exploits in "clean" code.
+- `subagent_type: Deathstroke` — probes endpoints that /security hardened. Tests if remediations can be bypassed.
+- `subagent_type: Loki` — chaos-tests features that /qa cleared. Finds what breaks under unexpected conditions.
+- `subagent_type: Constantine` — hunts cursed code in FIXED areas specifically. Code that works by accident.
 
 Synthesize findings. **Conflict detection:** If any two agents produce conflicting findings on the same code (one says "fix," another says "by design" or "not exploitable"), trigger the debate protocol instead of listing both. See SUB_AGENTS.md "Agent Debate Protocol": Agent A states finding → Agent B responds → Agent A rebuts → Arbiter (Picard or user) decides. 3 exchanges max. Log the debate transcript as an ADR. Fix all Must Fix items. If any fixes were applied, re-run the four agents on the fixed areas only.
 
@@ -161,11 +161,11 @@ Synthesize findings. **Conflict detection:** If any two agents produce conflicti
 
 Use the Agent tool to run these in parallel:
 
-- `subagent_type: spock-schema` — Did any security/QA/UX fix break code patterns or quality?
-- `subagent_type: ahsoka-access-control` — Did any review/QA fix introduce access control gaps?
-- `subagent_type: nightwing-regression` — Did any fix cause a regression? Run the full test suite.
-- `subagent_type: samwise-accessibility` — Did any fix break accessibility?
-- `subagent_type: troi-prd-compliance` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
+- `subagent_type: Spock` — Did any security/QA/UX fix break code patterns or quality?
+- `subagent_type: Ahsoka` — Did any review/QA fix introduce access control gaps?
+- `subagent_type: Nightwing` — Did any fix cause a regression? Run the full test suite.
+- `subagent_type: Samwise` — Did any fix break accessibility?
+- `subagent_type: Troi` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Check numeric claims, visual treatments, copy accuracy. Flag asset gaps as BLOCKED. (Troi runs on the final Council iteration, or always when `--skip-build` is used for campaign victory gates.)
 
 **Conflict detection:** If Council members disagree (e.g., Spock says a fix broke patterns but Ahsoka says it's necessary for access control), trigger the debate protocol. Do not list both opinions — resolve via debate. Arbiter: Picard for code/architecture conflicts, Troi for PRD compliance conflicts.
 

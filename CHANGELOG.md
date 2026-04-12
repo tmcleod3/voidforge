@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.5.3] - 2026-04-12
+
+### Fixed
+- **All 201 `subagent_type` references used wrong format** — commands referenced agents by filename ID (`picard-architecture`) but Claude Code expects the YAML name field (`Picard`). Every agent reference in every command was broken. Fixed across 15 command files.
+- **"What's Next" recommended `/build` instead of `/campaign`** — new projects should start with `/campaign` (reads PRD, sequences missions, deploys full agent teams) not `/build` (manual single-batch mode). Updated wizard UI and CLAUDE.md.
+
+---
+
 ## [23.5.2] - 2026-04-12
 
 ### Fixed
