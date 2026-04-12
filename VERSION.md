@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.6.0
+**Current:** 23.6.1
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.6.1 | 2026-04-12 | Gauntlet fix: 30+ stale "263 agents" → 264 across commands, methods, docs |
 | 23.6.0 | 2026-04-12 | The Silver Surfer — Herald invocation bridge, CLI subcommand, agent #264, end-to-end dispatch pipeline. ADR-048. Campaign 38. |
 | 23.5.4 | 2026-04-12 | Command-doc sync: build.md Phase 12.75, ux.md screenshots, qa.md dynamic counts |
 | 23.5.3 | 2026-04-12 | Fix 201 broken subagent_type refs (filename→YAML name) + /campaign as default start command |

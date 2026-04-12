@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.6.1] - 2026-04-12
+
+### Fixed
+- **30+ stale "263 agents" references** — updated to 264 across 13 command files, 8 method docs, HOLOCRON.md, AGENT_CLASSIFICATION.md, ROADMAP.md, wizard UI, herald.ts, SUB_AGENTS.md, and NAMING_REGISTRY.md. Gauntlet caught incomplete count propagation from Silver Surfer addition.
+- **herald.ts ADR reference** — ADR-047 → ADR-048
+
+---
+
 ## [23.6.0] - 2026-04-12
 
 ### The Silver Surfer (ADR-048, Campaign 38)

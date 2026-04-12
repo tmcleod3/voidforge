@@ -1,10 +1,20 @@
-# VoidForge.build Site Audit — v23.5.3 Accuracy Check
+# VoidForge.build Site Audit — v23.6.0 Accuracy Check
 
-> Generated 2026-04-10. Audit of ~30 pages across voidforge.build against VoidForge v23.5.3 source of truth.
+> Generated 2026-04-12. Audit of ~30 pages across voidforge.build against VoidForge v23.6.0 source of truth.
 
 ## Instructions for Fix Session
 
-You are updating the voidforge.build marketing site to match VoidForge v23.5.3. Below is every factual inaccuracy found. Fix each one. The site source lives in [wherever the site repo is]. Each finding includes the page URL, what's wrong, and what it should say.
+You are updating the voidforge.build marketing site to match VoidForge v23.6.0. Below is every factual inaccuracy found. Fix each one. Each finding includes the page URL, what's wrong, and what it should say.
+
+**Key changes since last site update (v23.4.1):**
+- Agent count: 263 → 264 (Silver Surfer added as #264)
+- Silver Surfer (Norrin Radd) — Herald of Galactus. Haiku pre-scan dispatch that reads codebase and selects optimal agent roster. CLI: `npx thevoidforge herald --command /<name> --json`
+- `--focus "topic"` flag on all 14 major commands — biases agent selection toward a topic
+- `/campaign` is now the recommended starting command (not `/build`)
+- 201 broken subagent_type references fixed (filename IDs → YAML names)
+- Wizard UI: standalone Danger Room/War Room redirect to project dashboard
+- 48 ADRs (up from 47)
+- All command files use "Silver Surfer Pre-Scan (ADR-048)" instead of "Herald Pre-Scan (ADR-047)"
 
 ---
 
@@ -205,11 +215,11 @@ You are updating the voidforge.build marketing site to match VoidForge v23.5.3. 
 | LOW | 11 | Minor inconsistencies, stale references, missing details |
 | **TOTAL** | **34** | |
 
-### Quick Reference — Correct Numbers (v23.5.3)
+### Quick Reference — Correct Numbers (v23.6.0)
 
 | Metric | Correct Value |
 |--------|--------------|
-| Total agents | 263 |
+| Total agents | 264 |
 | Universes | 9 |
 | Slash commands | 28 |
 | Code patterns | 37 |
@@ -217,10 +227,10 @@ You are updating the voidforge.build marketing site to match VoidForge v23.5.3. 
 | Passing tests | 1,384 |
 | Lead agents (Opus) | 20 |
 | Specialist agents (Sonnet) | 190 |
-| Scout agents (Haiku) | 38 |
+| Scout agents (Haiku) | 39 (38 + Silver Surfer) |
 | Adversarial agents (Sonnet) | 15 |
 | Build protocol phases | 13 (numbered 0-13) |
-| ADRs | 47 |
+| ADRs | 48 |
 | Deploy targets | 6 (VPS, Vercel, Railway, Cloudflare, Docker, Static) |
 | npm package (CLI) | thevoidforge |
 | npm package (methodology) | thevoidforge-methodology |
@@ -228,5 +238,7 @@ You are updating the voidforge.build marketing site to match VoidForge v23.5.3. 
 | Primary command | `/campaign` (not `/build`) |
 | Retired flags | --blitz, --muster, --infinity (accepted as silent no-ops) |
 | New flags | --focus "topic" (on 14 commands), --light, --interactive, --solo |
-| New feature | Herald intelligent dispatch (ADR-047) |
+| New feature (v23.5) | Herald intelligent dispatch engine (ADR-047) |
+| New feature (v23.6) | Silver Surfer — Herald invocation bridge, CLI `voidforge herald` (ADR-048) |
 | Default mode | Max by default — autonomous + full roster (ADR-043) |
+| Silver Surfer CLI | `npx thevoidforge herald --command /review --json` |

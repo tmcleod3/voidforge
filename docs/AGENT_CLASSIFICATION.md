@@ -7,13 +7,13 @@
 
 | Metric | Count |
 |--------|-------|
-| **Total agents** | **263** |
+| **Total agents** | **264** |
 | Leads (Opus/inherit, Builder) | 20 |
 | Specialists (Sonnet, Reviewer) | 190 |
 | Scouts (Haiku, Scout/Reviewer) | 38 |
 | Adversarial (Sonnet, Adversarial) | 15 |
 
-**Note:** The authoritative count from NAMING_REGISTRY.md is 263. All methodology docs updated in M7. ADR-044 and ADR-042 retain their original "259" count as historical records.
+**Note:** The authoritative count from NAMING_REGISTRY.md is 264. All methodology docs updated in M7. ADR-044 and ADR-042 retain their original "259" count as historical records.
 
 ## Tiers (Model Assignment)
 
@@ -468,7 +468,7 @@
 | Dune | 1 | 14 | 4 | 2 | 21 |
 | Cosmere | 2 | 16 | 0 | 0 | 18 |
 | Foundation | 1 | 10 | 1 | 1 | 13 |
-| **TOTAL** | **20** | **190** | **38** | **15** | **263** |
+| **TOTAL** | **20** | **190** | **39** | **15** | **264** |
 
 ## Riker's Review — Edge Case Challenges
 
