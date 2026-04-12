@@ -136,6 +136,7 @@ Flags are standardized across commands. Same flag name = same meaning everywhere
 | `--fast` | Reduced review passes (skip last 2 rounds/phases), still comprehensive | `/campaign`, `/assemble`, `/gauntlet` |
 | `--dry-run` | Show what would happen without doing it | `/deploy`, `/debrief`, `/treasury`, `/grow`, `/git` |
 | `--status` | Show current state | `/cultivation`, `/treasury`, `/deploy`, `/portfolio`, `/dangerroom`, `/thumper` |
+| `--focus "topic"` | Bias Herald agent selection toward topic | All Herald-enabled commands |
 
 ### Tier 2 — Scope Flags
 

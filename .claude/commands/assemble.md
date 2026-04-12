@@ -13,6 +13,21 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
+## Herald Pre-Scan (ADR-047)
+
+Before agent deployment, run the Herald to select the optimal roster:
+
+1. Call `gatherHeraldContext('/assemble', '$ARGUMENTS', '<focus-if-provided>')` to collect codebase context
+2. Call `loadAgentRegistry()` to get all 263 agent definitions
+3. Call `runHerald(context, registry)` to get the optimal roster
+4. Merge Herald's roster with this command's hardcoded lead agents (Herald adds, never removes leads)
+5. Deploy the merged roster per the command's normal parallel/sequential protocol
+
+**`--focus "topic"`** biases the Herald toward agents matching the topic. Examples: `--focus "security"`, `--focus "financial accuracy"`, `--focus "mobile UX"`.
+
+**`--light`** skips the Herald entirely — uses only the command's hardcoded core roster.
+**`--solo`** skips both Herald and all sub-agents — lead agent only.
+
 ## Agent Deployment Manifest — The Full Initiative
 
 When `/assemble` invokes each sub-command, it deploys the FULL roster for that command — not just the lead. The leads below are coordinators; they bring their complete teams.
@@ -204,6 +219,9 @@ After the summary, Wong extracts learnings for future builds:
 - `--light` — Standard agents only, skip cross-domain spot-checks.
 - `--solo` — Lead agent only per phase, no sub-agents.
 - `--blitz` — **Retired (no-op).** Default is now autonomous.
+
+## Arguments
+- `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
 - If any phase is blocked by an issue outside its domain, log to `/logs/handoffs.md` and continue to the next phase

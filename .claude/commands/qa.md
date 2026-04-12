@@ -10,6 +10,21 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Promoted agent:** **Constantine** `subagent_type: constantine-cursed-code` runs on every `/qa` final pass — finds code that works by accident.
 
+## Herald Pre-Scan (ADR-047)
+
+Before agent deployment, run the Herald to select the optimal roster:
+
+1. Call `gatherHeraldContext('/qa', '$ARGUMENTS', '<focus-if-provided>')` to collect codebase context
+2. Call `loadAgentRegistry()` to get all 263 agent definitions
+3. Call `runHerald(context, registry)` to get the optimal roster
+4. Merge Herald's roster with this command's hardcoded lead agents (Herald adds, never removes leads)
+5. Deploy the merged roster per the command's normal parallel/sequential protocol
+
+**`--focus "topic"`** biases the Herald toward agents matching the topic. Examples: `--focus "security"`, `--focus "financial accuracy"`, `--focus "mobile UX"`.
+
+**`--light`** skips the Herald entirely — uses only the command's hardcoded core roster.
+**`--solo`** skips both Herald and all sub-agents — lead agent only.
+
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/QA_ENGINEER.md`
@@ -105,6 +120,9 @@ Store in `/docs/qa-prompt.md` under "Regression Checklist" section.
 2. Code fixes + new tests
 3. Updated `/docs/qa-prompt.md` with regression checklist
 4. Release note summary in phase log
+
+## Arguments
+- `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
 - Security findings → Kenobi (`/security`)

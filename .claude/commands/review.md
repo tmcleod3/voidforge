@@ -8,6 +8,21 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
+## Herald Pre-Scan (ADR-047)
+
+Before agent deployment, run the Herald to select the optimal roster:
+
+1. Call `gatherHeraldContext('/review', '$ARGUMENTS', '<focus-if-provided>')` to collect codebase context
+2. Call `loadAgentRegistry()` to get all 263 agent definitions
+3. Call `runHerald(context, registry)` to get the optimal roster
+4. Merge Herald's roster with this command's hardcoded lead agents (Herald adds, never removes leads)
+5. Deploy the merged roster per the command's normal parallel/sequential protocol
+
+**`--focus "topic"`** biases the Herald toward agents matching the topic. Examples: `--focus "security"`, `--focus "financial accuracy"`, `--focus "mobile UX"`.
+
+**`--light`** skips the Herald entirely — uses only the command's hardcoded core roster.
+**`--solo`** skips both Herald and all sub-agents — lead agent only.
+
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read the relevant pattern files from `/docs/patterns/` for the code being reviewed
@@ -110,6 +125,9 @@ If new issues found, fix and re-verify.
 1. Review findings table (in phase log or conversation)
 2. Code fixes for Must Fix and Should Fix items
 3. Remaining suggestions for user decision
+
+## Arguments
+- `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
 - Security findings → Kenobi (`/security`)
