@@ -1,39 +1,34 @@
-# Campaign State — VoidForge Campaign 36 (v23.4 The Remediation)
+# Campaign State — VoidForge Campaign 37 (v23.5 The Herald)
 
 ## Campaign Info
 
-**Version:** v23.4
-**Codename:** The Remediation
+**Version:** v23.5
+**Codename:** The Herald
 **Mode:** default (autonomous + full roster, ADR-043)
-**Source:** `ROADMAP.md` v23.4 section, ADR-046
+**Source:** `ROADMAP.md` v23.5 section, ADR-047
 **Started:** 2026-04-12
-**Status:** COMPLETE
+**Status:** IN PROGRESS
 
 ## Baseline
 
-- 1340/1340 tests passing, 0 TypeScript errors
-- 25 audit findings: 3 critical, 4 high, 8 medium, 10 low/info
+- 1336/1336 tests passing, 0 TypeScript errors
+- 263 agents, 14 commands to wire Herald into
 
 ## Mission Plan
 
 | # | Mission | Scope | Status |
 |---|---------|-------|--------|
-| M1 | Critical API Fixes | danger-room.js, war-room.js → redirect to project dashboard | **COMPLETE** |
-| M2 | Retired Flag Cleanup | --blitz in 4 locations (5th removed in M1) | **COMPLETE** |
-| M3 | WCAG Compliance | 4 high-severity a11y fixes (validation, tabs, nav, heading) | **COMPLETE** |
-| M4 | Content Accuracy | CLAUDE.md 35→37, prophecy comments, counts verified | **COMPLETE** |
-| M5 | UX Improvements | 7 of 8 fixes (skip showStatus unification) | **COMPLETE** |
-| M6 | Victory Gauntlet | All 25 findings resolved, 1336 tests, 0 TS errors | **COMPLETE** |
+| M1 | Herald Core | herald.ts — Haiku pre-scan engine | PENDING |
+| M2 | Agent Registry Loader | agent-registry.ts — read + cache agent definitions | PENDING |
+| M3 | Tag Enrichment | Add tags to 40 key cross-domain agents | PENDING |
+| M4 | Wire Into 14 Commands | Herald Step 0 in all major commands | PENDING |
+| M5 | --focus Flag | Natural-language bias for Herald | PENDING |
+| M6 | Tests | herald.ts + agent-registry.ts tests | PENDING |
+| M7 | Victory Gauntlet | Full suite + Herald verification | PENDING |
 
-**Execution order:** M1 → M2 → M3 → M4 + M5 (parallel) → M6
+**Execution order:** M1 + M2 (parallel) → M3 → M4 + M5 (parallel) → M6 → M7
 
-Missions completed: 6/6. VICTORY.
-
-## M1 Results
-- Standalone dashboards converted to redirects (-2,384 lines)
-- Legacy API shims removed from danger-room.ts and war-room.ts
-- 4 legacy tests removed, 1336/1336 passing, 0 TS errors
-- Commit: 2d65909
+Missions completed: 0/7. Next checkpoint at: 4.
 
 ## BLOCKED Items
 
