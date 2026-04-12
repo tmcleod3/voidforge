@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.5.1
+**Current:** 23.5.2
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.5.2 | 2026-04-12 | /void auto-cleanup ~/.claude/ duplicates + git init stack trace fix |
 | 23.5.1 | 2026-04-12 | Fix CLI self-upgrade: wrong package name (voidforge → thevoidforge) + stale npx cache on re-exec |
 | 23.5.0 | 2026-04-12 | The Herald — intelligent agent dispatch: Haiku pre-scan, agent registry, 40 tags, --focus flag, 14 commands wired. ADR-047. Campaign 37. |
 | 23.4.1 | 2026-04-12 | Gauntlet security fix — XSS escaping in blueprint banner, ROADMAP staleness, lobby a11y |

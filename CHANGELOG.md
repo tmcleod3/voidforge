@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.5.2] - 2026-04-12
+
+### Fixed
+- **Duplicate commands in Claude Code** — `/void` now auto-detects and removes VoidForge files from `~/.claude/commands/` and `~/.claude/agents/` (user-level). Guard added to prevent future writes to `~/.claude/`. Both void.md and FORGE_KEEPER.md updated.
+- **Git init stack trace** — project creation via wizard showed full Error stack trace when git identity wasn't configured. Now shows clean one-line message.
+
+---
+
 ## [23.5.1] - 2026-04-12
 
 ### Fixed
