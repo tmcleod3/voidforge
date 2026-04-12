@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.8.1
+**Current:** 23.8.2
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.8.2 | 2026-04-12 | Silver Surfer Gate in CLAUDE.md — root-level enforcement after 3 documented skip incidents |
 | 23.8.1 | 2026-04-12 | Silver Surfer anti-skip hardening — NO EXCEPTIONS enforcement + field report learning |
 | 23.8.0 | 2026-04-12 | The Personality — heralding one-liners for all 264 agents. Character-authentic announcements on every agent deployment. ADR-049. |
 | 23.7.3 | 2026-04-12 | Cosmic Heraldings — 14 Silver Surfer one-liners announced at random before each roster scan |

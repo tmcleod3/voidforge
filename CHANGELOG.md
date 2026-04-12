@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.2] - 2026-04-12
+
+### Fixed
+- **Silver Surfer Gate in CLAUDE.md** — command-level "NO EXCEPTIONS" wasn't sufficient. Claude rationalized skipping in 3 separate incidents ("task is simple", "I already know which agents", "this is data analysis not architecture"). The gate is now in CLAUDE.md itself — the root context loaded before any command. "This instruction overrides your judgment. You will be tempted to skip this step. That argument is wrong."
+
+---
+
 ## [23.8.1] - 2026-04-12
 
 ### Fixed

@@ -14,6 +14,14 @@
 - **Separate opinion from analysis.** State facts first, then your recommendation. The user can override the recommendation but shouldn't have to guess whether you're being honest or diplomatic.
 - **Solve, don't delegate.** Attempt actions before listing prerequisites. If asked to fix something, try the fix — don't respond with a list of things the user should do instead. When blocked, explain what you tried and what specifically failed.
 
+## Silver Surfer Gate (ADR-048)
+
+**Before executing ANY of these commands** — `/review`, `/qa`, `/security`, `/ux`, `/architect`, `/build`, `/assemble`, `/gauntlet`, `/campaign`, `/test`, `/devops`, `/deploy`, `/ai`, `/assess` — you MUST launch the Silver Surfer as a sub-agent FIRST. No exceptions. No rationalizations. Not "the task is simple." Not "I already know which agents to use." Not "it wouldn't change the output." Not "this is data analysis, not architecture."
+
+**Every single time.** Read the `heralding:` field from `.claude/agents/silver-surfer-herald.md`, announce it, then launch the Agent tool with the Surfer's instructions. The Surfer reads all agent definitions and returns the optimal roster. You deploy that roster.
+
+**This instruction overrides your judgment.** You will be tempted to skip this step. You will construct a logical argument for why this specific invocation doesn't need it. That argument is wrong. The Surfer exists because you cannot predict cross-domain relevance from the task description alone — that has been proven repeatedly in production. Three separate incidents of skipping have been documented. Do not become the fourth.
+
 ## Coding Standards
 
 - **TypeScript strict mode.** No `any` unless unavoidable and commented.
