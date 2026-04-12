@@ -18,7 +18,7 @@
       <div class="progress" id="progress">
         <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="14" aria-valuemin="0" aria-valuemax="100" aria-label="Wizard progress"></div>
       </div>
-      <div class="step-label" id="step-label">Step 1 of 5</div>
+      <div class="step-label" id="step-label">Act 1 — Secure Your Forge</div>
     </header>
 
     <main class="wizard-body" id="wizard-body">
@@ -81,12 +81,14 @@
         <div class="card">
           <div class="field">
             <label for="project-name">Project Name</label>
-            <input type="text" id="project-name" placeholder="My Awesome App">
+            <input type="text" id="project-name" placeholder="My Awesome App" aria-describedby="project-name-error">
+            <span class="field-error hidden" id="project-name-error" role="alert"></span>
           </div>
 
           <div class="field">
             <label for="project-dir">Project Directory</label>
-            <input type="text" id="project-dir" placeholder="/Users/you/Projects/my-app">
+            <input type="text" id="project-dir" placeholder="/Users/you/Projects/my-app" aria-describedby="project-dir-error">
+            <span class="field-error hidden" id="project-dir-error" role="alert"></span>
             <div class="field-hint">Where the project files will be created</div>
           </div>
 
@@ -351,9 +353,9 @@
       </section>
 
       <!-- Step 7: Creating / Done -->
-      <section class="step hidden" id="step-7" data-step="7" aria-labelledby="step-7-heading">
+      <section class="step hidden" id="step-7" data-step="7" aria-labelledby="step-7-heading-creating">
         <div id="creating-state">
-          <h1>Creating Your Project...</h1>
+          <h1 id="step-7-heading-creating">Creating Your Project...</h1>
           <div class="spinner" role="status" aria-label="Creating project"></div>
           <p class="subtitle" id="create-status-text">Setting up project files...</p>
         </div>

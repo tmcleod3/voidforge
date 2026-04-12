@@ -625,24 +625,78 @@
     state.projectDir = projectDirInput.value.trim();
   });
 
+  // Clear individual validation errors on input
+  projectNameInput.addEventListener('input', () => {
+    const err = $('#project-name-error');
+    if (err && !err.classList.contains('hidden')) {
+      projectNameInput.style.borderColor = '';
+      projectNameInput.removeAttribute('aria-invalid');
+      err.textContent = '';
+      err.classList.add('hidden');
+    }
+  });
+  projectDirInput.addEventListener('input', () => {
+    const err = $('#project-dir-error');
+    if (err && !err.classList.contains('hidden')) {
+      projectDirInput.style.borderColor = '';
+      projectDirInput.removeAttribute('aria-invalid');
+      err.textContent = '';
+      err.classList.add('hidden');
+    }
+  });
+
   // =============================================
   // Step 4: PRD
   // =============================================
 
-  $$('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $$('.tab').forEach((t) => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      $$('.tab-panel').forEach((p) => p.classList.remove('active'));
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      const panel = $(`#tab-${tab.dataset.tab}`);
-      if (panel) panel.classList.add('active');
-      state.prdMode = tab.dataset.tab;
+  function activatePrdTab(tab) {
+    const allTabs = Array.from($$('.tab'));
+    allTabs.forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
     });
+    $$('.tab-panel').forEach((p) => p.classList.remove('active'));
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+    tab.focus();
+    const panel = $(`#tab-${tab.dataset.tab}`);
+    if (panel) panel.classList.add('active');
+    state.prdMode = tab.dataset.tab;
+  }
+
+  $$('.tab').forEach((tab, i) => {
+    // Set initial tabindex: only active tab is tabbable
+    tab.setAttribute('tabindex', i === 0 ? '0' : '-1');
+    tab.addEventListener('click', () => { activatePrdTab(tab); });
   });
+
+  // Keyboard navigation for PRD tabs (WAI-ARIA tab pattern)
+  const prdTablist = $('[role="tablist"]');
+  if (prdTablist) {
+    prdTablist.addEventListener('keydown', (e) => {
+      const tabArray = Array.from($$('.tab'));
+      const idx = tabArray.indexOf(document.activeElement);
+      if (idx === -1) return;
+
+      let newIdx = -1;
+      if (e.key === 'ArrowRight') {
+        newIdx = (idx + 1) % tabArray.length;
+      } else if (e.key === 'ArrowLeft') {
+        newIdx = (idx - 1 + tabArray.length) % tabArray.length;
+      } else if (e.key === 'Home') {
+        newIdx = 0;
+      } else if (e.key === 'End') {
+        newIdx = tabArray.length - 1;
+      }
+
+      if (newIdx >= 0) {
+        e.preventDefault();
+        activatePrdTab(tabArray[newIdx]);
+      }
+    });
+  }
 
   const validatePrdBtn = $('#validate-prd');
   const prdStatus = $('#prd-status');
@@ -1056,6 +1110,9 @@
         // Show done state
         creatingState.classList.add('hidden');
         $('#done-state').classList.remove('hidden');
+        // Switch section label to done heading
+        const step7Section = $('#step-7');
+        if (step7Section) step7Section.setAttribute('aria-labelledby', 'step-7-heading');
         $('#done-details').innerHTML = `
           <p><strong>${escapeHtml(state.projectName)}</strong></p>
           <p style="color: var(--text-dim); font-family: var(--mono); font-size: 13px;">${escapeHtml(data.directory)}</p>
@@ -1160,16 +1217,30 @@
     if (currentStep === 3) {
       const nameInput = $('#project-name');
       const dirInput = $('#project-dir');
-      if (!state.projectName) nameInput.style.borderColor = 'var(--error)';
-      if (!state.projectDir) dirInput.style.borderColor = 'var(--error)';
+      const nameError = $('#project-name-error');
+      const dirError = $('#project-dir-error');
+      if (!state.projectName) {
+        nameInput.style.borderColor = 'var(--error)';
+        nameInput.setAttribute('aria-invalid', 'true');
+        if (nameError) { nameError.textContent = 'Project name is required'; nameError.classList.remove('hidden'); }
+      }
+      if (!state.projectDir) {
+        dirInput.style.borderColor = 'var(--error)';
+        dirInput.setAttribute('aria-invalid', 'true');
+        if (dirError) { dirError.textContent = 'Project directory is required'; dirError.classList.remove('hidden'); }
+      }
     }
   }
 
   function clearValidationErrors() {
     const nameInput = $('#project-name');
     const dirInput = $('#project-dir');
-    if (nameInput) nameInput.style.borderColor = '';
-    if (dirInput) dirInput.style.borderColor = '';
+    const nameError = $('#project-name-error');
+    const dirError = $('#project-dir-error');
+    if (nameInput) { nameInput.style.borderColor = ''; nameInput.removeAttribute('aria-invalid'); }
+    if (dirInput) { dirInput.style.borderColor = ''; dirInput.removeAttribute('aria-invalid'); }
+    if (nameError) { nameError.textContent = ''; nameError.classList.add('hidden'); }
+    if (dirError) { dirError.textContent = ''; dirError.classList.add('hidden'); }
   }
 
   function escapeHtml(str) {

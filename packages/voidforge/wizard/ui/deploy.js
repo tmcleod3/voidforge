@@ -30,6 +30,9 @@
   const progressBar = $('#progress-bar');
   const stepLabel = $('#step-label');
 
+  const btnBack = $('#btn-back');
+  const btnNext = $('#btn-next');
+
   function showStep(step) {
     $$('.step').forEach((el) => el.classList.add('hidden'));
     const target = $(`#step-${step}`);
@@ -40,6 +43,16 @@
     progressBar.style.width = `${pct}%`;
     progressBar.setAttribute('aria-valuenow', String(pct));
     stepLabel.textContent = `Step ${step} of ${TOTAL_STEPS}`;
+
+    // Footer navigation visibility
+    if (btnBack && btnNext) {
+      btnBack.disabled = step === 1;
+      // Hide footer nav on step 3 (provisioning in progress) and step 4 (done)
+      btnNext.style.display = (step >= 3) ? 'none' : '';
+      btnBack.style.display = (step >= 3) ? 'none' : '';
+      if (step === 2) btnNext.textContent = 'Start Provisioning';
+      else btnNext.textContent = 'Next';
+    }
 
     const firstInput = target?.querySelector('input, textarea, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 100);
@@ -577,6 +590,27 @@
       $('#start-provision').click();
     }
   });
+
+  // Footer Back/Next wiring
+  if (btnBack) {
+    btnBack.addEventListener('click', () => {
+      if (currentStep === 2) showStep(1);
+    });
+  }
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      if (currentStep === 1) {
+        // Trigger scan if project card is visible, otherwise vault unlock
+        if (!projectCard.classList.contains('hidden') && $('#project-dir').value.trim()) {
+          scanProjectBtn.click();
+        } else if (vaultPasswordInput.value) {
+          unlockVaultBtn.click();
+        }
+      } else if (currentStep === 2) {
+        $('#start-provision').click();
+      }
+    });
+  }
 
   showStep(1);
 })();

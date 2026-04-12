@@ -314,6 +314,17 @@ select {
   margin-top: 4px;
 }
 
+.field-error {
+  display: block;
+  font-size: 13px;
+  color: var(--error);
+  margin-top: 4px;
+}
+
+.field-error.hidden {
+  display: none;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
