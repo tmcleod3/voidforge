@@ -18,7 +18,7 @@
 
 | # | Mission | Scope | Status |
 |---|---------|-------|--------|
-| M1 | Critical API Fixes | danger-room.js, war-room.js → redirect to project dashboard | PENDING |
+| M1 | Critical API Fixes | danger-room.js, war-room.js → redirect to project dashboard | **COMPLETE** |
 | M2 | Retired Flag Cleanup | --blitz in 5 locations + dead auto param | PENDING |
 | M3 | WCAG Compliance | 4 high-severity a11y fixes | PENDING |
 | M4 | Content Accuracy | Stale counts, dead links, copy fixes | PENDING |
@@ -27,7 +27,13 @@
 
 **Execution order:** M1 → M2 → M3 → M4 + M5 (parallel) → M6
 
-Missions completed: 0/6. Next checkpoint at: 4.
+Missions completed: 1/6. Next checkpoint at: 4.
+
+## M1 Results
+- Standalone dashboards converted to redirects (-2,384 lines)
+- Legacy API shims removed from danger-room.ts and war-room.ts
+- 4 legacy tests removed, 1336/1336 passing, 0 TS errors
+- Commit: 2d65909
 
 ## BLOCKED Items
 

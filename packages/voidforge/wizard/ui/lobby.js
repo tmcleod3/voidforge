@@ -30,8 +30,8 @@
     // lastDeployAt confirms an actual deploy happened.
     if (project.deployUrl && project.lastDeployAt) return { label: 'Live', action: 'Open Room', badge: 'success', auto: '' };
     if (project.lastBuildPhase >= 13) return { label: 'Built', action: 'Open Room', badge: 'info', auto: '' };
-    if (project.lastBuildPhase > 0) return { label: 'Phase ' + project.lastBuildPhase + '/13', action: 'Return to the Shire', badge: 'warning', auto: 'campaign --blitz --resume' };
-    return { label: 'Ready', action: 'Engage', badge: 'accent', auto: 'campaign --blitz' };
+    if (project.lastBuildPhase > 0) return { label: 'Phase ' + project.lastBuildPhase + '/13', action: 'Return to the Shire', badge: 'warning', auto: 'campaign --resume' };
+    return { label: 'Ready', action: 'Engage', badge: 'accent', auto: 'campaign' };
   }
 
   // ── API helpers ────────────────────────────────────
