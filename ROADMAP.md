@@ -2,10 +2,76 @@
 
 > The plan for the plan-maker.
 
-**Current:** v23.1.0 (2026-04-09)
-**Next:** v23.2 — The Coverage (test 112 untested modules, purge 17 orphaned files, target ~980 tests)
-**Status:** v23.1 complete (Campaign 33). 263 agents materialized + knowledge injected. 6 ADR-045 breaks closed.
-**741 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.
+**Current:** v23.3.1 (2026-04-12)
+**Next:** v23.4 — The Wizard Remediation (UI audit fixes: 3 critical API, 4 WCAG, 8 content accuracy, 8 UX improvements)
+**Status:** v23.3 complete (Campaigns 34+35). Test coverage + file splitting done.
+**1340 tests**, 9 universes, 263 agents, 28 slash commands, 37 code patterns.
+
+---
+
+## v23.4 — The Remediation
+
+*"The first duty of every officer is to the truth." — Picard*
+
+**Depends on: v23.3 complete. Campaign 36. ADR-046.**
+
+**The problem:** A combined architecture + UX audit of all 21 wizard UI files found 25 issues: 3 critical (broken API endpoints in standalone dashboards), 4 high (WCAG a11y violations), 8 medium (stale content, UX gaps), and 10 low/info. The wizard UI has accumulated debt over 100+ versions — the server evolved but the UI copy and client JS didn't follow.
+
+**Missions (6):**
+
+### Mission 1: Critical API Fixes (danger-room.js, war-room.js)
+- Standalone danger-room.html and war-room.html already show deprecation banners directing users to project.html
+- Replace the standalone pages' JS with a redirect to the project dashboard (no more legacy API calls)
+- Remove the legacy endpoint shims from danger-room.ts and war-room.ts (the ones blocked in remote/LAN mode anyway)
+- Keep the HTML/JS files but gut the fetch logic — show a "Redirecting to project dashboard..." message then navigate
+- Verify: project.html dashboard tabs (Danger Room, War Room) still work correctly via project-scoped endpoints
+- Estimated: ~100 lines changed
+
+### Mission 2: Retired Flag Cleanup (--blitz in 5 locations)
+- Remove `--blitz` from lobby.js (2 locations: auto commands)
+- Remove `--blitz` from project.html (2 locations: campaign instructions)
+- Remove `--blitz` from danger-room.html (1 location: quick reference)
+- Replace all with just `/campaign` (default is now autonomous per ADR-043)
+- Also remove dead `auto` URL parameter code in lobby.js (set but never consumed)
+- Estimated: ~15 lines changed
+
+### Mission 3: WCAG Compliance (4 high-severity a11y fixes)
+- **Step 3 validation:** Add visible text error messages below required fields, set `aria-invalid="true"`, add `aria-describedby` linking to error text
+- **PRD tabs (app.js):** Add ArrowLeft/ArrowRight/Home/End keyboard handlers matching project.js pattern. Set roving tabindex.
+- **Deploy wizard navigation:** Add consistent footer nav matching setup wizard pattern
+- **Step 7 heading:** Move `aria-labelledby` to a heading visible during creating state
+- Estimated: ~80 lines changed
+
+### Mission 4: Content Accuracy (stale counts, dead links, copy fixes)
+- CLAUDE.md: "35 reference implementations" → "37 reference implementations"
+- ROADMAP.md header: already fixed in this version
+- index.html: "Step 1 of 5" → match what JS sets (or empty)
+- danger-room.html: Fix dead GitHub anchor (#grow → remove or fix)
+- danger-room.html: `/cultivation install` → `npx voidforge install cultivation` (browser context)
+- danger-room-prophecy.js, war-room-prophecy.js: Fix stale endpoint comments
+- Estimated: ~20 lines changed
+
+### Mission 5: UX Improvements (8 medium-severity fixes)
+- **Blueprint dismiss:** Add dismiss/close button on Blueprint Detected banner (app.js)
+- **Lobby error vs empty:** Track fetch success/failure, show different states for "no projects" vs "server unavailable"
+- **Tower CDN retry:** Add retry button when xterm.js CDN fails
+- **showStatus consistency:** Unify function signature across app.js, tower.js, deploy.js
+- **Tower responsive:** Add flex-wrap and overflow handling for header actions on narrow viewports
+- **Login guidance:** Add "forgot password" help text explaining how to reset (delete auth config)
+- **Lobby header mobile:** Add overflow handling for action buttons on narrow viewports
+- **Import modal Escape:** Move Escape handling into trapFocus for consistency
+- Estimated: ~120 lines changed
+
+### Mission 6: Victory Gauntlet
+- Full test suite (1340+ tests must pass)
+- TypeScript clean (0 errors)
+- Cross-page navigation audit: verify every page has a path back to lobby
+- Tab keyboard navigation audit: verify all tab instances use arrow keys
+- Form validation audit: verify all required fields have text error messages
+- Stale count audit: grep for hardcoded numeric claims, verify against source
+- Run /qa + /ux focused on the wizard UI files
+
+**Execution order:** M1 → M2 → M3 → M4 + M5 (parallel) → M6
 
 ---
 
