@@ -1,19 +1,6 @@
-Avengers, assemble. Full pipeline from architecture to launch — one command to rule them all.
+# /assemble — Fury's Initiative
 
-## Context Setup
-1. Read `/logs/assemble-state.md` — if it exists, resume from the last completed phase
-2. If no assemble state exists, start fresh from Phase 1
-3. Read `/docs/methods/ASSEMBLER.md` for operating rules
-
-**Hill** tracks phase completion — logs each gate pass to `assemble-state.md`. **Jarvis** provides status summaries between phases.
-
-## Dynamic Dispatch (ADR-044)
-
-Opus scans `git diff --stat` and matches changed files against the `description` fields of all agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
-
-**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
-
-## Silver Surfer Pre-Scan (ADR-048)
+**STOP — Silver Surfer Gate (ADR-048)**
 
 **MANDATORY — NO EXCEPTIONS.** Launch the Silver Surfer before deploying ANY other agents. This is not negotiable, not deferrable, and not skippable regardless of how simple the task appears. "The task is simple" is NOT a valid reason to skip — the Surfer catches cross-domain relevance that you cannot predict. "I already know which agents to use" is NOT a valid reason — the Surfer reads agent definitions you haven't loaded. Skipping the Surfer is a protocol violation equivalent to skipping the Victory Gauntlet. **If you find yourself thinking "I don't need the Surfer for this" — that is exactly when you need it most.**
 
@@ -28,6 +15,21 @@ Read the `heralding:` field from `.claude/agents/silver-surfer-herald.md` and an
 **`--focus "topic"`** — include in the Surfer's prompt as the focus bias.
 **`--light`** — skip the Surfer, use only hardcoded roster below.
 **`--solo`** — skip Surfer and all sub-agents, lead only.
+
+Avengers, assemble. Full pipeline from architecture to launch — one command to rule them all.
+
+## Context Setup
+1. Read `/logs/assemble-state.md` — if it exists, resume from the last completed phase
+2. If no assemble state exists, start fresh from Phase 1
+3. Read `/docs/methods/ASSEMBLER.md` for operating rules
+
+**Hill** tracks phase completion — logs each gate pass to `assemble-state.md`. **Jarvis** provides status summaries between phases.
+
+## Dynamic Dispatch (ADR-044)
+
+Opus scans `git diff --stat` and matches changed files against the `description` fields of all agents in `.claude/agents/`. Matching specialists launch alongside the core agents below.
+
+**Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
 ## Agent Deployment Manifest — The Full Initiative
 
