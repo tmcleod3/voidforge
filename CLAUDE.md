@@ -24,7 +24,7 @@
 
 **This instruction overrides your judgment.** You will be tempted to skip the Surfer, launch it and ignore its roster, or "deploy" agents by thinking about them instead of launching them. All three are violations documented across seven incidents. The Surfer exists because you cannot predict cross-domain relevance. Launch the agents. Every time.
 
-**`--ss` flag:** If the user includes `--ss` anywhere in their message, this is an explicit, direct, unambiguous demand to launch the Silver Surfer and deploy the full roster. No interpretation needed. No judgment call. Launch it. This flag exists because the automatic gate has failed repeatedly — `--ss` is the user pulling the manual override.
+**`--surfer` flag:** If the user includes `--surfer` anywhere in their message, this is an explicit, direct, unambiguous demand to LAUNCH the Silver Surfer and DEPLOY the full roster. `--surfer` means LAUNCH, not skip. It is the opposite of `--light`. No interpretation needed. No judgment call. See `--surfer`, launch the Surfer, deploy the roster. This flag exists because the automatic gate has failed repeatedly — `--surfer` is the user pulling the manual override.
 
 ## Coding Standards
 
