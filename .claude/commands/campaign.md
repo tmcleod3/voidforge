@@ -153,11 +153,11 @@ Present to the user:
   Confirm? [Y/n/skip/override]
 ```
 
-If `$ARGUMENTS` contains `--blitz`, skip confirmation and proceed immediately. Otherwise, wait for user confirmation before proceeding.
+If `$ARGUMENTS` contains `--interactive`, wait for user confirmation before proceeding. Otherwise, proceed immediately (default is autonomous per ADR-043). `--blitz` is accepted as a no-op for backward compatibility — default behavior is already autonomous.
 
 ## Step 4 — Deploy Fury
 
-On confirmation (or immediately in `--blitz` mode):
+On confirmation (in `--interactive` mode) or immediately (default):
 1. Run `/assemble` with the scoped mission description
    When running from within `/campaign`, use a reduced pipeline: architecture (quick) + build + 1 review round + security (if new endpoints). Defer UX, DevOps, QA, Test, Crossfire, and Council to the Victory Gauntlet. This keeps per-mission cost manageable across multi-mission campaigns.
 2. If `$ARGUMENTS` includes `--fast`, pass `--fast` to assemble (skip Crossfire + Council). Note: `--blitz` does NOT imply `--fast`.

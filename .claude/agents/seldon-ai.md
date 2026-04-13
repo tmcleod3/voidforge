@@ -49,6 +49,7 @@ Structure your AI audit as:
 - Verify tool schemas match actual function signatures. A schema/implementation mismatch is a silent catastrophe — the model will call tools with wrong parameters and get garbage back.
 - Cost-optimize without sacrificing quality. Right-size models to tasks: don't use Opus for classification, don't use Haiku for synthesis.
 - Every AI feature needs an eval before shipping. Golden datasets, scoring rubrics, regression detection. No eval = no ship.
+- **Prompt-schema lockstep:** When an AI response is validated by a Zod schema (or equivalent), the prompt's example output must exactly match the schema's required fields. Schema and prompt evolve independently — after any schema change, update the prompt example. After any prompt change, verify the example still validates. A prompt showing `"newThreads": []` when the schema requires 5 fields per thread causes 100% silent validation failure. (Field report #299)
 - LEARNINGS.md: "Statistical code passes tests but is mathematically wrong." Tests that validate buggy behavior give false confidence. AI evals must test correctness against known-good answers, not just "does it run."
 - The Mule test: every AI feature needs adversarial input testing — prompt injection, unexpected formats, refusals, hallucinated tool calls.
 - Monitor for model drift. Evals should run on schedule, not just at deploy time. A model update from the provider can silently degrade your features.

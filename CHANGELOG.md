@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.12] - 2026-04-12
+
+### Fixed
+- Campaign Step 3 now respects ADR-043 default autonomy (was still gating on retired `--blitz` flag instead of `--interactive`)
+
+### Added
+- "Wait for all agents before implementing" anti-pattern rule in SUB_AGENTS.md (field report #300)
+- ToS/API policy compatibility check in ADR template and Dax's requirement classification (field report #300)
+- Type-check pre-flight gate before deploys in DEVOPS_ENGINEER.md (field report #299)
+- Prompt-schema lockstep operational learning for Seldon (field report #299)
+- Type-check before push operational learning for Coulson (field report #299)
+
+---
+
 ## [23.8.2] - 2026-04-12
 
 ### Fixed

@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.8.11
+**Current:** 23.8.12
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.8.12 | 2026-04-12 | Field report triage (#299, #300) — campaign autonomy fix, ToS checks, deploy type-check gate, 3 operational learnings |
 | 23.8.2 | 2026-04-12 | Silver Surfer Gate in CLAUDE.md — root-level enforcement after 3 documented skip incidents |
 | 23.8.1 | 2026-04-12 | Silver Surfer anti-skip hardening — NO EXCEPTIONS enforcement + field report learning |
 | 23.8.0 | 2026-04-12 | The Personality — heralding one-liners for all 264 agents. Character-authentic announcements on every agent deployment. ADR-049. |

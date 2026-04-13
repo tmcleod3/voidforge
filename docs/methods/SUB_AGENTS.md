@@ -372,3 +372,4 @@ Do NOT dispatch for: <3 files, <10 lines of analysis, single-file edits, git ope
 6. Don't use parallel agents for work that touches the same files — merge conflicts waste more time than sequential work.
 7. **Don't do inline analysis when an agent could do it.** Reading 50 files fills context with raw code instead of synthesized findings. Dispatch to an agent, get back a findings table. (Field report #270)
 8. **Don't let agents dispatch other agents.** The main thread is the hub. Agent-to-agent dispatch creates coordination chaos.
+9. **Don't implement while agents are running.** When agents are deployed in parallel, wait for ALL to return before beginning implementation. Synthesize all findings first, then implement in one batch. Starting early means you miss findings and do rework. (Field report #300)
