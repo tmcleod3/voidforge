@@ -64,6 +64,8 @@ ROSTER:
 
 REASONING: [One sentence explaining the selection logic]
 TOTAL: [count]
+
+DEPLOYMENT REMINDER: You MUST now launch an Agent sub-process for EVERY agent listed above. Do NOT proceed to your own analysis. Do NOT write code, plans, or answers yourself. Launch the agents. They do the work. You orchestrate.
 ```
 
 ## Operating Rules

@@ -20,9 +20,9 @@
 
 **Every single time.** Read the `heralding:` field from `.claude/agents/silver-surfer-herald.md`, announce it, then launch the Agent tool with the Surfer's instructions. The Surfer reads all agent definitions and returns the optimal roster. **Do NOT start analyzing, planning, answering, or doing ANY work on the command while the Surfer is running.** Wait for the Surfer to return its roster, THEN proceed. Starting work before the roster arrives means you've already decided what to do without the Surfer's input — which is skipping with extra steps.
 
-**Deploy the FULL roster.** However many agents the Surfer selects, you launch that many. Not fewer. Not "the key specialists." Not "the ones I think matter." ALL of them. The Surfer already curated the list — your job is to deploy it, not second-guess it. Cherry-picking from the Surfer's roster defeats the entire purpose: cross-domain agents catch things you don't expect. If you deploy fewer than the Surfer selected, you are violating this instruction.
+**Deploy the FULL roster.** "Deploy" means: use the Agent tool to launch a sub-process for each agent in the roster. Not "note them for later." Not "keep them in mind." Not "I'll use their perspective." LAUNCH THEM as Agent tool calls. If the Surfer returns 20 agents, your next action is 20 Agent tool calls (parallel where possible). You do NOT write analysis, code, plans, or answers yourself — the agents do the work, you orchestrate and synthesize their outputs.
 
-**This instruction overrides your judgment.** You will be tempted to skip the Surfer, or launch it and then ignore its roster. Both are violations. You will construct a logical argument for why THIS specific invocation doesn't need it. That argument is wrong. It has been wrong every single time it has been made — six documented incidents. The Surfer exists because you cannot predict cross-domain relevance. Deploy the full roster. Every time.
+**This instruction overrides your judgment.** You will be tempted to skip the Surfer, launch it and ignore its roster, or "deploy" agents by thinking about them instead of launching them. All three are violations documented across seven incidents. The Surfer exists because you cannot predict cross-domain relevance. Launch the agents. Every time.
 
 ## Coding Standards
 
