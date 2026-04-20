@@ -43,7 +43,7 @@ Transform a deployed product into a growing business. The 6-phase growth protoco
 |-----------|-------------|
 | Product not deployed | **Sisko** (`/campaign`) or **Fury** (`/assemble`) |
 | Financial vault needed | **Dockson** (`/treasury`) |
-| Security review of integrations | **Kenobi** (`/security`) |
+| Security review of integrations | **Kenobi** (`/sentinel`) |
 | Code changes for SEO/conversion | **Galadriel** (`/ux`) or **Stark** (`/build`) |
 
 ## Operating Rules

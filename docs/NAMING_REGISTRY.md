@@ -430,7 +430,7 @@
 9. R. Daneel Olivaw — Model migration, prompt versioning, behavior regression, pinning strategy (Robots/Foundation bridge)
 10. Dors Venabili — Observability, trace logging, decision audit trails, quality dashboards
 11. Janov Pelorat — Context engineering, RAG pipelines, embeddings, retrieval, chunking
-12. WandaSeldon — Structured output validation, schema enforcement, parse-failure retry (canonical name is `WandaSeldon` — no space — per ADR-055 to prevent `Wanda` prefix collision; display prose may use "Wanda Seldon")
+12. Wanda Seldon — Structured output validation, schema enforcement, parse-failure retry. (The ADR-055 rename to `WandaSeldon` was reverted post-v23.8.15 — Claude Code runtime resolves agents by exact-string match on `name:`, so the theoretical prefix collision with `Wanda` never materialized. Keep the validator script to catch real future collisions.)
 
 **Reserved:** Hari Seldon (lead — AI Intelligence Architect)
 

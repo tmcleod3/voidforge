@@ -59,7 +59,7 @@ Fix all Critical and High findings. Use the standard finding format with confide
 
 ## Phase 4 — Re-Verify
 
-**The Mule** `subagent_type: The Mule` + **Wanda Seldon** `subagent_type: WandaSeldon` re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
+**The Mule** `subagent_type: The Mule` + **Wanda Seldon** `subagent_type: Wanda Seldon` re-probe all remediated areas. Wanda validates structured outputs. The Mule attempts adversarial bypass of fixes.
 
 ## Arguments
 - `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
@@ -78,7 +78,7 @@ Fix all Critical and High findings. Use the standard finding format with confide
 5. Token budget estimate
 
 ## Handoffs
-- Security findings → Kenobi (`/security`)
+- Security findings → Kenobi (`/sentinel`)
 - Test gaps → Batman (`/qa`, `/test`)
 - Architecture concerns → Picard (`/architect`)
 - Performance/cost concerns → Kusanagi (`/devops`)

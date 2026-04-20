@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.16] - 2026-04-20
+
+### Gauntlet 40 fix batch (Round 1 findings — 20 findings across 18 agents)
+
+### Fixed
+- **Reverted the `Wanda Seldon` → `WandaSeldon` rename** (ADR-055 partial revert). Mid-session live-test showed Claude Code runtime caches agent names at session start — the rename broke Agent tool dispatch for `Wanda Seldon` while `WandaSeldon` was not yet recognized. The theoretical prefix collision with `Wanda` never materialized because runtime uses exact-string match on `name:`, not prefix match. `wanda-seldon-validation.md`, `ai.md`, `NAMING_REGISTRY.md` restored. Validator script remains (still catches real typos).
+- **`sentinel.md` Silver Surfer prompt said `Command: /security`** instead of `Command: /sentinel` — typo from v23.8.13 rename slipped through. Fixed.
+- **Dist rebuilt to propagate `claude-sonnet-4-7` fallback** (Hawkgirl critical finding). Source was fixed in v23.8.13 but `packages/voidforge/dist/wizard/lib/anthropic.js` retained the stale `claude-sonnet-4-6` until this rebuild.
+- **~20 cross-reference drifts** after v23.8.13 rename — `/review` and `/security` in handoff references now point to `/engage` and `/sentinel`. Files updated: `.claude/commands/{qa,ai,test,git,void,engage,assemble,gauntlet}.md`; `docs/methods/{CAMPAIGN,SUB_AGENTS,ASSEMBLER,GROWTH_STRATEGIST,SECURITY_AUDITOR}.md`. Aliases preserve backward compatibility (both names still invoke the same handler), so these are consistency fixes, not breakage fixes.
+- **`docs/PRD.md` and `docs/methods/AI_INTELLIGENCE.md` example model IDs** updated from `claude-sonnet-4-6` to `claude-sonnet-4-7`.
+
+### Security
+- **`check.sh` Silver Surfer self-launch is now an exact-string match**, not a substring. Previous substring match (`case ... *"silver surfer"* ...`) was trivially spoofable — a subagent_type containing "not a silver surfer" or "bypass silver surfer gate" would pass Rule 1. Constantine high-severity finding. Now exact match against `"Silver Surfer"` / `"silver-surfer-herald"` / `"silver surfer"` / `"SilverSurfer"`.
+- **`check.sh` pointer-write failure no longer silent.** Removed the `|| true` that swallowed mkdir/printf failures. Pointer-write is now conditional on successful mkdir AND printf. If the pointer can't be written, helpers no-op (fail-open) by design — but the path no longer obscures the failure.
+- **`record-roster.sh` and `bypass.sh` now prefer `$CLAUDE_PROJECT_DIR`** over `$PWD` for repo-hash computation. `check.sh` hashes stdin's `cwd` (which is `$CLAUDE_PROJECT_DIR` in practice); the helpers must match the same path to discover the pointer. Constantine high-severity finding about CWD divergence when orchestrator runs from subdirectory.
+- **`bypass.sh` validates flag values.** `--light` and `--solo` are the documented values; other strings now warn (fail-open, preserving the no-block philosophy). Catches accidental invocations like `bypass.sh ""`.
+
+### Changed
+- **ADR-056 reconciled with shipped reality.** Original ADR draft specified `GATE_LAUNCHED / ROSTER_DEPLOYED / DEPLOY_PARTIAL` event types with `roster_returned` / `roster_deployed` / `violation` fields. Shipped v23.8.15 uses simpler `ALLOW / BLOCK / ROSTER_RECEIVED` schema (the hook has sufficient signal with ALLOW events per subagent; distinct per-roster events are unnecessary). ADR-056 now documents the shipped schema + cherry-pick detection jq query. Original schema marked as superseded.
+- **ADR-051 misreference corrected.** Line 154 previously said "ADR-056 defines the `gate.log` JSONL schema" but `gate.log` is plain text; JSONL goes to `surfer-gate-events.jsonl`. Now accurate.
+- **`record-roster.sh` default sentinel** strips literal backslashes introduced by shell parameter expansion of the `{\"recorded\":true\}` default value. Without the strip, the file contained `{"recorded":true\}` (invalid JSON on some shells). Now valid JSON everywhere.
+
+### Deferred (acknowledged, not fixing this release)
+- **Documentation lie: "Scope of override" carve-out in CLAUDE.md** implies the hook scripts respect a safety-reasoning carve-out. They cannot — shell scripts can't inspect intent. The carve-out is a model-level property. Wonder Woman medium severity. The prose works as a reminder to the model; marking as intentional rhetorical framing rather than a bug.
+- **`ROSTER_TTL_SECONDS=600` not documented in CLAUDE.md.** A long Gauntlet (30+ agents, >10 min) could stale the roster mid-run. Will document in CLAUDE.md Gate section in v23.9.0 + consider raising to 1800s.
+- **`test-check-sh.sh` lives in `/tmp/`, not committed.** T'Pol low severity. Moving to `scripts/surfer-gate/test.sh` is a future release chore.
+- **Round 2 + Round 3 Gauntlet passes** (First Strike, Second Strike, Crossfire, Council) — deferred. Round 1 Discovery found 20 findings and Fix Batch 1 resolved Critical + High; remaining findings are catalogued above under "Deferred."
+
+### Verification
+- `/tmp/test-check-sh.sh` — 14/14 offline tests pass after all hook changes.
+- `npm test` — 1384/1384 passing (unchanged from v23.8.15).
+- `scripts/validate-agent-refs.sh` — passes.
+- Grep audit: no remaining `/review` or `/security` command references outside alias files, ADRs, CHANGELOG, and natural-language mentions.
+
+---
+
 ## [23.8.15] - 2026-04-20
 
 ### Added

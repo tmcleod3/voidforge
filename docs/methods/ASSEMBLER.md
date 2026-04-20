@@ -63,10 +63,10 @@ Fury calls ALL of them. That's the point.
 | 1 | /architect | 1 | ADRs written, no critical concerns |
 | 2 | /build | 1 | All phase gates pass, tests green |
 | 2.5 | Smoke test (Hawkeye) | 1 | Endpoints return expected status, no route collisions, no render loops |
-| 3-5 | /review | 3 | Zero Must Fix items. **UI→server trace:** for every `fetch()` in UI code, verify the server route exists. |
+| 3-5 | /engage | 3 | Zero Must Fix items. **UI→server trace:** for every `fetch()` in UI code, verify the server route exists. |
 | 6 | /ux (usability + a11y) | 1 | Zero critical usability or a11y findings |
 | 6.5 | Seldon's AI Review (conditional) | 1 | Zero Critical/High AI findings |
-| 7-8 | /security | 2 | Zero Critical/High findings |
+| 7-8 | /sentinel | 2 | Zero Critical/High findings |
 | 9 | /devops (+ deployment verification) | 1 | Deploy scripts, monitoring, smoke tests, live deploy status |
 | 10 | /qa | 1 | All critical/high bugs fixed |
 | 11 | /test | 1 | Suite green, coverage acceptable |
@@ -91,8 +91,8 @@ Do NOT assume `git push` triggers a deploy — CLI-deployed projects require exp
 
 Four adversarial agents from four universes attack each other's work:
 
-- **Maul** (Star Wars) — attacks code that passed /review
-- **Deathstroke** (DC) — probes what /security hardened
+- **Maul** (Star Wars) — attacks code that passed /engage
+- **Deathstroke** (DC) — probes what /sentinel hardened
 - **Loki** (Marvel) — chaos-tests what /qa cleared
 - **Constantine** (DC) — hunts cursed code in fixed areas
 

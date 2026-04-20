@@ -151,7 +151,7 @@ When two agents disagree on a finding, run a structured debate instead of listin
 
 **Log the debate** as an ADR in `/docs/adrs/` with both positions, evidence, and the decision. This is better than a one-line finding because future developers can understand WHY the decision was made.
 
-**When to trigger:** When `/review`, `/qa`, or `/security` produces conflicting findings on the same code — e.g., Spock says "this is correct" and Kenobi says "this is a vulnerability." Don't debate on matters of fact (a missing import is a missing import). Debate on matters of judgment (is this pattern secure enough? is this abstraction worth the complexity?).
+**When to trigger:** When `/engage`, `/qa`, or `/sentinel` produces conflicting findings on the same code — e.g., Spock says "this is correct" and Kenobi says "this is a vulnerability." Don't debate on matters of fact (a missing import is a missing import). Debate on matters of judgment (is this pattern secure enough? is this abstraction worth the complexity?).
 
 ## Custom Sub-Agents
 
@@ -351,8 +351,8 @@ PLAN → LAUNCH → WAIT → TRIAGE → DECIDE → REPORT → NEXT
 
 | Command | Main Thread | Agents | Parallelism |
 |---|---|---|---|
-| `/review` | Partition files, triage findings | 2-3 review agents per round, fix agents | Domain-parallel reads, sequential fixes |
-| `/security` | Route findings, manage fixes | Kenobi (full audit), Maul (re-probe) | Sequential (Maul needs Kenobi's fixes) |
+| `/engage` | Partition files, triage findings | 2-3 review agents per round, fix agents | Domain-parallel reads, sequential fixes |
+| `/sentinel` | Route findings, manage fixes | Kenobi (full audit), Maul (re-probe) | Sequential (Maul needs Kenobi's fixes) |
 | `/qa` | Triage bugs, prioritize | Batman QA + Batman Test | Parallel (different focus) |
 | `/assemble` | Full pipeline orchestration | ALL phases dispatched | Wave-batched per phase |
 | `/gauntlet` | Round management | 5-8 agents per round | Waves of 3 |

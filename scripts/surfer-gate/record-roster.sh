@@ -19,7 +19,11 @@
 set -uo pipefail
 
 # Locate the session pointer that check.sh writes on every hook fire.
-REPO_HASH="$(printf '%s' "$PWD" | shasum -a 256 2>/dev/null | cut -c1-12)"
+# Prefer $CLAUDE_PROJECT_DIR (injected by Claude Code into hook/command env) —
+# check.sh hashes stdin's `cwd`, which equals $CLAUDE_PROJECT_DIR in practice.
+# Fall back to $PWD if the env var isn't set (e.g., run manually from terminal).
+REPO_PATH="${CLAUDE_PROJECT_DIR:-$PWD}"
+REPO_HASH="$(printf '%s' "$REPO_PATH" | shasum -a 256 2>/dev/null | cut -c1-12)"
 if [ -z "$REPO_HASH" ]; then
     echo "[record-roster] shasum unavailable — cannot compute repo hash. No-op." >&2
     exit 0
@@ -50,6 +54,9 @@ mkdir -p "$SESSION_DIR" 2>/dev/null || {
 
 # Write whatever the orchestrator passed (or a minimal sentinel).
 ROSTER_CONTENT="${1:-{\"recorded\":true\}}"
+# Strip any literal backslashes introduced by shell parameter expansion of the
+# default value (the {\} escaping artifact writes \} on some shells).
+ROSTER_CONTENT="$(printf '%s' "$ROSTER_CONTENT" | tr -d '\\')"
 printf '%s\n' "$ROSTER_CONTENT" > "$ROSTER_FILE" 2>/dev/null || {
     echo "[record-roster] could not write $ROSTER_FILE" >&2
     exit 1

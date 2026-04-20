@@ -127,7 +127,7 @@ If new issues found, fix and re-verify.
 - `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
-- Security findings → Kenobi (`/security`)
+- Security findings → Kenobi (`/sentinel`)
 - UX/a11y findings → Galadriel (`/ux`)
 - Architecture concerns → Picard (`/architect`)
 - Bug discoveries → Batman (`/qa`)

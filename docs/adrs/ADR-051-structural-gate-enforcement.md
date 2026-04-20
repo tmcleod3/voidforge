@@ -151,7 +151,7 @@ Opus 4.7's native `/agents` management does not expose a gate-insertion API. The
 
 - **ADR-048** — Silver Surfer Herald (defines the gate semantically; this ADR replaces the enforcement mechanism).
 - **ADR-050** — Native Coexistence (the renamed `/engage` and `/sentinel` inherit gate enforcement).
-- **ADR-056** (new) — Observability Bootstrapping (defines the `gate.log` JSONL schema).
+- **ADR-056** — Observability Bootstrapping (defines the `surfer-gate-events.jsonl` schema; `gate.log` remains plain text for human-readable per-session debugging).
 
 ## Rollout
 

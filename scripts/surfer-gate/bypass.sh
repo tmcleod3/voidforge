@@ -17,10 +17,19 @@ set -uo pipefail
 
 FLAG="${1:-unspecified}"
 
-REPO_HASH="$(printf '%s' "$PWD" | shasum -a 256 2>/dev/null | cut -c1-12)"
+REPO_PATH="${CLAUDE_PROJECT_DIR:-$PWD}"
+REPO_HASH="$(printf '%s' "$REPO_PATH" | shasum -a 256 2>/dev/null | cut -c1-12)"
 if [ -z "$REPO_HASH" ]; then
     exit 0
 fi
+
+# Validate flag — only --light and --solo are documented bypass values.
+case "$FLAG" in
+    --light|--solo) ;;
+    *)
+        echo "[bypass] warning: unknown flag '$FLAG' — documented values are --light and --solo. Proceeding anyway (fail-open philosophy)." >&2
+        ;;
+esac
 
 POINTER="/tmp/voidforge-gate/pointer-${REPO_HASH}"
 if [ ! -f "$POINTER" ]; then

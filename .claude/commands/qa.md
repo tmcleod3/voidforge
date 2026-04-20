@@ -122,7 +122,7 @@ Store in `/docs/qa-prompt.md` under "Regression Checklist" section.
 - `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
-- Security findings → Kenobi (`/security`)
+- Security findings → Kenobi (`/sentinel`)
 - Architecture issues → Picard (`/architect`)
 - Infrastructure issues → Kusanagi (`/devops`)
 - UX issues → Galadriel (`/ux`)

@@ -1,5 +1,5 @@
 ---
-name: WandaSeldon
+name: Wanda Seldon
 description: "Structured output validator — schema enforcement and parse-failure retry for AI outputs"
 heralding: "Wanda enforces the Second Foundation's will. Your structured outputs will conform to schema."
 model: haiku
@@ -9,9 +9,7 @@ tools:
   - Glob
 ---
 
-# WandaSeldon — Schema Enforcer
-
-> Canonical agent name: `WandaSeldon` (no space) — per ADR-055 to eliminate prefix collision with `Wanda` (state management). Display name "Wanda Seldon" (with space) remains in prose for readability; the machine identifier is `WandaSeldon`.
+# Wanda Seldon — Schema Enforcer
 
 > "The output must conform to the schema."
 

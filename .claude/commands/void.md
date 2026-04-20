@@ -125,6 +125,6 @@ Verify and celebrate:
 
 ## Handoffs
 - If build protocol phases changed → recommend **Picard** review (`/architect`)
-- If security method updated → recommend **Kenobi** review (`/security`)
+- If security method updated → recommend **Kenobi** review (`/sentinel`)
 - If new patterns added → note for **Stark** and **Galadriel** to review
 - If the update is a MAJOR version → strongly recommend reading the CHANGELOG before continuing work

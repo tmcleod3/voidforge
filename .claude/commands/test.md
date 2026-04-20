@@ -107,7 +107,7 @@ These can use mocked databases but MUST cross module boundaries — the test sho
 - `--focus "topic"` → Bias Herald toward topic (natural-language, additive)
 
 ## Handoffs
-- Security test gaps → Kenobi (`/security`)
+- Security test gaps → Kenobi (`/sentinel`)
 - UI test gaps → Galadriel (`/ux`)
 - Infrastructure test issues → Kusanagi (`/devops`)
 

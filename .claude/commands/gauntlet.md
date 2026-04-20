@@ -30,7 +30,7 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 Use the Agent tool to run all five in parallel — these are read-only analysis:
 
 - **Agent 1** `subagent_type: Picard` — Schema review, service boundaries, dependency graph, scaling assessment. Read the full `/architect` protocol but produce findings only (no ADRs — this is review, not design).
-- **Agent 2** `subagent_type: Stark` — Pattern compliance, logic errors, type safety, cross-module data flow tracing. Read `/review` protocol. One pass across all source files.
+- **Agent 2** `subagent_type: Stark` — Pattern compliance, logic errors, type safety, cross-module data flow tracing. Read `/engage` protocol. One pass across all source files.
 - **Agent 3** `subagent_type: Galadriel` — Product surface map, usability walkthrough (Step 1.5), Éowyn's enchantment scan (Step 1.75). No fixes yet — discovery only.
 - **Agent 4** `subagent_type: Kenobi` — List all endpoints, WebSocket handlers, file I/O, credential access points, user input parsing. Classify each by risk tier. No deep audit yet — just the map.
 - **Agent 5** `subagent_type: Kusanagi` — Scan deploy scripts, generated configs, provisioning scripts, CI/CD templates. Classify each by risk: hardcoded credentials, open ports, missing auth on generated services. No deep audit yet — just the map.
@@ -45,7 +45,7 @@ Use the Agent tool to run all four in parallel — full domain audits:
 
 - **Agent 1** `subagent_type: Batman` — Run the complete `/qa` protocol. Oracle + Red Hood + Alfred + Deathstroke + Constantine + Nightwing + Lucius. Every edge case, every error state, every boundary.
 - **Agent 2** `subagent_type: Galadriel` — Run the complete `/ux` protocol. Elrond + Arwen + Samwise + Bilbo + Legolas + Gimli + Radagast + Éowyn. Usability, visual, a11y, copy, performance, edge cases, enchantment.
-- **Agent 3** `subagent_type: Kenobi` — Run the complete `/security` protocol. Leia + Chewie + Rex + Maul parallel scans, then Yoda → Windu → Ahsoka → Padmé sequential audits.
+- **Agent 3** `subagent_type: Kenobi` — Run the complete `/sentinel` protocol. Leia + Chewie + Rex + Maul parallel scans, then Yoda → Windu → Ahsoka → Padmé sequential audits.
 - **Agent 4** `subagent_type: Stark` — For every API endpoint, trace the full data path: client request → validation → service → database → response. For every file upload, trace: upload → storage → retrieval → display. For every credential, trace: entry → vault → usage → cleanup.
 
 Merge all findings. Deduplicate across domains.
@@ -82,8 +82,8 @@ Use the Agent tool to run all four in parallel — targeted re-verification:
 
 Use the Agent tool to run all five in parallel — pure adversarial:
 
-- `subagent_type: Maul` — Attacks code that passed /review. Looks for exploits in "clean" code.
-- `subagent_type: Deathstroke` — Probes endpoints that /security hardened. Tests if remediations can be bypassed.
+- `subagent_type: Maul` — Attacks code that passed /engage. Looks for exploits in "clean" code.
+- `subagent_type: Deathstroke` — Probes endpoints that /sentinel hardened. Tests if remediations can be bypassed.
 - `subagent_type: Loki` — Chaos-tests features that /qa cleared. What breaks under unexpected conditions?
 - `subagent_type: Constantine` — Hunts cursed code in FIXED areas specifically. Code that only works by accident.
 - `subagent_type: Eowyn` — Final enchantment pass on the polished, hardened product. Where can delight still be added without compromising security or stability?

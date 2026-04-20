@@ -60,16 +60,24 @@ fi
 # -------- Write session pointer (repo-scoped) --------
 # Every hook fire updates the pointer so orchestrator helpers can discover
 # the current session_id without the orchestrator knowing it directly.
-# Key on hash(cwd) to isolate repos from each other.
+# Key on hash(cwd) to isolate repos from each other. cwd comes from stdin JSON
+# (not $PWD) — the helper scripts must use the same hash source (CLAUDE_PROJECT_DIR
+# env var, which is populated with the same absolute path).
+POINTER_WRITTEN=false
 if [ -n "$CWD" ] && command -v shasum >/dev/null 2>&1; then
     REPO_HASH="$(printf '%s' "$CWD" | shasum -a 256 2>/dev/null | cut -c1-12)"
     if [ -n "$REPO_HASH" ]; then
         POINTER_DIR="/tmp/voidforge-gate"
         POINTER_FILE="${POINTER_DIR}/pointer-${REPO_HASH}"
-        mkdir -p "$POINTER_DIR" 2>/dev/null && \
-            printf '%s\n' "$SESSION_ID" > "$POINTER_FILE" 2>/dev/null || true
+        if mkdir -p "$POINTER_DIR" 2>/dev/null && \
+           printf '%s\n' "$SESSION_ID" > "$POINTER_FILE" 2>/dev/null; then
+            POINTER_WRITTEN=true
+        fi
     fi
 fi
+# Note: POINTER_WRITTEN=false is informational only. Helpers will no-op without
+# the pointer (effectively fail-open). That's intentional per the fail-open
+# philosophy — a pointer-write failure should not block agent launches.
 
 # -------- Only gate Agent tool calls --------
 # Everything else (Read, Bash, Edit, Glob, Grep, Write, etc.) passes unconditionally.
@@ -111,8 +119,10 @@ _allow() { _log "ALLOW subagent=$SUBAGENT_TYPE: $*"; _emit_jsonl "ALLOW" "$*"; e
 _block() { echo "[Silver Surfer Gate] $*" >&2; _log "BLOCK subagent=$SUBAGENT_TYPE: $*"; _emit_jsonl "BLOCK" "$*"; exit 2; }
 
 # -------- Rule 1: Silver Surfer self-launch always allowed --------
-case "$(echo "$SUBAGENT_TYPE" | tr '[:upper:]' '[:lower:]')" in
-    *"silver surfer"*|*"silver-surfer"*|*"surfer herald"*|*"surfer-herald"*)
+# Exact match against known Surfer identifiers — no substring match.
+# Substring match would be spoofable by subagent_type "not a silver surfer".
+case "$SUBAGENT_TYPE" in
+    "Silver Surfer"|"silver-surfer-herald"|"silver surfer"|"SilverSurfer")
         _allow "Silver Surfer self-launch"
         ;;
 esac

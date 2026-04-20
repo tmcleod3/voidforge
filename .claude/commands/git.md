@@ -99,6 +99,6 @@ If a method doc gained a new section, flag, or checklist item — flag it: "Meth
 - `--dry-run` → Show version bump, changelog entry, and commit message without executing.
 
 ## Handoffs
-- If changes include security fixes → note for Kenobi (`/security`)
+- If changes include security fixes → note for Kenobi (`/sentinel`)
 - If changes include infrastructure → note for Kusanagi (`/devops`)
 - If version is MAJOR → recommend Picard review (`/architect`)

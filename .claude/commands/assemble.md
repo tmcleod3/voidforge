@@ -70,7 +70,7 @@ Mandatory runtime verification BEFORE code review begins:
 ## Phase 3 — Review Round 1 (Full Roster — see Agent Deployment Manifest)
 **Fury:** "Picard's team — first pass. Find everything. Full roster deployed."
 
-Run `/review` with full Agent Deployment Manifest (Stark's Marvel team + cross-domain agents). Fix all Must Fix and Should Fix items.
+Run `/engage` with full Agent Deployment Manifest (Stark's Marvel team + cross-domain agents). Fix all Must Fix and Should Fix items.
 
 **A11y spot-check (Samwise, during review):** Semantic headings (h1-h6 hierarchy), aria-hidden on decorative elements, aria-labels on ambiguous links, skip-nav link, landmark roles. This catches structural a11y issues early — before the full `/ux` pass. (Field report #118)
 
@@ -79,12 +79,12 @@ Log findings count.
 ## Phase 4 — Review Round 2 (Re-verify)
 **Fury:** "Again. Verify the fixes didn't break anything."
 
-Run `/review` on all files modified in Phase 3. Fix any new issues.
+Run `/engage` on all files modified in Phase 3. Fix any new issues.
 
 ## Phase 5 — Review Round 3 (Final clean pass)
 **Fury:** "Last pass. I want zero Must Fix items."
 
-Run `/review`. If any Must Fix items remain, fix them.
+Run `/engage`. If any Must Fix items remain, fix them.
 
 **Gate:** Zero Must Fix items. Update assemble-state.
 
@@ -107,12 +107,12 @@ Run the full `/ux` protocol in two sub-phases. Skip if PRD frontmatter `type: ap
 ## Phase 7 — Security Round 1 (Kenobi leads)
 **Fury:** "Kenobi, find what they missed. Think like the enemy."
 
-Run the full `/security` protocol (Phases 1-3: parallel scans, sequential audits, remediation).
+Run the full `/sentinel` protocol (Phases 1-3: parallel scans, sequential audits, remediation).
 
 ## Phase 8 — Security Round 2 (Maul re-probes)
 **Fury:** "Maul — attack every fix. I want proof they hold."
 
-Run `/security` Phase 4 only (Maul's re-verification). If new issues found, fix and re-verify.
+Run `/sentinel` Phase 4 only (Maul's re-verification). If new issues found, fix and re-verify.
 
 **Gate:** Zero Critical or High security findings. Update assemble-state.
 
@@ -142,8 +142,8 @@ Run the full `/test` protocol. Write missing unit tests, integration tests, and 
 
 Use the Agent tool to run these in parallel — all are adversarial, read-only analysis:
 
-- `subagent_type: Maul` — attacks code that passed /review. Looks for exploits in "clean" code.
-- `subagent_type: Deathstroke` — probes endpoints that /security hardened. Tests if remediations can be bypassed.
+- `subagent_type: Maul` — attacks code that passed /engage. Looks for exploits in "clean" code.
+- `subagent_type: Deathstroke` — probes endpoints that /sentinel hardened. Tests if remediations can be bypassed.
 - `subagent_type: Loki` — chaos-tests features that /qa cleared. Finds what breaks under unexpected conditions.
 - `subagent_type: Constantine` — hunts cursed code in FIXED areas specifically. Code that works by accident.
 

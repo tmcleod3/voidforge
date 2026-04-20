@@ -32,7 +32,7 @@ Agent dispatch is now description-driven. When Opus processes a command, it scan
 
 See `docs/AGENT_CLASSIFICATION.md` for the full classification and `docs/adrs/ADR-044-subagent-materialization.md` for the architecture.
 
-**Promoted agent:** **Worf** runs on every `/review` that touches auth code — security-by-design, not security-after-build.
+**Promoted agent:** **Worf** runs on every `/engage` that touches auth code — security-by-design, not security-after-build.
 
 ## Pre-Audit: Load Operational Learnings (optional)
 
