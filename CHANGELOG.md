@@ -6,6 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.17] - 2026-04-20
+
+### Gauntlet 40b Round 1 + 2 fix batch
+
+Post-v23.8.16 /gauntlet --fast produced Round 1 + Round 2 First Strike findings. This release fixes the shippable-blockers and documents the rest.
+
+### Fixed
+- **`npx voidforge init` Project section insertion (ADR-058 implementation gap, UX-003 CRITICAL).** ADR-058 strips the Project section from the published methodology via prepack sed markers. The `injectIdentity()` function in `project-init.ts` still did `replace('[PROJECT_NAME]', ...)` on placeholders that no longer exist in the published package — silent no-op → user's new project had NO Project section at all. Now detects both paths: legacy template (placeholders present → replace) and published package (section stripped → insert a fresh block after the `# CLAUDE.md` heading). `npx voidforge init` now correctly writes a filled Project section in all cases.
+- **`record-roster.sh` backslash-strip no longer corrupts orchestrator-supplied JSON** (Constantine BE finding). v23.8.16 introduced `tr -d '\\'` to fix a default-sentinel artifact, but it also stripped legitimate JSON escapes (`\u0041`, `\"`, `\n`) from the orchestrator's roster payload. Replaced with a clean `printf` construction of the default — legitimate `$1` escapes now pass through untouched.
+- **`record-roster.sh` repo-persistent JSONL write now uses `$REPO_PATH`** (previously bare `$PWD`). Consistent with the pointer-path fix in v23.8.16; prevents silent drop when called from a subdirectory.
+- **`check.sh` and `record-roster.sh` now `mkdir -p "$CWD/logs"` before append** (BE-005). Previously gated on `[ -d "$CWD/logs" ]` → silent drop if the dir didn't exist. Now creates it.
+- **`check.sh` POINTER_WRITTEN variable removed.** It was cosmetic — set but never read. Constantine MEDIUM finding. Simplified to fail-open append with a clarifying comment.
+- **5 more bare handoff references** fixed in `.claude/commands/{architect,ux,devops}.md` and `docs/methods/AI_INTELLIGENCE.md` → now point to `/sentinel` and `/engage` instead of bare `→ Kenobi` / `→ Picard`.
+- **HOLOCRON.md Arsenal section** now documents `/engage` (alias: `/review`) and `/sentinel` (alias: `/security`) per ADR-050. Previously said `/review` and `/security` with zero mention of the new canonical names (UX-001, UX-002 HIGH).
+- **WORKSHOP.md + README.md** command tables — same rename applied.
+- **CLAUDE.md orchestrator contract** now discloses that `bypass.sh` fail-opens on unknown flag values with a stderr warning (Wonder Woman finding on undisclosed behavior).
+
+### Deferred with explicit rationale (not fixing this release)
+
+**Documented as known; not blocking:**
+- **SEC-001 (HIGH latent):** `parse_json` in `check.sh` interpolates its `path` argument into Python source. Not exploitable today (all callers pass hardcoded literals) but a refactor trap. Fix is mechanical (pass via `sys.argv`) — queuing for v23.9.0 hardening pass.
+- **SEC-002 (MEDIUM):** `/tmp` roster pre-seed risk on multi-user systems. Requires moving state to `$XDG_RUNTIME_DIR` or `$HOME/.cache/voidforge-gate/`. Design decision pending — solo maintainer use case is current target.
+- **SEC-003 (LOW):** `bypass.sh` fail-open on unknown flag values is by-design per our fail-open philosophy. Now explicitly documented in CLAUDE.md contract.
+- **BE-002 (MEDIUM):** `CLAUDE_PROJECT_DIR` vs stdin `cwd` byte divergence (trailing slash, macOS `/private/tmp` vs `/tmp`). Not yet observed in practice; will add a sanity check if it surfaces.
+- **BE-003 (HIGH):** Roster JSONL schema divergence — `roster_json` field is escape-stripped while the sentinel file is raw. Consumers that parse both see different shapes. Architectural decision deferred to Mission 9b (orchestration metrics design).
+- **QA-001/QA-002/QA-003:** Three missing test coverage items — `$CLAUDE_PROJECT_DIR != $PWD` path, JSONL escape correctness, `$REPO_PATH/logs` write path. Queuing for v23.9.0 test-writing pass.
+- **UX-004:** BLOCK error message audience-confused between human and orchestrator. Leaves implementation-detail instruction (`bash record-roster.sh`) that a confused orchestrator could cargo-cult. Rewriting properly needs more care — deferred.
+- **UX-005:** HOLOCRON.md has no pointer to `scripts/surfer-gate/README.md`. Will add in next docs pass.
+- **UX-006:** Inconsistent counts across HOLOCRON/README/WORKSHOP (26 vs 28 commands, 190+ vs 260+ agents). Needs a "count at build time" mechanism, deferred.
+- **UX-007:** HOLOCRON still has 2 `npx thevoidforge` instances outside the code blocks I fixed in v23.8.13. Low priority.
+
+### Verification
+- `/tmp/test-check-sh.sh` — 14/14 pass after all Fix Batch 2 + 3 changes
+- `npm test` — 1384/1384 pass
+- All hook edits live-tested in the Gauntlet 40 run itself (the `ALLOW` gate entries in `logs/surfer-gate-events.jsonl` are from this session's Agent launches)
+
+### Thanos verdict
+**"I am not yet inevitable."** Round 1 Discovery + Round 2 First Strike completed; Round 3 Second Strike deferred. Seven high-confidence findings remain catalogued above. The methodology survives the Gauntlet with acknowledged wounds. For a Victory sign-off, a dedicated hardening pass on SEC-001, BE-003, and the test-coverage gaps is the next logical step — not this release.
+
+---
+
 ## [23.8.16] - 2026-04-20
 
 ### Gauntlet 40 fix batch (Round 1 findings — 20 findings across 18 agents)

@@ -63,21 +63,18 @@ fi
 # Key on hash(cwd) to isolate repos from each other. cwd comes from stdin JSON
 # (not $PWD) — the helper scripts must use the same hash source (CLAUDE_PROJECT_DIR
 # env var, which is populated with the same absolute path).
-POINTER_WRITTEN=false
 if [ -n "$CWD" ] && command -v shasum >/dev/null 2>&1; then
     REPO_HASH="$(printf '%s' "$CWD" | shasum -a 256 2>/dev/null | cut -c1-12)"
     if [ -n "$REPO_HASH" ]; then
         POINTER_DIR="/tmp/voidforge-gate"
         POINTER_FILE="${POINTER_DIR}/pointer-${REPO_HASH}"
-        if mkdir -p "$POINTER_DIR" 2>/dev/null && \
-           printf '%s\n' "$SESSION_ID" > "$POINTER_FILE" 2>/dev/null; then
-            POINTER_WRITTEN=true
-        fi
+        # Fail-open on pointer-write failure: if mkdir or printf fails, helpers
+        # will no-op (no gate enforcement). Intentional per the fail-open
+        # philosophy documented in ADR-051.
+        mkdir -p "$POINTER_DIR" 2>/dev/null && \
+            printf '%s\n' "$SESSION_ID" > "$POINTER_FILE" 2>/dev/null || true
     fi
 fi
-# Note: POINTER_WRITTEN=false is informational only. Helpers will no-op without
-# the pointer (effectively fail-open). That's intentional per the fail-open
-# philosophy — a pointer-write failure should not block agent launches.
 
 # -------- Only gate Agent tool calls --------
 # Everything else (Read, Bash, Edit, Glob, Grep, Write, etc.) passes unconditionally.
@@ -110,8 +107,10 @@ _emit_jsonl() {
     # Session-scoped (ephemeral, per-session debugging). Newline appended via format.
     printf '%s\n' "$line" >> "$SESSION_DIR/surfer-gate-events.jsonl" 2>/dev/null || true
     # Repo-persistent (survives sessions, for long-term cherry-pick trend analysis).
-    if [ -n "${CWD:-}" ] && [ -d "$CWD/logs" ]; then
-        printf '%s\n' "$line" >> "$CWD/logs/surfer-gate-events.jsonl" 2>/dev/null || true
+    # Create logs/ if it doesn't exist to avoid silent drops — BE-005 finding.
+    if [ -n "${CWD:-}" ]; then
+        mkdir -p "$CWD/logs" 2>/dev/null && \
+            printf '%s\n' "$line" >> "$CWD/logs/surfer-gate-events.jsonl" 2>/dev/null || true
     fi
 }
 

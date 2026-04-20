@@ -40,7 +40,7 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 **Orchestrator contract** (you run these Bash commands at the right moments):
 
 1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `bash scripts/surfer-gate/record-roster.sh` (optionally pass the roster JSON as the first argument for audit). This is a no-op when the hook is inactive, so it is always safe to call.
-2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `bash scripts/surfer-gate/bypass.sh --light` (or `--solo`). Also a no-op when the hook is inactive.
+2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `bash scripts/surfer-gate/bypass.sh --light` (or `--solo`). Also a no-op when the hook is inactive. Any other value is accepted as fail-open bypass with a stderr warning — only `--light` and `--solo` are documented.
 
 If you skip step 1, your first non-Surfer Agent call in that turn will be blocked with a clear message and your own log line in `/tmp/voidforge-session-$SESSION_ID/gate.log`. You are expected to comply with the block (launch Surfer / run record-roster), not to fight it.
 

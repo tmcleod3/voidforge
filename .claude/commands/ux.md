@@ -127,6 +127,6 @@ Add UX-specific items to the regression checklist in `/docs/qa-prompt.md`:
 
 ## Handoffs
 - Backend issues → Stark, log to `/logs/handoffs.md`
-- Security issues → Kenobi, log to `/logs/handoffs.md`
-- Architecture issues → Picard, log to `/logs/handoffs.md`
+- Security issues → Kenobi (`/sentinel`), log to `/logs/handoffs.md`
+- Architecture issues → Picard (`/architect`), log to `/logs/handoffs.md`
 - Non-UI bugs → Batman, log to `/logs/handoffs.md`

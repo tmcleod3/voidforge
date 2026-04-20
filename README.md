@@ -193,9 +193,9 @@ voidforge/
 | `/build` | All | 13-phase build from PRD |
 | `/qa` | Batman | Double-pass QA with parallel analysis |
 | `/test` | Batman | Test-writing mode — coverage + architecture |
-| `/security` | Kenobi | OWASP audit with red-team verification |
+| `/sentinel` (alias: `/security`) | Kenobi | OWASP audit with red-team verification |
 | `/ux` | Galadriel | Adversarial UX/UI + a11y with re-verify |
-| `/review` | Picard | Cross-agent code review — patterns + quality |
+| `/engage` (alias: `/review`) | Picard | Cross-agent code review — patterns + quality |
 | `/devops` | Kusanagi | Target-adaptive infrastructure |
 | `/architect` | Picard | Architecture review with parallel analysis |
 | `/git` | Coulson | Semver + changelog + commit |

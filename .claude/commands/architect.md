@@ -103,5 +103,5 @@ For specific conflicts:
 ## Handoffs
 - API/DB implementation → Stark, log to `/logs/handoffs.md`
 - UI impacts → Galadriel, log to `/logs/handoffs.md`
-- Security implications → Kenobi, log to `/logs/handoffs.md`
+- Security implications → Kenobi (`/sentinel`), log to `/logs/handoffs.md`
 - Infrastructure constraints → Kusanagi, log to `/logs/handoffs.md`

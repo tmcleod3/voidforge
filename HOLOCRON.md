@@ -424,8 +424,10 @@ Double-pass review: Pass 1 runs parallel analysis — Oracle scans the system, R
 
 Analyzes coverage gaps (Oracle + Alfred in parallel), reviews test architecture (Nightwing), writes missing unit/integration/component tests in priority order, then Red Hood writes adversarial tests for boundary values and edge cases.
 
-#### `/security` — Kenobi's Audit
+#### `/sentinel` — Kenobi's Audit (alias: `/security`)
 **When:** Before any deploy. After adding auth, payments, or external integrations.
+
+> Renamed from `/security` in v23.8.13 (ADR-050) to avoid collision with Claude Code's native `/security-review` skill. `/security` remains as a permanent alias — both names invoke Kenobi's OWASP audit.
 
 Phase 1 runs parallel scans (Leia: secrets, Chewie: dependencies, Rex: infrastructure, Maul: red-team). Phase 2 runs sequential deep audits (auth, input, access control, data). Critical/high findings are fixed. Phase 3: Maul re-probes all remediations to verify fixes hold.
 
@@ -434,8 +436,10 @@ Phase 1 runs parallel scans (Leia: secrets, Chewie: dependencies, Rex: infrastru
 
 Adversarial UX/UI review with double-pass: Pass 1 walks every user flow with 7 agents in parallel (UX, visual, a11y, copy, code, perf, edge cases). Fixes are applied. Pass 2: Samwise re-audits a11y on modified components, Gandalf re-checks edge cases. Ensures fixes don't break other properties.
 
-#### `/review` — Picard's Code Review
+#### `/engage` — Picard's Code Review (alias: `/review`)
 **When:** After writing code, before committing. For pattern compliance and quality.
+
+> Renamed from `/review` in v23.8.13 (ADR-050) to avoid collision with Claude Code's native `/review` skill. `/review` remains as a permanent alias — both names invoke Picard's multi-agent code review.
 
 Picard-affiliated (Star Trek). Parallel analysis: Spock checks pattern compliance against `/docs/patterns/`, Seven reviews code quality (complexity, dead code, duplication), Data reviews maintainability (abstractions, coupling, boundaries). Re-verification pass after fixes. Findings categorized as Must Fix, Should Fix, Consider, or Nit.
 

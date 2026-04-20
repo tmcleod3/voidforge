@@ -53,10 +53,15 @@ mkdir -p "$SESSION_DIR" 2>/dev/null || {
 }
 
 # Write whatever the orchestrator passed (or a minimal sentinel).
-ROSTER_CONTENT="${1:-{\"recorded\":true\}}"
-# Strip any literal backslashes introduced by shell parameter expansion of the
-# default value (the {\} escaping artifact writes \} on some shells).
-ROSTER_CONTENT="$(printf '%s' "$ROSTER_CONTENT" | tr -d '\\')"
+# Use printf to construct the default without shell-escape artifacts — avoids the
+# prior `{\"recorded\":true\}` expansion that wrote a literal backslash on some
+# shells. Do NOT strip backslashes from orchestrator-supplied $1, which may
+# contain legitimate JSON escapes (\u0041, \", etc.).
+if [ "$#" -ge 1 ]; then
+    ROSTER_CONTENT="$1"
+else
+    ROSTER_CONTENT='{"recorded":true}'
+fi
 printf '%s\n' "$ROSTER_CONTENT" > "$ROSTER_FILE" 2>/dev/null || {
     echo "[record-roster] could not write $ROSTER_FILE" >&2
     exit 1
@@ -71,9 +76,11 @@ JSONL_LINE="$(printf '{"ts":"%s","session_id":"%s","event":"ROSTER_RECEIVED","ro
 
 # Session-scoped
 printf '%s\n' "$JSONL_LINE" >> "$SESSION_DIR/surfer-gate-events.jsonl" 2>/dev/null || true
-# Repo-persistent
-if [ -d "$PWD/logs" ]; then
-    printf '%s\n' "$JSONL_LINE" >> "$PWD/logs/surfer-gate-events.jsonl" 2>/dev/null || true
-fi
+# Repo-persistent (use $REPO_PATH — set earlier from $CLAUDE_PROJECT_DIR — not
+# bare $PWD, so the JSONL lands in the correct repo even when the orchestrator
+# calls this helper from a subdirectory).
+# Create logs/ if missing to avoid silent drops — BE-005.
+mkdir -p "$REPO_PATH/logs" 2>/dev/null && \
+    printf '%s\n' "$JSONL_LINE" >> "$REPO_PATH/logs/surfer-gate-events.jsonl" 2>/dev/null || true
 
 echo "[record-roster] roster recorded for session $SESSION_ID"

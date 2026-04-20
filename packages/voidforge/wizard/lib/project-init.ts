@@ -169,10 +169,41 @@ async function injectIdentity(
   if (!existsSync(claudePath)) return;
 
   let content = await readFile(claudePath, 'utf-8');
-  content = content.replace('[PROJECT_NAME]', config.name);
-  content = content.replace('[ONE_LINE_DESCRIPTION]', config.oneliner ?? '');
-  content = content.replace('[DOMAIN]', config.domain ?? '');
-  content = content.replace('[REPO_URL]', config.repoUrl ?? '');
+
+  // Two paths per ADR-058:
+  //   (a) Legacy monorepo template: contains `[PROJECT_NAME]` placeholder → replace.
+  //   (b) Published methodology package: `<!-- REMOVE-FOR-NPM-PUBLISH -->` strips
+  //       the Project section in prepack.sh, so the downstream CLAUDE.md has no
+  //       Project section at all. Insert one after the first `# CLAUDE.md` heading.
+
+  if (content.includes('[PROJECT_NAME]')) {
+    content = content.replace('[PROJECT_NAME]', config.name);
+    content = content.replace('[ONE_LINE_DESCRIPTION]', config.oneliner ?? '');
+    content = content.replace('[DOMAIN]', config.domain ?? '');
+    content = content.replace('[REPO_URL]', config.repoUrl ?? '');
+  } else if (!content.includes('## Project')) {
+    // Published-package case: Project section was stripped. Insert a fresh one.
+    const projectBlock = [
+      '',
+      '## Project',
+      '',
+      `- **Name:** ${config.name}`,
+      `- **One-liner:** ${config.oneliner ?? ''}`,
+      `- **Domain:** ${config.domain ?? ''}`,
+      `- **Repo:** ${config.repoUrl ?? ''}`,
+      '',
+    ].join('\n');
+    // Insert after the first "# CLAUDE.md" heading, or prepend if no heading.
+    const headingMatch = content.match(/^# CLAUDE\.md\s*\n/m);
+    if (headingMatch && headingMatch.index !== undefined) {
+      const insertAt = headingMatch.index + headingMatch[0].length;
+      content = content.slice(0, insertAt) + projectBlock + content.slice(insertAt);
+    } else {
+      content = `# CLAUDE.md\n${projectBlock}${content}`;
+    }
+  }
+  // If the Project section already exists and has no placeholders, leave it alone.
+
   await writeFile(claudePath, content, 'utf-8');
 }
 

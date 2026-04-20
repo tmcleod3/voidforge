@@ -155,6 +155,6 @@ If any smoke test fails, halt the deploy and run `/scripts/rollback.sh` before i
 
 ## Handoffs
 - Code bugs found during deploy → Batman, log to `/logs/handoffs.md`
-- Security config review → Kenobi, log to `/logs/handoffs.md`
-- Scaling architecture → Picard, log to `/logs/handoffs.md`
+- Security config review → Kenobi (`/sentinel`), log to `/logs/handoffs.md`
+- Scaling architecture → Picard (`/architect`), log to `/logs/handoffs.md`
 - App performance issues → Stark, log to `/logs/handoffs.md`

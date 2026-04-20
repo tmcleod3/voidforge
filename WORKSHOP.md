@@ -241,7 +241,7 @@ Claude will walk you through the code in plain English. This is the fastest way 
 | Custom domain | "Set up a custom domain for this" |
 | Better design | "Make the design more [modern/minimal/colorful/professional]" |
 | Full QA pass | `/qa` — Batman's comprehensive quality audit |
-| Security check | `/security` — Kenobi's OWASP security audit |
+| Security check | `/sentinel` (alias: `/security`) — Kenobi's OWASP security audit |
 | Version + release | `/git` — Coulson handles versioning and changelog |
 
 ---
@@ -302,10 +302,10 @@ If Claude mentions these, here's what they mean:
 |---------|-------|-------------|
 | `/prd` | Sisko | Generates a PRD from an interview |
 | `/build` | Picard + Stark + Galadriel | Builds the app phase by phase |
-| `/review` | Picard + Stark | Code review for quality and patterns |
+| `/engage` (alias: `/review`) | Picard + Stark | Code review for quality and patterns |
 | `/ux` | Galadriel + full UX team | UX, accessibility, and visual review |
 | `/qa` | Batman + QA specialists | Full QA: edge cases, error states, boundaries |
-| `/security` | Kenobi + security specialists | OWASP security audit |
+| `/sentinel` (alias: `/security`) | Kenobi + security specialists | OWASP security audit |
 | `/campaign` | Sisko | Multi-mission build from PRD to ship |
 | `/gauntlet` | Thanos + comprehensive review team | The ultimate 5-round review |
 | `/git` | Coulson | Version bump, changelog, commit |
