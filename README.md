@@ -2,23 +2,35 @@
 
 From nothing, everything.
 
-A methodology framework for building full-stack applications with Claude Code. Drop in a PRD. Get a production application. Forged by a named team of 260+ AI agents across 9 fictional universes. 26 slash commands. 31 code patterns. 315 automated tests.
+**VoidForge is a methodology framework that turns Claude Code into a full engineering team.** Write a PRD describing what you want. Run `/campaign`. A named team of 260+ agents — architects, engineers, reviewers, security, UX, QA, release — builds, hardens, and ships it against your spec. Works with any tech stack. Ships to any cloud.
 
-**New here?** Read the **[Holocron](HOLOCRON.md)** -- the complete guide. **Curious about what's next?** Read the **[Prophecy](PROPHECY.md)** -- the roadmap.
+Inside: 30 slash commands, 34 code patterns, 260+ specialist agents across 9 fictional universes, 1384 automated tests.
+
+**New here?** Read the **[Holocron](HOLOCRON.md)** — the complete guide. **Curious about what's next?** Read the **[Prophecy](PROPHECY.md)** — the roadmap.
 
 ---
 
 ## Install
 
+**Prerequisites:** [Claude Code CLI](https://claude.com/claude-code) (provides the `claude` command) and Node ≥20.11.
+
 ```bash
 # Create a new project with VoidForge methodology
-npx voidforge init my-app
+npx @voidforge/cli init my-app
+cd my-app
 
-# Or launch the wizard UI
-npx voidforge
+# Open Claude Code in the project:
+claude
+
+# Then run your first command:
+#   /prd         ← start here if you don't have a PRD yet
+#   /campaign    ← build an existing PRD end-to-end
+#   /assess      ← evaluate an existing codebase first
 ```
 
-VoidForge distributes via npm as two packages: `voidforge` (wizard + CLI) and `@voidforge/methodology` (agents, commands, methods, patterns). Projects contain methodology only — zero VoidForge runtime dependencies.
+Or launch the browser wizard for vault, credentials, and guided PRD generation: `npx @voidforge/cli`.
+
+VoidForge distributes via npm as two scoped packages: `@voidforge/cli` (wizard + CLI, bin name `voidforge`) and `@voidforge/methodology` (agents, commands, methods, patterns). Projects contain methodology only — zero VoidForge runtime dependencies.
 
 ---
 
@@ -36,7 +48,7 @@ voidforge/
 │
 ├── .claude/
 │   ├── settings.json             ← Permissions, hooks
-│   └── commands/                 ← 26 slash commands
+│   └── commands/                 ← 30 slash commands
 │       ├── build.md              ← /build — 13-phase protocol
 │       ├── qa.md                 ← /qa — Batman's QA pass (double-pass)
 │       ├── test.md               ← /test — Batman's test-writing mode
@@ -221,8 +233,8 @@ voidforge/
 
 | Wizard | Command | Purpose |
 |--------|---------|---------|
-| **Gandalf** | `npx voidforge init` | Setup: vault, credentials, PRD generation, scaffolding |
-| **Haku** | `npx voidforge deploy` | Deploy: provisions infrastructure for 6 targets |
+| **Gandalf** | `npx @voidforge/cli init` | Setup: vault, credentials, PRD generation, scaffolding |
+| **Haku** | `npx @voidforge/cli deploy` | Deploy: provisions infrastructure for 6 targets |
 
 ### Deploy Targets
 

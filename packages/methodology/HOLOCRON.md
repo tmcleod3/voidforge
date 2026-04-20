@@ -51,10 +51,10 @@ npm run wizard
 See `/docs/templates/PRD-TEMPLATE.md` for the frontmatter format and field reference.
 
 #### Methodology Only (npm)
-The methodology without the tooling. CLAUDE.md, all 28 slash commands, all agent protocols, all code patterns. No wizard UI, no npm runtime dependencies.
+The methodology without the tooling. CLAUDE.md, all 30 slash commands, all agent protocols, all code patterns. No wizard UI, no npm runtime dependencies.
 
 ```bash
-npx voidforge init --headless my-app
+npx @voidforge/cli init --headless my-app
 cd my-app
 # Write your PRD in docs/PRD.md
 # Open in Claude Code
@@ -64,11 +64,11 @@ cd my-app
 **Best for:** Developers who know what they're doing and want to skip the wizard. You manage your own infrastructure. VoidForge manages your build process.
 
 #### Minimal (npm --core)
-The lightest possible version. CLAUDE.md, all 28 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
+The lightest possible version. CLAUDE.md, all 30 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
 
 ```bash
 # Drop into an existing project
-npx voidforge init --headless --target your-project/
+npx @voidforge/cli init --headless --target your-project/
 ```
 
 Or manually: copy CLAUDE.md, .claude/, and docs/ from the npm package into your project.
@@ -79,11 +79,11 @@ Or manually: copy CLAUDE.md, .claude/, and docs/ from the npm package into your 
 
 Every tier includes:
 - **CLAUDE.md** — Root context loaded at every session start
-- **28 slash commands** — `/prd`, `/blueprint`, `/build`, `/qa`, `/test`, `/sentinel` (alias: `/security`), `/ux`, `/engage` (alias: `/review`), `/deploy`, `/devops`, `/architect`, `/assess`, `/git`, `/void`, `/vault`, `/thumper`, `/assemble`, `/gauntlet`, `/campaign`, `/imagine`, `/debrief`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`, `/ai`
+- **30 slash commands** (28 primary + 2 permanent aliases: `/review` → `/engage`, `/security` → `/sentinel`) — `/prd`, `/blueprint`, `/build`, `/qa`, `/test`, `/sentinel`, `/ux`, `/engage`, `/deploy`, `/devops`, `/architect`, `/assess`, `/git`, `/void`, `/vault`, `/thumper`, `/assemble`, `/gauntlet`, `/campaign`, `/imagine`, `/debrief`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`, `/ai`. Run `ls .claude/commands/*.md | wc -l` for the live file count.
 - **13-phase build protocol** — PRD to production with verification gates
 - **18 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
 - **Named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, Anime, Cosmere, and Foundation — each materialized as a subagent definition in `.claude/agents/`
-- **35 code patterns** — Reference implementations with framework adaptations (including E2E testing)
+- **34 code patterns** — Reference implementations with framework adaptations (including E2E testing). Run `ls docs/patterns/*.ts | wc -l` for the live count.
 - **No Stubs Doctrine** — Zero placeholder code. Every file does what it claims. Enforced across all method docs.
 - **E2E browser testing** — Playwright + axe-core. Agents take screenshots, capture console errors, and interact with running applications.
 - **Flag taxonomy** — Standardized flags across all commands: `--fast`, `--blitz`, `--muster`, `--plan`, `--dry-run`, `--resume`
@@ -160,10 +160,10 @@ This is interactive. Claude works through each phase, verifies gates, and logs e
 
 ```bash
 # Option A: Browser wizard
-npx voidforge deploy
+npx @voidforge/cli deploy
 
 # Option B: Headless (from terminal / Claude Code — no browser needed)
-npx voidforge deploy --headless
+npx @voidforge/cli deploy --headless
 ```
 
 **Haku** scans your project, loads your PRD, and provisions infrastructure for your chosen target. The browser wizard shows a visual UI with SSE progress streaming; the `--headless` flag runs the same provisioner code from the terminal (used by `/build` Phase 12 so you never leave Claude Code). For AWS VPS, that means:
@@ -463,7 +463,7 @@ Full architecture review with parallel analysis: Spock (schema) + Uhura (integra
 #### `/void` — Bombadil's Forge Sync
 **When:** You want to update your VoidForge methodology to the latest version.
 
-Old Tom Bombadil tends the forge itself. He checks for the latest VoidForge methodology (via `npx voidforge update` or git fetch as fallback), compares every shared methodology file against your local copies, shows you exactly what changed, and sings the updates into place — all while preserving your project-specific customizations (PRD, logs, code, CLAUDE.md project section). If you're already on the latest, Tom tells you so and goes back to singing.
+Old Tom Bombadil tends the forge itself. He checks for the latest VoidForge methodology (via `npx @voidforge/cli update` or git fetch as fallback), compares every shared methodology file against your local copies, shows you exactly what changed, and sings the updates into place — all while preserving your project-specific customizations (PRD, logs, code, CLAUDE.md project section). If you're already on the latest, Tom tells you so and goes back to singing.
 
 #### `/thumper` — Chani's Worm Rider
 **When:** You want to control Claude Code from your phone via Telegram.
@@ -605,7 +605,7 @@ Flags: `--seal` (auto-confirm), `--open` (read most recent vault), `--list` (lis
 
 ### Flag System
 
-VoidForge flags are standardized across all 26 commands. Same flag = same meaning everywhere.
+VoidForge flags are standardized across all 30 commands. Same flag = same meaning everywhere.
 
 **Tier 1 — Universal:** `--resume` (resume from state), `--plan` (plan without executing), `--fast` (reduced review passes), `--dry-run` (preview without doing), `--status` (show state), `--blitz` (autonomous, no pauses)
 
@@ -804,7 +804,7 @@ If Phase 12 or a deploy script fails:
 | Deploy script hangs | Check SSH connectivity, verify key permissions (0600) |
 | Test runner not found | Phase 1 should set it up — re-run scaffold if missing |
 | Context fills mid-phase | Checkpoint to journal, new session, continue |
-| npm install fails on Windows | node-pty needs C++ tools. Use `--ignore-scripts` or `npx voidforge init --headless` |
+| npm install fails on Windows | node-pty needs C++ tools. Use `--ignore-scripts` or `npx @voidforge/cli init --headless` |
 
 ---
 

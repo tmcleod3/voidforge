@@ -27,13 +27,13 @@ Then open the folder in VS Code: **File > Open Folder > select `my-project`**.
 
 | Branch | What You Get | Install |
 |--------|-------------|---------|
-| `npx thevoidforge init` | Full — wizard server, dashboard, everything | May need build tools for node-pty |
-| `npx thevoidforge init --headless` | Methodology only — all commands, patterns, agents | No native deps needed |
+| `npx @voidforge/cli init` | Full — wizard server, dashboard, everything | May need build tools for node-pty |
+| `npx @voidforge/cli init --headless` | Methodology only — all commands, patterns, agents | No native deps needed |
 
 **Recommended for most Windows users:** Use headless mode to avoid native module issues:
 
 ```powershell
-npx thevoidforge init --headless my-project
+npx @voidforge/cli init --headless my-project
 ```
 
 If you want the full wizard and `npm install` fails with a `node-pty` error, see [Troubleshooting](#npm-install-fails-with-node-pty-error) below.
@@ -58,7 +58,7 @@ Open the VS Code terminal (`` Ctrl+` ``):
 claude
 ```
 
-Claude reads `CLAUDE.md` from the workspace root automatically. The full methodology — 260+ agents, 26+ commands, 35 patterns — activates immediately.
+Claude reads `CLAUDE.md` from the workspace root automatically. The full methodology — 260+ agents, 30 commands, 34 patterns — activates immediately.
 
 > **Both work together.** The extension and CLI share the same project context. Use the extension for quick edits and conversation; use the CLI for full slash command access and long-running builds.
 
@@ -244,7 +244,7 @@ This is a native C++ module for the browser terminal. Four options:
 
 **Option A — Use headless mode (fastest)**
 ```powershell
-npx thevoidforge init --headless my-project
+npx @voidforge/cli init --headless my-project
 ```
 Full methodology, all commands, no native dependencies.
 
@@ -318,7 +318,7 @@ Opens **http://localhost:3141**:
 ## The Quick Path
 
 1. Install prerequisites (VS Code, Node.js, Git, Claude Code extension + CLI).
-2. Create project: `npx thevoidforge init --headless my-project` (or full: `npx thevoidforge init my-project`).
+2. Create project: `npx @voidforge/cli init --headless my-project` (or full: `npx @voidforge/cli init my-project`).
 3. Open folder in VS Code.
 4. Open Claude in the integrated terminal: `claude`.
 5. `/prd` — describe what you want to build.

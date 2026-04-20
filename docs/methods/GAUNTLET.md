@@ -218,6 +218,26 @@ This rule exists because agents self-justified "efficient" Gauntlets at 28% and 
 ## Flags
 
 - `--fast` — Skip Rounds 4 (Crossfire) and 5 (Council). For projects where a lighter review is acceptable. Still 3 rounds, still comprehensive. (formerly `--quick` — renamed v17.3 for cross-command consistency)
+
+### `--fast` Mode Contract
+
+`--fast` skips Crossfire (Round 4) and Council (Round 5). It does NOT skip Rounds 1-3.
+
+- Round 1 (Discovery) alone is insufficient for shipping. Pattern scans miss behavioral bugs.
+- Round 2 (First Strike) has caught CRITICAL bugs that Round 1 passed clean — most recently the `npx voidforge init` silent failure found in Gauntlet 40b (field report 2026-04-20).
+- Round 3 (Second Strike) catches cross-domain bugs that Round 2 missed.
+
+**Protocol violation:** stopping at Round 1 and calling the gauntlet complete. `--fast` run time is ~60% of a full gauntlet, not ~20%. If you only have time for Round 1, use `/engage` instead — don't call it a gauntlet.
+
+### Fix Batch ≠ Release
+
+A `/gauntlet` fix batch between rounds produces commits but does NOT:
+- Bump VERSION.md
+- Write a CHANGELOG entry
+- Publish to npm
+
+After the gauntlet completes (all mandated rounds), the caller MUST invoke `/git` to produce a release. The gauntlet protocol deliberately does not couple to `/git` — but the caller is responsible for the release step. Field report 2026-04-20 (Gauntlet 41): Fix Batch 1 landed in the tree with the CHANGELOG header still on the prior version. Thanos caught it in Round 2; prevented a silent version mismatch.
+
 - `--security-only` — Run 4 rounds of security only: inventory, full audit, re-probe, adversarial. Kenobi's marathon. For when you specifically need a deep security review.
 - `--ux-only` — Run 4 rounds of UX only: surface map, full audit, re-verify, enchantment. Galadriel's marathon.
 - `--qa-only` — Run 4 rounds of QA only: discovery, full pass, re-probe, adversarial. Batman's marathon.

@@ -144,6 +144,25 @@ Default is now maximum intensity (was `--infinity`). Flags opt out.
 - `--muster` → **Retired (no-op).** Default is now full roster.
 
 ## Operating Rules
+
+### `--fast` means THREE rounds, not one
+
+`--fast` is NOT a license to stop at Round 1. The three mandatory rounds are:
+
+1. **Round 1: Discovery** — pattern scans, architectural review (read-only)
+2. **Round 2: First Strike** — behavioral tracing, integration probing (catches bugs Round 1's pattern match misses)
+3. **Round 3: Second Strike** — cross-domain adversarial review (catches bugs Round 2 missed)
+
+Stopping at Round 1 is a protocol violation. Field report 2026-04-20 (Gauntlet 40 → v23.8.17): Round 1 Discovery declared complete and the release shipped; Round 2 in the next session caught `npx voidforge init` silently broken — a CRITICAL bug that would have hit every new user. Round 2 catches bugs Round 1 cannot, because Round 1 is a pattern scan and Round 2 is behavioral.
+
+`--fast` only trims Rounds 4 (Crossfire) and 5 (Council). Rounds 1-3 are the minimum viable gauntlet. The full gauntlet (no `--fast`) adds Rounds 4-5 on top.
+
+### Fix Batch ≠ Release
+
+A `/gauntlet` fix batch between rounds produces commits but does NOT bump VERSION.md, write a CHANGELOG entry, or publish to npm. After the gauntlet completes (all mandated rounds), the caller MUST invoke `/git` to produce a release. Field report 2026-04-20 (Gauntlet 41): Fix Batch 1 landed in the tree with the CHANGELOG header still on the prior version — Thanos caught it in Round 2.
+
+### Standing rules
+
 - Update `/logs/gauntlet-state.md` after EVERY round
 - The Gauntlet does NOT build code — it reviews and hardens existing code
 - Fixes happen BETWEEN rounds, not batched at the end

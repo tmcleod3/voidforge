@@ -17,7 +17,7 @@
 
 **The problem:** The Herald dispatch engine (ADR-047) is built, tested, and distributed, but has no invocation bridge. Command files contain pseudocode instructions that Claude can't execute as actual Haiku API calls. The pipeline is: command → ??? → agent deployment. The ??? is missing.
 
-**The solution:** Add a `voidforge herald` CLI subcommand that wraps the Herald call. Commands tell Claude to run `npx thevoidforge herald --command /review`, which calls Haiku, returns a JSON roster, and Claude launches those agents. Also: name the Herald "Silver Surfer" (Marvel's canonical Herald of Galactus).
+**The solution:** Add a `voidforge herald` CLI subcommand that wraps the Herald call. Commands tell Claude to run `npx @voidforge/cli herald --command /review`, which calls Haiku, returns a JSON roster, and Claude launches those agents. Also: name the Herald "Silver Surfer" (Marvel's canonical Herald of Galactus).
 
 **Missions (5):**
 
@@ -38,7 +38,7 @@
 - Replace the pseudocode Herald section in all 14 commands with actual CLI invocation:
   ```
   ## Silver Surfer Pre-Scan (ADR-048)
-  Run: `npx thevoidforge herald --command /<name> --focus "<user-focus>" --json`
+  Run: `npx @voidforge/cli herald --command /<name> --focus "<user-focus>" --json`
   Parse the JSON roster. Launch each agent ID via the Agent tool.
   If the command fails or returns empty roster, fall back to hardcoded manifest.
   ```
@@ -52,7 +52,7 @@
 
 ### Mission 5: Victory Gauntlet
 - Full test suite pass
-- Run `npx thevoidforge herald --command /review --json` and verify output
+- Run `npx @voidforge/cli herald --command /review --json` and verify output
 - Verify agent count is 264
 - Version bump + publish
 

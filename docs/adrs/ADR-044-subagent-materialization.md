@@ -85,7 +85,7 @@ The command file gets shorter. The agent definition is canonical, persistent, an
 │   └── agents/       ← 259 subagent definitions (NEW)
 ```
 
-Ships via `npx voidforge init`. Every project gets the full roster.
+Ships via `npx @voidforge/cli init`. Every project gets the full roster.
 
 ## Consequences
 

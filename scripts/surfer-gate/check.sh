@@ -57,6 +57,21 @@ TOOL_NAME="$(parse_json tool_name)"
 SUBAGENT_TYPE="$(parse_json tool_input.subagent_type)"
 CWD="$(parse_json cwd)"
 
+# Walk up from CWD to find the repo root (dir containing scripts/surfer-gate/).
+# Emitted into the BLOCK message so orchestrators in subdirs copy-paste correctly.
+_find_repo_root() {
+    local dir="$1"
+    while [ -n "$dir" ] && [ "$dir" != "/" ]; do
+        if [ -d "$dir/scripts/surfer-gate" ]; then
+            printf '%s' "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    printf '%s' "${1:-.}"  # fallback to original CWD
+}
+REPO_ROOT="$(_find_repo_root "$CWD" 2>/dev/null)"
+
 # -------- Fail open if we can't identify the session --------
 if [ -z "$SESSION_ID" ]; then
     exit 0
@@ -160,4 +175,19 @@ if [ -f "$ROSTER_FILE" ]; then
 fi
 
 # -------- Rule 4: No roster, no bypass, not the Surfer -> block --------
-_block "Silver Surfer has not returned a roster for this session. Required: launch the Silver Surfer sub-agent first, wait for its roster, then launch the agents it names. Bypass: pass --light or --solo to the original user command. Full protocol: CLAUDE.md Silver Surfer Gate (ADR-048, ADR-051)."
+_block "Silver Surfer roster not recorded for this session (TTL ${ROSTER_TTL_SECONDS}s — rosters expire and must be re-recorded on long runs).
+
+Required sequence (orchestrator):
+  1. Launch the Silver Surfer sub-agent (subagent_type: 'Silver Surfer')
+  2. After it returns a roster, record it:
+       bash ${REPO_ROOT}/scripts/surfer-gate/record-roster.sh '<roster-json-inline>'
+     The argument is a single-quoted JSON string on one line.
+     If the JSON contains literal single quotes, pipe via stdin instead:
+       bash ${REPO_ROOT}/scripts/surfer-gate/record-roster.sh <<<\"\$ROSTER_JSON\"
+  3. Then launch the agents named in the roster.
+
+Bypass (only if the user command included --light or --solo):
+     bash ${REPO_ROOT}/scripts/surfer-gate/bypass.sh --light   # if user passed --light
+     bash ${REPO_ROOT}/scripts/surfer-gate/bypass.sh --solo    # if user passed --solo
+
+Full protocol: CLAUDE.md 'Silver Surfer Gate' (ADR-048, ADR-051, ADR-060)."

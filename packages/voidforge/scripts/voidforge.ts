@@ -37,7 +37,7 @@ async function getPackageVersion(): Promise<string> {
     try {
       const raw = await readFile(pkgPath, 'utf-8');
       const pkg = JSON.parse(raw) as { version?: string; name?: string };
-      if ((pkg.name === 'thevoidforge' || pkg.name === 'voidforge') && pkg.version) return pkg.version;
+      if ((pkg.name === '@voidforge/cli' || pkg.name === 'thevoidforge' || pkg.name === 'voidforge') && pkg.version) return pkg.version;
     } catch {
       continue;
     }
@@ -438,7 +438,13 @@ async function main(): Promise<void> {
         // Auto-upgrade CLI if behind npm latest (unless --no-self-update)
         if (!args.includes('--self') && !args.includes('--extensions') && !args.includes('--no-self-update')) {
           try {
-            const npmLatest = execSync('npm view thevoidforge version 2>/dev/null', { encoding: 'utf-8' }).trim();
+            // Strip npm_config_* env — CLI --registry flag doesn't override env vars (SEC-R2-001).
+            // Also drop undefined values — execSync stringifies them to "undefined" (R4-CURSED-002).
+            const safeEnv: NodeJS.ProcessEnv = {};
+            for (const [k, v] of Object.entries(process.env)) {
+              if (v !== undefined && !/^npm_config_/i.test(k)) safeEnv[k] = v;
+            }
+            const npmLatest = execSync('npm view @voidforge/cli version --registry=https://registry.npmjs.org/ 2>/dev/null', { encoding: 'utf-8', env: safeEnv }).trim();
             const localVersion = await getPackageVersion();
             if (npmLatest && localVersion && localVersion !== 'unknown' && npmLatest !== localVersion) {
               const [nMaj, nMin, nPatch] = npmLatest.split('.').map(Number);
@@ -453,7 +459,7 @@ async function main(): Promise<void> {
                   console.log(`  Upgraded to v${npmLatest}. Re-running update with new version...\n`);
                   // Re-exec with the new version — the new binary has the updated methodology
                   try {
-                    execSync('npx thevoidforge update --no-self-update', { stdio: 'inherit' });
+                    execSync('npx @voidforge/cli update --no-self-update', { stdio: 'inherit' });
                   } catch { /* exit code propagated */ }
                   process.exit(0);
                 } else {

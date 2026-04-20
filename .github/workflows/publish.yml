@@ -24,10 +24,10 @@ jobs:
         run: npm ci
 
       - name: Type check
-        run: npm run typecheck -w voidforge
+        run: npm run typecheck -w @voidforge/cli
 
-      - name: Run tests
-        run: npm run test -w voidforge
+      - name: Run tests (root — includes pretest agent-ref + gate validators)
+        run: npm test
 
   publish-voidforge:
     needs: test
@@ -44,7 +44,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build -w voidforge
+        run: npm run build -w @voidforge/cli
 
       - name: Publish voidforge
         run: npm publish -w packages/voidforge --provenance --access public

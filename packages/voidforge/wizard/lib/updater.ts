@@ -211,7 +211,18 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
 
 export function selfUpdate(): { success: boolean; message: string } {
   try {
-    execSync('npm install -g thevoidforge@latest', { stdio: 'pipe' });
+    // Strip npm_config_* env vars — they outrank the CLI --registry flag
+    // and could redirect install to an attacker-controlled registry (SEC-R2-001).
+    // Also drop undefined values — execSync stringifies them to "undefined"
+    // which breaks downstream tools (R4-CURSED-002).
+    const safeEnv: NodeJS.ProcessEnv = {};
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v !== undefined && !/^npm_config_/i.test(k)) safeEnv[k] = v;
+    }
+    execSync('npm install -g @voidforge/cli@latest --registry=https://registry.npmjs.org/', {
+      stdio: 'pipe',
+      env: safeEnv,
+    });
     return { success: true, message: 'VoidForge updated successfully.' };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

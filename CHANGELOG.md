@@ -6,6 +6,70 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.9.0] - 2026-04-20
+
+### Campaign 42 — @voidforge scoped npm rename + methodology hardening
+
+4-mission campaign through Silver Surfer roster (24 agents) + full Victory Gauntlet (5 rounds, 13 specialists). Thanos's verdict: "Not yet inevitable — 3 CRITICAL caught and fixed, user-action blockers explicitly documented for publish."
+
+### Added
+- **ADR-061** — npm scoped package rename. `thevoidforge` → `@voidforge/cli`, `thevoidforge-methodology` → `@voidforge/methodology`. 12-section decision doc including §6.5 legacy-package deprecation runbook (credential handling + failure modes) and §12 deferred-gaps ledger.
+- `.npmrc` at repo root — `@voidforge` scope registry pin + `provenance=true`. Defense against scope hijack via misconfigured user npmrc.
+- `docs/LEARNINGS.md` — **LRN-1** (Claude Code caches agent definitions at session start), **LRN-2** (fix shell-escape artifacts at source, not destination), **LRN-3** (grep entire docs tree after ADR schema changes to catch sibling-doc drift), **LRN-4** (published npm name must match install instructions).
+
+### Changed
+- **Package rename.** Both published packages adopt the `@voidforge/` scope. `bin` name stays `voidforge` — `npx @voidforge/cli init` still runs the `voidforge` binary. Root `-w thevoidforge` scripts → `-w @voidforge/cli` across `package.json`, `.github/workflows/publish.yml`, `.github/workflows/validate-branches.yml`. Lockfile regenerated with scoped workspace entries.
+- **Methodology declared as CLI runtime dependency.** `@voidforge/cli` package.json now declares `"@voidforge/methodology": "*"` in dependencies. Without this, `require.resolve('@voidforge/methodology/package.json')` in `project-init.ts:60` + `updater.ts:43` failed on every fresh `npx` install — a latent bug present since v21.0 that the scope rename alone did NOT fix. `*` range avoids lockstep-bump footgun when CLI bumps ahead of methodology.
+- **`/gauntlet --fast` mandates 3 rounds** (`.claude/commands/gauntlet.md` + `docs/methods/GAUNTLET.md`). Explicitly states Discovery + First Strike + Second Strike are all mandatory — stopping at Round 1 is a protocol violation. Field report 2026-04-20 precedent: Round 2 caught `npx voidforge init` CRITICAL that Round 1 passed clean. Added `--fast Mode Contract` section to method doc.
+- **Fix Batch ≠ Release** (GAUNTLET.md + gauntlet.md) — fix batches between rounds don't bump VERSION.md or write CHANGELOG entries. Caller must invoke `/git` after the gauntlet completes. Prevents the silent version-mismatch Gauntlet 41 caught.
+- **README value-prop rewrite.** First 100 words now cleanly state what VoidForge IS (methodology framework that turns Claude Code into a full engineering team), how to use it (write PRD, run `/campaign`), and what's inside (30 commands, 34 patterns, 260+ agents, 1384 tests). Added `claude` prereq line above install block. First-command pointer simplified: `/prd` primary with `/campaign` and `/assess` as clear branches.
+- **BLOCK error message rewritten** (`scripts/surfer-gate/check.sh`). New `_find_repo_root()` walks up from `$CWD` to emit absolute paths — orchestrators in subdirectories (e.g., `packages/voidforge/`) now get copy-pasteable commands. TTL moved to opener. Both `--light` and `--solo` bypass examples shown. Stdin-pipe fallback documented for JSON payloads with single quotes.
+- **Command count reconciliation.** Actual count is 30 (28 primary + 2 permanent aliases `/review` → `/engage`, `/security` → `/sentinel`) — HOLOCRON now clarifies. Pattern count corrected 35 → 34. Test count corrected 315 → 1384. README and both QUICKSTARTs updated. `ls .claude/commands/*.md \| wc -l` directive added for live count.
+- **48 prescriptive install-command references** swapped from `npx thevoidforge` / `npx voidforge` (unscoped) to `npx @voidforge/cli` across 15 user-facing files (README, HOLOCRON, QUICKSTARTs, WORKSHOP, CONTRIBUTING, CLAUDE.md Distribution, command files, active ADRs). Historical references preserved (CHANGELOG, ROADMAP past-tense entries, site-audit snapshots).
+- **ADR-045 + ADR-048 + ADR-058** updated prescriptive `npx voidforge` → `npx @voidforge/cli` references while preserving historical context.
+
+### Security
+- **Self-upgrade registry pinning** (`voidforge.ts:441`, `updater.ts:214`). `--registry=https://registry.npmjs.org/` hard-coded into both `npm view` and `npm install -g`. Prevents silent redirect via user-configured `@voidforge:registry` in `~/.npmrc`.
+- **`npm_config_*` environment variable stripping** (same two sites). CLI `--registry` flag does NOT override env vars in npm's config precedence — an attacker-controlled `NPM_CONFIG_REGISTRY` could redirect installs despite the flag. Fix Batch 2 added `safeEnv` construction before `execSync`. Fix Batch 3 extended the filter to drop `undefined` values (execSync stringifies them to the literal `"undefined"`).
+- **CI now runs root `npm test`** instead of `npm run test -w @voidforge/cli` — publish workflow exercises the root `pretest` hook (agent-ref validator + 20 gate tests) that was previously bypassed at tag-time.
+- **`scripts/surfer-gate/check.sh` BLOCK message** uses `${REPO_ROOT}`-resolved absolute paths so orchestrators don't copy-paste broken relative paths when operating in a subdirectory.
+- **`.claude/settings.json` PreToolUse hook remains live** (ADR-051 Phase 5b) — 20/20 offline gate tests passing.
+
+### Runtime code
+- `packages/voidforge/scripts/voidforge.ts` — version-check accepts `@voidforge/cli` alongside legacy `thevoidforge`/`voidforge`. Self-upgrade `npm view` + re-exec commands point at scoped name with pinned registry + env stripping.
+- `packages/voidforge/wizard/lib/updater.ts` — `selfUpdate()` installs `@voidforge/cli@latest` with the same defenses.
+
+### Fixed
+- **`docs/adrs/ADR-061` §8 addendum** — explicitly documents that `require.resolve('@voidforge/methodology/...')` requires BOTH the scope rename AND a runtime-dep declaration in the CLI package. Prior prose implied the rename alone was sufficient.
+- **ADR-061 version alignment** — §11 "Target: v23.9.0" matches §6.4 post-publish checks. Earlier draft mixed `v23.8.20` and `23.9.0`.
+
+### Still deferred (user-action + separate follow-up ADRs — see ADR-061 §12)
+
+**Release-gating user actions (BLOCKS first scoped publish):**
+- **SEC-001 (CRITICAL):** `@voidforge` npm scope is unclaimed. A maintainer must publish a placeholder from an authenticated account before any CI tag succeeds. Every day of delay is scope-hijack risk.
+- **SEC-002 (HIGH):** `NPM_TOKEN` must be rotated to an Automation token with write access on `@voidforge/*` AND the legacy `thevoidforge` (needed for §6.5 deprecate command).
+
+**Pre-existing bugs surfaced by the Gauntlet — need their own ADRs:**
+- Update-flow self-comparison bug (`updater.ts resolveMethodologySource()` walks up from `import.meta.dirname` and finds the user's project root first when invoked from inside a VoidForge project — silently compares the project against itself and reports "up to date"). Pre-existing since v21.0.
+- Silver Surfer Gate hook doesn't ship to new projects — `.claude/settings.json` and `scripts/surfer-gate/` are not in the methodology package's `files` list or `project-init.ts copyMethodology()`. New VoidForge projects get prose-backstop enforcement only (CLAUDE.md explicitly anticipates this fallback path).
+
+**Polish deferred:**
+- Roster TTL mid-gauntlet (raise `ROSTER_TTL_SECONDS` 600 → 1800 in a future release).
+- Dual-global-install cleanup (users with prior `thevoidforge` globally installed end up with both packages post-upgrade; PATH ordering decides which `voidforge` bin runs. Migration note: `npm uninstall -g thevoidforge && npm install -g @voidforge/cli`).
+
+### Verification
+- `npm test` — **1384/1384 pass**
+- `bash scripts/surfer-gate/test.sh` — **20/20 pass**
+- `scripts/validate-agent-refs.sh` — PASS (via root pretest)
+- `grep -rn "npx voidforge" . --include='*.md'` — zero user-facing hits outside ADR-061 / historical CHANGELOGs
+- Working tree: 33 files changed + 2 new (ADR-061, .npmrc); 270 insertions, 1242 deletions (lockfile regen dominates)
+- CI publish path will NOT fire until user tags — intentional. Tag v23.9.0 gated on SEC-001 + SEC-002 user actions.
+
+### Thanos's verdict
+**"I am not yet inevitable."** Source-level implementation complete. 3 CRITICAL caught and fixed through the Gauntlet (methodology dep missing, env undefined → "undefined" string, dep-pin timebomb). User-action blockers explicitly documented, pre-existing bugs filed for follow-up ADRs. The next release is one `npm login` + token rotation away.
+
+---
+
 ## [23.8.19] - 2026-04-20
 
 ### Gauntlet 41 Victory-pass — Round 1 + condensed Rounds 2-5

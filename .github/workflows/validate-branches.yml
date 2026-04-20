@@ -62,8 +62,8 @@ jobs:
       - name: Install and test
         run: |
           npm ci
-          npm run typecheck -w voidforge
-          npm run test -w voidforge
+          npm run typecheck -w @voidforge/cli
+          npm run test -w @voidforge/cli
 
   e2e-tests:
     runs-on: ubuntu-latest
