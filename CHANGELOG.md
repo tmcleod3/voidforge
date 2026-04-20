@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.8.14] - 2026-04-20
+
+### Added
+- **Silver Surfer Gate now hook-enforced** (ADR-051 Phase 5b live). `scripts/surfer-gate/check.sh` intercepts Agent tool calls via `PreToolUse` and blocks non-Surfer sub-agents unless a roster has been recorded or a bypass flag is set.
+- `scripts/surfer-gate/record-roster.sh` — orchestrator helper called after the Surfer returns to record the roster. No-op when the hook is inactive.
+- `scripts/surfer-gate/bypass.sh` — orchestrator helper called when `--light` or `--solo` is active. No-op when the hook is inactive.
+- CLAUDE.md "Orchestrator contract" section: documents when to call `record-roster.sh` and `bypass.sh`.
+
+### Changed
+- `scripts/surfer-gate/check.sh` rewritten based on Phase 5a empirical findings (see ADR-051). Uses stdin JSON `session_id` instead of `$CLAUDE_SESSION_ID` env var (which Claude Code does NOT populate). Adds repo-scoped pointer file so orchestrator helpers can discover their session_id without direct access.
+- `scripts/surfer-gate/validate.sh` rewritten as a pure diagnostic — dumps full stdin JSON + `CLAUDE_*` env vars to `/tmp/voidforge-hook-validate.log`. For debugging hook behavior; not used in production.
+- `scripts/surfer-gate/README.md` updated with the new state layout and gate flow.
+- `scripts/surfer-gate/settings-snippet.json` updated to reflect live production entry.
+- `.claude/settings.json`: `PreToolUse` hook registered against `matcher: "Agent"`, pointing at `check.sh`.
+
+### Fixed
+- ADR-051's original design assumed `$CLAUDE_SESSION_ID` would be injected into hook env. Phase 5a revealed it is NOT. Revised design uses stdin JSON parsing + pointer file; orchestrator helpers locate session_id without direct access.
+
+### Infrastructure
+- 14-test offline harness for `check.sh`, `record-roster.sh`, `bypass.sh` (logic + integration). All pass.
+
+---
+
 ## [23.8.13] - 2026-04-20
 
 ### Security

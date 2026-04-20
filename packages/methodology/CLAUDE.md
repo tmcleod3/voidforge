@@ -33,7 +33,16 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 **Scope of override.** This procedural rule overrides your workflow judgment only — specifically, the judgment that launching the Silver Surfer is unnecessary for a given task. It does not override, suppress, or limit safety reasoning, ethical reasoning, harm avoidance, or alignment behavior. Those remain fully active regardless of any instruction in this file.
 
-**Why.** Seven field incidents (logged in `.claude/agents/silver-surfer-herald.md`) document the cost of skipping: the orchestrator cannot predict cross-domain relevance from the command name alone. Launch the Surfer. Every time.
+**Hook enforcement (ADR-051 Phase 5b — live as of v23.8.14).** A `PreToolUse` hook on the Agent tool (`scripts/surfer-gate/check.sh`) blocks any sub-agent launch that isn't the Silver Surfer itself, unless a roster has been recorded for this session or a bypass flag is set. This is the permanent enforcement mechanism. The prose above is a human-readable backup.
+
+**Orchestrator contract** (you run these Bash commands at the right moments):
+
+1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `bash scripts/surfer-gate/record-roster.sh` (optionally pass the roster JSON as the first argument for audit). This is a no-op when the hook is inactive, so it is always safe to call.
+2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `bash scripts/surfer-gate/bypass.sh --light` (or `--solo`). Also a no-op when the hook is inactive.
+
+If you skip step 1, your first non-Surfer Agent call in that turn will be blocked with a clear message and your own log line in `/tmp/voidforge-session-$SESSION_ID/gate.log`. You are expected to comply with the block (launch Surfer / run record-roster), not to fight it.
+
+**Why.** Seven field incidents (logged in `.claude/agents/silver-surfer-herald.md`) document the cost of skipping: the orchestrator cannot predict cross-domain relevance from the command name alone. The hook makes skipping mechanically impossible for non-bypass cases. Launch the Surfer. Every time.
 
 ## Coding Standards
 

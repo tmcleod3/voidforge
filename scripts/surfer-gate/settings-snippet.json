@@ -1,21 +1,7 @@
 {
-  "__comment": "Copy ONE of these entries into .claude/settings.json under hooks.PreToolUse. Start with the 'validation' entry (Phase 5a). After the log confirms hooks fire correctly, replace with the 'production' entry (Phase 5b).",
+  "__comment": "The production PreToolUse hook is now live in .claude/settings.json as of v23.8.14 (ADR-051 Phase 5b). This file documents the shape for reference and for installing the gate in a fresh VoidForge project.",
 
-  "validation_phase_5a": {
-    "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash scripts/surfer-gate/validate.sh"
-          }
-        ]
-      }
-    ]
-  },
-
-  "production_phase_5b": {
+  "production_hook": {
     "PreToolUse": [
       {
         "matcher": "Agent",
@@ -23,6 +9,20 @@
           {
             "type": "command",
             "command": "bash scripts/surfer-gate/check.sh"
+          }
+        ]
+      }
+    ]
+  },
+
+  "validation_phase_5a_diagnostic_only": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/surfer-gate/validate.sh"
           }
         ]
       }

@@ -1,45 +1,82 @@
 # Silver Surfer Gate — Hook Enforcement
 
-Implementation of ADR-051 (Structural Gate Enforcement via PreToolUse Hook).
+Implementation of ADR-051 Phase 5b (live as of v23.8.14).
+
+A `PreToolUse` hook intercepts Agent tool calls and blocks sub-agent launches until the Silver Surfer has returned a roster for the current session, unless a bypass flag is set.
 
 ## Files
 
-- `validate.sh` — **Phase 5a: validation test.** No-op logger. Run this BEFORE trusting `check.sh`. Confirms Claude Code's runtime actually fires `PreToolUse` hooks and the `matcher` syntax works.
-- `check.sh` — **Phase 5b: production gate.** Enforces the Silver Surfer Gate. Do not wire this into `settings.json` until Phase 5a has validated the runtime.
-- `settings-snippet.json` — Copy-paste JSON to add into `.claude/settings.json` under `hooks.PreToolUse`. Provides both the validation and the production entries (comment one out as you progress).
+- **`check.sh`** — **The gate.** Runs on every Agent tool call via `PreToolUse` hook. Allows Silver Surfer self-launch unconditionally; allows other agents only when a roster has been recorded or a bypass flag is present. Fails open on infrastructure errors.
+- **`record-roster.sh`** — **Orchestrator helper.** Call after Silver Surfer returns to record the roster. Discovers current session_id via the pointer file that `check.sh` writes. No-op when the hook is inactive.
+- **`bypass.sh`** — **Orchestrator helper.** Call when user's command includes `--light` or `--solo`, BEFORE launching any agents. No-op when the hook is inactive.
+- **`validate.sh`** — Diagnostic-only logger. Dumps stdin JSON + env to `/tmp/voidforge-hook-validate.log` for debugging hook behavior.
+- **`settings-snippet.json`** — Reference JSON for the production hook entry (and the validation diagnostic entry). The production entry is already live in `.claude/settings.json`.
 
-## Phase 5a — Validation test procedure
+## State layout
 
-1. In a clean Claude Code session (not the one developing this), open `.claude/settings.json`.
-2. Add the **validation** entry from `settings-snippet.json` to `hooks.PreToolUse`. The matcher is `".*"` — fires on every tool call.
-3. Run any command in that session (e.g., `/engage --light`).
-4. After the session ends, inspect `/tmp/voidforge-hook-validate.log`.
-   - **Success:** log has one line per tool call, showing `tool_name` and timestamp.
-   - **Partial:** log exists but only shows some tools — matcher syntax may differ from expected. Investigate.
-   - **Failure:** log is empty or missing — `PreToolUse` hooks are not being honored. Abort the ADR-051 plan; retreat to prose-only enforcement.
-5. If successful, change the matcher from `".*"` to `"Agent"` and re-run. Confirm the log only records Agent tool calls.
-6. If that also succeeds, Phase 5a is complete. Proceed to Phase 5b (wire `check.sh` as the production hook).
+```
+/tmp/voidforge-gate/
+  pointer-<repo_hash>          # maps this repo's hook fires to current session_id
 
-## Phase 5b — Production gate (AFTER Phase 5a validates)
+/tmp/voidforge-session-<session_id>/
+  surfer-roster.json            # presence + freshness = "roster recorded, allow agents"
+  surfer-bypass.flag            # presence = "--light/--solo active, allow agents"
+  gate.log                      # append-only audit trail
+```
 
-Once Phase 5a confirms the runtime behavior, replace the validation entry with the production entry in `settings-snippet.json`. The production hook runs `check.sh` which:
+`session_id` is the UUID parsed from each hook invocation's stdin JSON. `repo_hash` is `sha256(cwd)[:12]`.
 
-- Allows the Silver Surfer's self-launch.
-- Allows any Agent call after the orchestrator has written `/tmp/voidforge-session-${CLAUDE_SESSION_ID}/surfer-roster.json`.
-- Allows any Agent call if `surfer-bypass.flag` exists (for `--light`, `--solo`).
-- Blocks other Agent calls with an instructive error.
-- Fails OPEN on infrastructure errors (missing python3, unwritable tmp, etc.) — never blocks agents due to its own bugs.
+## Flow for a gated command
 
-## Orchestrator-side work (CLAUDE.md addition required for Phase 5b)
+```
+user types /engage
+  orchestrator launches Silver Surfer (Agent tool)
+    -> check.sh fires
+    -> parses session_id from stdin JSON
+    -> writes pointer file for this repo
+    -> recognizes Silver Surfer self-launch, exits 0 (allow)
+  Silver Surfer returns a roster
+  orchestrator runs: bash scripts/surfer-gate/record-roster.sh
+    -> reads pointer file, resolves session_id
+    -> writes /tmp/voidforge-session-<sid>/surfer-roster.json
+  orchestrator launches each rostered agent (Agent tool calls)
+    -> check.sh fires, sees fresh roster, exits 0 (allow)
+  synthesis, done
+```
 
-For `check.sh` to work, the orchestrator (Claude Code itself) must write the sentinel file after the Surfer returns. A one-line addition in the CLAUDE.md Silver Surfer Gate section handles this:
+## Flow when user passes `--light`
 
-> After the Silver Surfer sub-agent returns its roster, write the roster to `/tmp/voidforge-session-${CLAUDE_SESSION_ID}/surfer-roster.json` before launching any further Agent calls. If the user's command included `--light` or `--solo`, write the flag name to `/tmp/voidforge-session-${CLAUDE_SESSION_ID}/surfer-bypass.flag` instead.
+```
+user types /engage --light
+  orchestrator runs: bash scripts/surfer-gate/bypass.sh --light
+    -> may initially no-op if no pointer yet (common case — no prior Agent calls)
+    -> orchestrator's hardcoded first agent fires the hook which writes the pointer
+    -> orchestrator retries bypass.sh if needed (or bypass.sh is called before any Agent)
+  orchestrator launches hardcoded roster without the Surfer
+    -> check.sh sees bypass flag (if set) OR blocks (if flag missing)
+```
 
-This addition is deferred until Phase 5b.
+Note: there is an ordering constraint with `--light`. The cleanest protocol is for the orchestrator to launch the Surfer FIRST (even in `--light` mode the Surfer's self-launch is always allowed), IGNORE its output, run `bypass.sh`, then proceed with the hardcoded roster. Future: let `--light` skip the Surfer entirely and just call `bypass.sh` first — which works if `bypass.sh` writes to a repo-scoped fallback path when the pointer isn't yet established.
 
-## Environment requirements
+## Failure modes
 
-- `$CLAUDE_SESSION_ID` — Claude Code must inject this env var into hook processes. Not officially documented; Janeway flagged this as a first-contact unknown. Phase 5a's validation log will reveal whether it's populated.
-- `python3` — used for JSON parsing with fallback. `check.sh` fails open if missing.
-- Writable `/tmp` — used for session state. `check.sh` fails open if unavailable.
+| Scenario | Behavior |
+|----------|----------|
+| `python3` not installed | Fail open (exit 0 — allow) |
+| `/tmp` unwritable | Fail open |
+| stdin JSON malformed | Fail open |
+| `session_id` missing from stdin | Fail open |
+| Roster file older than 10 min | Treated as absent — block unless Surfer / bypass |
+| Hook itself crashes | Claude Code reports non-zero; user sees error, can disable hook |
+
+## Phase 5a validation findings (empirical, 2026-04-20)
+
+See ADR-051 for the full list. Key discoveries:
+- `$CLAUDE_SESSION_ID` is NOT populated — use stdin JSON's `session_id` instead.
+- `CLAUDE_PROJECT_DIR` IS populated and points at the repo root.
+- Hooks reload mid-session when `settings.json` is edited.
+- Stdin JSON contains everything needed (session_id, tool_name, tool_input, cwd, transcript_path).
+
+## Disabling
+
+To turn off the hook, remove or comment out the `PreToolUse` block in `.claude/settings.json`. The CLAUDE.md prose gate remains as a human-readable fallback.

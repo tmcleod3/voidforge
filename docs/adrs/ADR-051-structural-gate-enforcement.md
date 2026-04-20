@@ -1,7 +1,19 @@
 # ADR-051: Structural Gate Enforcement (PreToolUse Hook)
 
 ## Status
-Proposed — 2026-04-20
+Accepted — 2026-04-20 (Phase 5a validated; Phase 5b live in v23.8.14)
+
+## Empirical Findings (Phase 5a Validation)
+
+Live-tested against Claude Code 4.7 on 2026-04-20:
+
+- **Hooks reload mid-session** when `settings.json` is edited. No fresh session required for wiring changes.
+- **`matcher: ".*"` correctly intercepts all tool calls;** `matcher: "Agent"` narrows to Agent calls.
+- **`$CLAUDE_SESSION_ID` is NOT injected into hook env.** (Janeway's NAV-002 confirmed.) The session id lives only in stdin JSON.
+- **Env vars that ARE populated:** `CLAUDE_CODE_ENTRYPOINT=cli`, `CLAUDE_PROJECT_DIR=<absolute path>`.
+- **Stdin JSON fields available:** `session_id` (UUID), `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`, `tool_name`, `tool_input` (object — contains `subagent_type` for Agent calls), `tool_use_id`.
+- **Python3 is available** in the hook env on macOS; use it for JSON parsing with graceful fallback.
+- Hook scripts using `exit 0` defensively do not block subsequent tool calls even if they hit errors mid-script (no `set -e`).
 
 ## Context
 
@@ -50,13 +62,25 @@ The hook fires before any `Agent` tool call and checks session state for evidenc
 ### Session state
 
 ```
-/tmp/voidforge-session-${CLAUDE_SESSION_ID}/
-  surfer-roster.json   # written by orchestrator after Surfer returns
-  surfer-bypass.flag   # written by orchestrator when --light or --solo is in effect
+/tmp/voidforge-session-${session_id}/
+  surfer-roster.json   # written by orchestrator (via record-roster.sh) after Surfer returns
+  surfer-bypass.flag   # written by orchestrator (via bypass.sh) when --light or --solo is active
   gate.log             # append-only hook audit trail
+
+/tmp/voidforge-gate/
+  pointer-${repo_hash}  # written by check.sh on every fire — maps repo to current session_id
 ```
 
-The **orchestrator** writes the sentinel — not the Surfer sub-agent. This avoids the race condition where a sub-agent's `Bash` write may not complete before the parent's next `PreToolUse` fires (per Janeway's first-contact warning).
+`session_id` comes from stdin JSON (empirically confirmed available; NOT from `$CLAUDE_SESSION_ID` env). `repo_hash` is the first 12 chars of `sha256(cwd)` where `cwd` is also from stdin JSON.
+
+### Orchestrator contract
+
+The orchestrator does NOT need to know its own `session_id` directly. Two helper scripts abstract this:
+
+- **`scripts/surfer-gate/record-roster.sh [json]`** — reads the repo-scoped pointer written by `check.sh`, resolves session_id, writes `surfer-roster.json`. Called after Silver Surfer returns.
+- **`scripts/surfer-gate/bypass.sh --light|--solo`** — same discovery path, writes `surfer-bypass.flag`. Called when the user's command carries a bypass flag, BEFORE the Surfer launches.
+
+Both helpers are **no-ops when the hook is inactive** (exit 0 silently). The orchestrator calls them unconditionally — correctness with the hook active, harmless without.
 
 ### Hook script (`scripts/surfer-gate/check.sh`)
 
@@ -70,7 +94,27 @@ The full script is specified in the implementation plan (Mission 3 of the remedi
 
 ### Validation requirement before production
 
-**Before committing the hook, run Janeway's first-contact test (NAV-004):** deploy a `PreToolUse` hook with `matcher: ".*"` that logs every invocation, confirm it fires, then narrow the matcher to `"Agent"`. This validates that Claude Code's runtime honors the matcher syntax before we trust it.
+Phase 5a complete as of 2026-04-20. See "Empirical Findings" section above. The matcher syntax, hook reload behavior, and stdin JSON contents are all confirmed. No further runtime-discovery work blocks Phase 5b.
+
+### Testing
+
+Offline test harness at `/tmp/test-check-sh.sh` covers 14 scenarios:
+- Non-Agent tool pass-through
+- Silver Surfer self-launch
+- Block when no roster and no bypass
+- Allow when roster present
+- Allow when bypass present
+- Fail-open on malformed JSON
+- Fail-open on missing session_id
+- Block on stale roster (>10 min)
+- Pointer file correctly written by check.sh
+- record-roster.sh writes roster file
+- After record-roster, Agent allowed
+- bypass.sh writes flag file
+- After bypass, Agent allowed
+- record-roster no-ops when hook inactive
+
+All 14 pass as of commit that ships this ADR's Accepted status.
 
 ## Consequences
 
@@ -111,6 +155,7 @@ Opus 4.7's native `/agents` management does not expose a gate-insertion API. The
 
 ## Rollout
 
-- **v23.9.0 (minor):** ship the hook script as optional. Not yet wired into `settings.json`. Users can opt in. Prose remains primary.
-- **v24.0.0 (major):** hook becomes opt-out, not opt-in. `.claude/settings.json` ships with the hook registered by default. Prose is still present as backstop.
-- **v25.0.0 (future):** evaluate whether prose gate can be retired — requires zero skip incidents across two full minor versions with the hook active.
+- **v23.8.13** (shipped): hook scripts staged in `scripts/surfer-gate/`, NOT wired into `settings.json`.
+- **v23.8.14** (this release): Phase 5a empirical validation complete. `check.sh` rewritten based on real stdin JSON findings. Helper scripts `record-roster.sh` and `bypass.sh` added. Hook wired into `.claude/settings.json` as opt-out by default. CLAUDE.md orchestrator contract documented.
+- **v24.0.0 (future):** prose gate in CLAUDE.md reduced further once hook is proven stable across 2+ minor releases. Campaign-level auto-resume of roster sentinels.
+- **v25.0.0 (future):** evaluate whether prose gate can be fully retired — requires zero skip incidents with the hook active.
