@@ -61,7 +61,7 @@ jobs:
           node-version: '22'
       - name: Install and test
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run typecheck -w voidforge-build
           npm run test -w voidforge-build
 
@@ -76,7 +76,7 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
