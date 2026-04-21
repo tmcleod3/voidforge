@@ -21,10 +21,13 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        # Use `npm install` instead of `npm ci` to work around npm bug #4828
-        # (optional platform-specific deps like @rollup/rollup-linux-x64-gnu
-        # aren't installed from a lockfile generated on a different platform).
-        run: npm install --no-audit --no-fund
+        # Remove lockfile + re-install to work around npm bug #4828.
+        # The lockfile is generated on macOS (different optional platform deps
+        # than Linux CI), so `npm ci` and even `npm install` with the existing
+        # lockfile fail to pull @rollup/rollup-linux-x64-gnu. Fresh install.
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Type check
         run: npm run typecheck -w voidforge-build
@@ -44,10 +47,13 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        # Use `npm install` instead of `npm ci` to work around npm bug #4828
-        # (optional platform-specific deps like @rollup/rollup-linux-x64-gnu
-        # aren't installed from a lockfile generated on a different platform).
-        run: npm install --no-audit --no-fund
+        # Remove lockfile + re-install to work around npm bug #4828.
+        # The lockfile is generated on macOS (different optional platform deps
+        # than Linux CI), so `npm ci` and even `npm install` with the existing
+        # lockfile fail to pull @rollup/rollup-linux-x64-gnu. Fresh install.
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Build
         run: npm run build -w voidforge-build
@@ -81,10 +87,13 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        # Use `npm install` instead of `npm ci` to work around npm bug #4828
-        # (optional platform-specific deps like @rollup/rollup-linux-x64-gnu
-        # aren't installed from a lockfile generated on a different platform).
-        run: npm install --no-audit --no-fund
+        # Remove lockfile + re-install to work around npm bug #4828.
+        # The lockfile is generated on macOS (different optional platform deps
+        # than Linux CI), so `npm ci` and even `npm install` with the existing
+        # lockfile fail to pull @rollup/rollup-linux-x64-gnu. Fresh install.
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Prepack methodology
         run: npm run prepack -w packages/methodology
