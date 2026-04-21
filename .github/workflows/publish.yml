@@ -46,7 +46,19 @@ jobs:
       - name: Build
         run: npm run build -w voidforge-build
 
-      - name: Publish voidforge
+      - name: Check if version already published
+        id: check-cli
+        run: |
+          VERSION=$(jq -r .version packages/voidforge/package.json)
+          if npm view "voidforge-build@${VERSION}" version 2>/dev/null | grep -q "${VERSION}"; then
+            echo "Already on npm: voidforge-build@${VERSION}. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish voidforge-build
+        if: steps.check-cli.outputs.skip == 'false'
         run: npm publish -w packages/voidforge --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -68,7 +80,19 @@ jobs:
       - name: Prepack methodology
         run: npm run prepack -w packages/methodology
 
+      - name: Check if version already published
+        id: check-methodology
+        run: |
+          VERSION=$(jq -r .version packages/methodology/package.json)
+          if npm view "voidforge-build-methodology@${VERSION}" version 2>/dev/null | grep -q "${VERSION}"; then
+            echo "Already on npm: voidforge-build-methodology@${VERSION}. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish voidforge-build-methodology
+        if: steps.check-methodology.outputs.skip == 'false'
         run: npm publish -w packages/methodology --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

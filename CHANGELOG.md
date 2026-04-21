@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.9.2] - 2026-04-20
+
+### CI workflow idempotency + provenance baseline
+
+v23.9.1 was published manually from a maintainer laptop and thus ships without npm provenance attestation (OIDC is CI-only). v23.9.2 re-publishes via CI tag-push to establish provenance as the baseline for future releases, and hardens the workflow so future accidental manual-then-tag sequences are non-destructive.
+
+### Changed
+- **`.github/workflows/publish.yml`** — both publish jobs now run a `check-*` step first (`npm view <pkg>@<version>`) and set `skip=true` if the current version is already on the registry. The actual `npm publish` step runs conditionally on `skip == 'false'`. This makes the workflow idempotent: re-triggering a tag, or tagging after a manual publish, is a no-op instead of a failure.
+
+### Release notes
+- If CI fails on this tag due to NPM_TOKEN scope (SEC-002 from ADR-061 — token was issued for `thevoidforge` and may not have write access on `voidforge-build`), rotate the token per npm account → Access Tokens. Create a new Automation token with publish scope for `voidforge-build` AND `voidforge-build-methodology` AND legacy `thevoidforge` + `thevoidforge-methodology` (for any future deprecate or owner-management operations). Update GitHub repo Secret `NPM_TOKEN` and re-run the workflow.
+- Provenance verification once attached: `npm view voidforge-build@23.9.2 --json | jq '.dist.attestations'` returns non-null.
+
+### Verification
+- `npm test` — 1384/1384 pass
+- `bash scripts/surfer-gate/test.sh` — 20/20 pass
+- Local `npm publish --dry-run -w packages/voidforge` confirms packable state.
+
+---
+
 ## [23.9.1] - 2026-04-20
 
 ### Publish-target pivot — `voidforge-build` supersedes `@voidforge/cli`
