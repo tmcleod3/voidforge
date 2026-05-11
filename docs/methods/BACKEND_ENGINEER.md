@@ -156,6 +156,54 @@ Services deployed in ephemeral environments (containers, serverless, spot instan
 
 Step 2 (Strange's Service Layer) already mandates "stateless composable services." This subsection makes the requirement concrete: stateless means *reconstructable from durable storage within one cycle*. (Field report #274)
 
+### AST Lints Are Cheap (8+ duplicates rule)
+
+When a contract has 8 or more duplicates in production code (e.g., "every `complete()` call must pass `org_id`", "no router file may import `app.db.backends`", "every webhook handler must call `verify_signature()` before reading the body"), write an AST-based lint with a baseline-grandfather pattern + `--regenerate-baseline` flag.
+
+**The pattern:**
+
+1. AST query — walk the AST, identify violations by structural pattern (not regex). Avoids false positives on quoted strings, comments, similarly-named functions in different namespaces.
+2. Baseline file — record existing violations at the time the lint is introduced. The CI gate fails only on NEW violations.
+3. `--regenerate-baseline` flag — operator can refresh the baseline when intentionally adding a violation (with PR comment justifying it).
+
+**Why this works:**
+
+A contract enforced by a checklist gets violated. A contract enforced by code review gets violated when the reviewer is tired. A contract enforced by AST lint with baseline-grandfather is structurally impossible to silently violate — the CI gate flips RED on the offending PR before merge.
+
+**Cost-benefit:**
+
+- AST lint authoring: ~30-60 min for the first lint in a project; subsequent lints reuse the framework.
+- Baseline file maintenance: trivial; only changes when violations are intentionally added.
+- Violation prevention: every future regression of the contract is caught at PR time.
+
+Field report #324 (Union Station v7.8): F11 broadened UNS001 to catch `app.db.{backends,tenant_pool,rls_fail_open}` imports in router files — flagged 4 grandfathered usages immediately, prevented all future regressions. UNS003 (complete-org-id) shipped with empty baseline — every future M-37-style strict-mode regression is caught at PR time.
+
+**Reference implementations from the field reports:**
+
+- `scripts/lint_router_no_db.py` (PIC-001, Union Station) — routers must not import DB internals
+- `scripts/lint_complete_org_id.py` (UNS003 / M-37 followup) — every `complete()` call passes `org_id`
+- `scripts/check-org-id-defaults.sh` (ADR-137) — no `org_id: int = 1` defaults outside test fixtures (with `# system-org-allowed` waiver convention)
+
+When NOT to AST-lint: contracts with <8 duplicates (use code review), one-off cleanups (do the cleanup; lint isn't needed), evolving contracts (the API hasn't stabilized — lint locks you in).
+
+### Lifespan & Daemon ContextVar Coverage (Multi-Tenant FORCE-RLS)
+
+When sweeping unscoped tenant-pool callsites for a multi-tenant boundary tightening (org_id, tenant_id, workspace_id), grep alone catches HTTP-middleware-served paths. It misses code that runs *outside* the request lifecycle, where ContextVar isn't set by middleware. These paths fail-fast immediately under FORCE-RLS with a non-owner role, and they are the load-bearing finding from Union Station's M-05 cutover.
+
+**Sweep this whole list, not just `grep acquire`:**
+
+| Path class | Why grep misses it | Fix |
+|---|---|---|
+| Lifespan startup (`@app.on_event("startup")`, FastAPI lifespan, Django ready) | One-shot at boot, before middleware sets ContextVar | Wrap with `set_current_org_id(org_id)` per-org loop OR `pre_org_resolution_scope()` for cross-tenant work |
+| Scheduler ticks (cron, Celery beat, conductor sweeps) | Fires on day-boundaries; no HTTP request, no ContextVar | Wrap with `pre_org_resolution_scope()` (admin pool, BYPASSRLS) |
+| Leader-elected daemons (queue cleanup, retention, distributed locks) | Long interval; no HTTP context | Same as scheduler ticks |
+| Pool callbacks (`asyncpg` setup, SQLAlchemy event listeners) | Run outside any caller transaction | `SET LOCAL` does NOT work here — use `set_config(..., is_local=false)` + explicit `RESET` on connection release |
+| Admin endpoints intended to bypass tenant scope | Need explicit admin pool acquisition | Use `_get_db_admin()` — never silently fall back to tenant pool |
+
+**Test fixture trap:** the dev superuser (`postgres`, `us_test`) has `BYPASSRLS=t` and silently bypasses FORCE RLS at the engine level. A test that uses the dev superuser will pass even if the policy is broken. Tests that exercise tenant-isolation invariants must run under the non-owner runtime role (`{project}_app`, BYPASSRLS=f). See `/docs/patterns/rls-test-fixture.py` for the `db_as_app` SAVEPOINT pattern. (Field reports #318 + #319.)
+
+**Forensic check before declaring sweep complete:** boot the service under the runtime DSN (not the dev DSN), exercise lifespan + one tick of every scheduled job + one admin-bypass codepath. Watch for `TenantInvariantError`. Anything that raises was missed by the sweep. (Field report #319: 4 lifespan/daemon paths surfaced this way during M-05 cutover.)
+
 ## Step 5 — Deliverables
 
 1. BACKEND_AUDIT.md

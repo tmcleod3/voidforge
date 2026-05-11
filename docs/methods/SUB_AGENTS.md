@@ -133,10 +133,80 @@ AGENT: [Name]
 STATUS: Done / Blocked / Needs Review
 CHANGES: [Files modified, one-line each]
 DECISIONS: [Non-obvious choices with rationale]
+DEVIATIONS FROM CONTRACT: [see below — required, "None" is acceptable]
 ASSUMPTIONS: [Needs confirmation]
 RISKS: [Side effects]
 REGRESSION: [How to verify]
 ```
+
+### Deviations from Contract (required section)
+
+For every item in the dispatch brief that the agent chose to handle differently from the literal contract — defensible improvements, scope adjustments, deferred work — flag it explicitly:
+
+```
+- Brief said: "<exact wording>"
+  You did:    <what you actually shipped>
+  Why:        <rationale>
+  Risk:       <production-side implication, or "None" if internal-only>
+  Reviewer signoff needed: <Y/N — if Y, name the reviewer>
+```
+
+An empty section ("No deviations") is acceptable and explicit. **Hidden deviations risk emerging as production bugs** — Stark's M-05-prep-2 silent fallback (`_get_db_admin()` retained tenant-pool fallback for "dev/test backward compat" instead of failing-fast as Picard's contract specified) was sound but not flagged in the build report headline. It took a Loki chaos pass to catch the production-side implication. (Field report #318 §4.) Across that single session, 6 separate agents had silent deviations from their dispatch briefs.
+
+The orchestrator reviews this section at the same priority as STATUS. A deviation that risks production behavior triggers a reviewer dispatch (Loki, Riker, or the original contract author).
+
+### Sub-Agent Review Contract (WARN/cosmetic evidence requirement)
+
+A sub-agent reviewer may classify a finding as **WARN/cosmetic** (deferrable, non-blocking) only if at least ONE of the following holds:
+
+1. The code path is **provably unreachable** with a citation of the specific gate that excludes it (e.g., `if (DEV_ONLY)` guard pinned by audit fixture).
+2. The reviewer **ran the real (non-dry-run) code path under the same strict-mode flags as production** and observed no failure.
+
+Static reading alone is NOT sufficient evidence for a WARN/cosmetic downgrade when the codebase ships under `set -euo pipefail`, TypeScript strict, Python `-W error`, or any equivalent strict-mode setting. The orchestrator MUST NOT unblock a fix-batch on a WARN/cosmetic classification that lacks one of the two above.
+
+Field report #330: a Kim-class reviewer flagged a bash syntax oddity as "cosmetic — always returns 0." The reasoning was correct only if the code path didn't crash under strict-mode flags — which it did. The audit's strict-mode must match the script's strict-mode. See `QA_ENGINEER.md` "Strict-Mode Audit Classification" for the language-level rule.
+
+**The contract applies recursively** — a sub-agent reviewing another sub-agent's classification inherits this requirement. WARN/cosmetic that survives a chain of reviews still requires evidence at the root of the chain.
+
+### Agent Capability Matrix (tool surface verification)
+
+Before briefing an agent for a task, the orchestrator confirms the agent has the tools required for that task. The `tools:` field in each `.claude/agents/<id>.md` frontmatter is the source of truth.
+
+**Quick decision tree:**
+
+| Task type | Required tools | Common mismatch |
+|---|---|---|
+| Write files (audit reports, ADRs, code) | `Write` + `Edit` | Read-only agents (e.g., scout-tier) return audit text instead of files |
+| Modify existing files | `Edit` | Read-only agents propose diffs instead of applying them |
+| Run scripts / git ops | `Bash` | Some review-tier agents lack Bash and can't verify their own findings |
+| Pattern search / discovery | `Grep` + `Glob` | All agents have these (scout floor) |
+| Read agent definitions | `Read` | Universal |
+
+**Pre-deployment check:** if the dispatch brief asks the agent to "write," "update," "modify," or "fix" any file, verify the agent definition includes `Write` and/or `Edit` in `tools:`. If not, EITHER:
+
+1. Add the tool to the agent definition (preferred when the agent SHOULD be authoring in their domain — e.g., Irulan should write ADR audits as files), OR
+2. Delegate the actual write to an orchestrator-tier action (the agent produces structured audit output; the orchestrator writes the file).
+
+Field report #322 (barrierwatch M1): Irulan was asked to write `docs/adrs/INDEX.md` and update `CHANGELOG.md`. Her tools were `Read, Grep, Glob` — she returned a comprehensive audit text instead of files. The orchestrator manually transcribed her audit into the files. Cost: a redirect that should have been a tool-list fix.
+
+### Build-Agent Pytest Sequencing
+
+Build agents that need to verify their work with pytest should:
+
+1. Run **targeted pytest** on touched files only as the agent's internal verification (fast, fits in the agent response window — typically 1-3 min).
+2. **Commit + report BEFORE** running the full-suite pytest. The orchestrator runs the full suite as the gate — that's not the agent's job.
+3. Do NOT run the full CI-equivalent suite as the agent's final action. Long-running suites (12-15 min) routinely exceed the agent response window, truncate the report mid-output, and force the orchestrator to reconstruct state from `git log` rather than read the report.
+
+Field report #320 §4: 4 of Strange's M-10 commits had truncated reports because internal pytest was still running when the response window closed. Targeted pytest (`pytest -q tests/path/to/touched_module.py`) is the right shape for the agent; full-suite is the orchestrator's gate.
+
+### Long-Running Shell Commands Inside Agent Dispatches
+
+When a sub-agent needs to run a shell command that takes longer than ~3 minutes (long pytest, full build, multi-region deploy probe, container migration), the dispatch prompt must specify one of two patterns:
+
+1. **Background + poll** — agent runs the command with `run_in_background: true`, then polls for completion at fixed intervals. The agent's final response includes the polled outcome.
+2. **Reduce scope** — the agent runs a focused subset that completes inside the response-stream window. The orchestrator runs the full version separately.
+
+Naked long-running commands inside an agent dispatch will truncate the agent's report mid-execution; the orchestrator then has to recover state from disk and re-write the report retrospectively. Field report #317 logged 4 such truncations in a single Union Station session.
 
 ## Agent Debate Protocol
 
@@ -326,6 +396,26 @@ CONSTRAINTS: [list]
 | Fix agents | Change Report: finding ref, file, what changed, verified |
 | Architecture / Council | Position Statement: assessment, concerns, sign-off |
 | Build agents | Build Report: files created/modified, tests added, decisions made |
+
+### Intentionally Overlapping Mandates (high-signal convergence)
+
+When dispatching parallel reviewers, **deliberately give 3+ agents the same diff with different lenses**. This is not duplication — it is intentional convergence.
+
+- Findings flagged by 1 agent = standard signal, route to triage
+- Findings flagged by 2+ agents from different universes = high-confidence signal, prioritize
+- Findings flagged by 3+ agents = critical convergence, fix in same batch
+
+Field report #324 (Union Station v7.8 R2): three agents (Discovery + Stark + Kenobi) ran in parallel against the same diff. HIGH-1 was caught by all three; two MED findings by 2 of 3. A single-agent review would have missed ~25% of findings empirically. The "wasted" agent budget is the price of multi-lens coverage.
+
+**When to use overlap:**
+- Methodology ADRs (statistical, security, financial) — code-vs-ADR + spec-adversary + Riker trade-offs (3 lenses, same diff)
+- Multi-tenant boundary changes — Stark (impl) + Kenobi (auth) + Ahsoka (IDOR) + Spock (schema), 4 lenses on the same code
+- Cross-module diffs after refactor sweeps — Cyborg (integration) + Strange (services) + Banner (queries)
+
+**When NOT to use overlap:**
+- Trivial single-file changes (<50 lines, no cross-module impact)
+- Pure formatting/lint sweeps
+- Doc-only edits where finding density approaches zero
 
 ### Concurrency Rules (ADR-059)
 

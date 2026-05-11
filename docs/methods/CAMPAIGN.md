@@ -51,6 +51,39 @@ Autonomous campaign execution: read the PRD, figure out what's next, build it, v
 12. **Log deviations.** When the build deviates from PRD architecture, update the PRD or log it in campaign-state.md. Never leave a silent contradiction.
 13. **Operational verification after deploy.** After deploying to a live environment, wait for 1 full operational cycle (1 trade cycle, 1 cron job, 1 polling interval) and check logs for errors, halts, and successful operations before marking the mission complete. "It deployed" ≠ "it works." (Field report #152)
 
+### Audit-first missions for callsite-counted ADRs
+
+When `/architect` produces an ADR whose effort estimate scales with callsite count (refactor sweeps, ContextVar migrations, security boundary tightening, schema-column adds across N tables), require a paired **audit mission** BEFORE plan finalization. The audit produces the actual count; plan estimates use that count, not the architect's grep-by-eye guess.
+
+Examples that triggered this rule:
+- ADR-138 (Union Station, #316 §3): estimated "12+ unscoped tenant-pool callsites." Audit mission M-04.5 found ~900 across ~95 files — 75x off. The original "manual per-callsite refactor" plan was infeasible at that scale; audit forced the architectural rewrite (pool callback + ContextVar middleware).
+- Any ADR claiming "tighten boundary at every X" — if X is a code pattern, count it before planning.
+
+**Audit mission shape:**
+1. Picard or Spock writes the audit query (grep recipe, AST query, or schema introspection)
+2. The audit runs against the live codebase
+3. The result is committed as `docs/audits/<topic>-<date>.md` with the count + per-file breakdown
+4. THEN the architect re-estimates effort and sequences subsequent missions
+
+Skip this step only when the ADR's scope is bounded by entity (one file, one table, one route group) — bounded ADRs don't need an audit because the count is visible in the scope itself.
+
+### Closeout grep pinning
+
+When a `/campaign` closeout report cites a followup count or backlog size (e.g., "F-V710-ORG1-DEFAULTS — ~12 sites remaining" or "~21 cumulative followups"), the followup definition MUST embed the literal grep pattern + observed `n=N` at closeout HEAD. The next campaign's `/architect --plan` re-runs the same grep before accepting the count.
+
+**Required closeout shape:**
+
+```
+### F-<NAME>
+Scope: verified at <SHA> with `grep -rcE '<pattern>' <paths> | awk -F: '{s+=$2} END {print s}'` → n=<COUNT>
+Severity: <level>
+Status: open
+```
+
+Field report #329 documents the cost of skipping this: v7.10 closeout cited "~12 sites" for `org_id=1` defaults without a verification grep. v7.11 plan-mode re-ran the grep and found 65 sites — 5× the estimate. The campaign plan had to restructure into a parallel sub-campaign (M-59-SWEEP) instead of a serial mission slate. The verification grep is one shell command. Skipping it cascades into wrong plans.
+
+This rule reciprocates the ADR-side "Scope-confidence interval" requirement in `SYSTEMS_ARCHITECT.md` — the closeout writes the grep, the next plan re-runs it.
+
 ### TECH_DEBT SLA enforcement
 
 `/campaign` and `/assemble` audit `TECH_DEBT.md` before every mission selection. Critical + Immediate + LowEffort items overdue by 48h BLOCK campaign advancement. Critical + Immediate + HighEffort items overdue by 72h without owner + deadline BLOCK. High + Immediate items overdue by 7 days WARN.
@@ -169,7 +202,8 @@ Dax reads the Prophets' plan:
 7. Diff: PRD requirements vs. implemented features (structural AND semantic — not just "does the route exist?" but "does the component render what the PRD describes?")
 8. Produce: **The Prophecy Board** — ordered list of missions with scope, plus a separate list of BLOCKED items (assets, credentials, user decisions)
 8a. **Cross-mission data handoff check (Odo):** For any system that forms a closed loop (e.g., generate → track → analyze → feed back), identify every data handoff point between missions. Each handoff must be explicitly scoped in at least one mission: "Mission N produces X, Mission M consumes X via [mechanism]." If the loop spans 3+ missions, draw the handoff map. Unscoped handoffs become no-ops — the code on each side compiles and tests independently, but the data never flows between them. (Field report #265: seedPush extracted winning variant data but discarded it — the feedback loop was documented but not wired because the two ends were in separate missions with no explicit handoff.)
-9. **Acceptance criteria gate:** Every mission on the Prophecy Board MUST have at least one acceptance criterion before Dax finalizes the board. Acceptance criteria are concrete, verifiable conditions — "endpoint returns 200 with correct schema," "UI renders empty/loading/error/success states," "test covers the happy path." Missions without acceptance criteria are stubs that escape quality gates later. If a mission's scope is too vague to produce criteria, it's too vague to build — split or clarify first. This applies to `--plan` mode too, not just build mode. (Field report #129: Phases 3-6 written as stubs without criteria, caught late by blitz compliance check.)
+9. **Cluster-mission recognition:** Before finalizing the board, Dax asks: "Are any of these missions cluster-natured?" A cluster-mission is a single-line entry that actually spans 4+ ADR sections, 4+ sub-components, or 4+ migration steps. Examples: M-51 cluster (per-org MCP topology) genuinely required 4 sub-missions per ADR-107 §c-§f; M-44 series required 5 sub-missions per ADR-117. Pretending a cluster is one mission produces 2-3× planning underestimates and forces mid-campaign restructuring. If a mission has 4+ named deliverables in different files/modules, split into sub-missions (M-51a/b/c/d) at plan time, not at execution time. (Field report #326: Sisko's original v7.10 slate was 9 missions; reality was 21 because cluster recognition was deferred.)
+10. **Acceptance criteria gate:** Every mission on the Prophecy Board MUST have at least one acceptance criterion before Dax finalizes the board. Acceptance criteria are concrete, verifiable conditions — "endpoint returns 200 with correct schema," "UI renders empty/loading/error/success states," "test covers the happy path." Missions without acceptance criteria are stubs that escape quality gates later. If a mission's scope is too vague to produce criteria, it's too vague to build — split or clarify first. This applies to `--plan` mode too, not just build mode. (Field report #129: Phases 3-6 written as stubs without criteria, caught late by blitz compliance check.)
 
 ### Deep Codebase Scan for PRD Diff
 
@@ -279,6 +313,120 @@ These issues are invisible to standard code review but Critical when found by th
 
 After each mission's 1-round review, check: "Did this mission modify any file that was also modified by a prior mission in this campaign?" If so, verify that the prior mission's patterns (error handling, locking, validation) are preserved in the new changes. This is a 30-second scan per shared file — run `git log --name-only` to identify cross-mission file overlap. Cross-cutting bugs that span files modified in different missions are invisible to single-mission review. (Field report #38: 2 Critical findings — chat stream timeout and optimistic locking omission — both involved files modified across multiple missions.)
 
+### Caller-Graph Audit (silent-default abstractions)
+
+When a mission closes a class of bug rooted in a silent default value (`org_id: int = 1`, `tenant_id = None`, `user_id = SYSTEM`, `region = "us-east-1"`), the mission brief MUST enumerate every caller-graph site of every function whose default was wrong — not just the primary site that surfaced the bug.
+
+**Detection pattern (F6-class abstractions):**
+
+A "silent default" is a parameter whose default value short-circuits a multi-tenant / authorization / region-scoping invariant when the caller forgets to pass it. The fix is two-step:
+
+1. Remove the default OR change it to a sentinel that fails-loud (`None` with assertion, `NotProvided` enum value)
+2. Update every caller — the mission's grep MUST find them all
+
+Without step 2, callers that omitted the parameter relied on the wrong default; making the function safer breaks them. Worse, callers that PASSED `org_id=1` explicitly (the wrong default) now silently leak across tenants. The cleanup density of these bugs is high — one explicit defect surfaces N adjacent latents of the same family.
+
+**Required mission shape:**
+
+```
+M-XX — F-V710-ORG1-DEFAULTS cleanup, batch N
+Scope: <module/* glob>
+Pre-mission audit:
+  grep -rnE 'org_id\s*:\s*int\s*=\s*1' <glob> → N callsites
+  For each callsite, classify:
+    - Defensible (cross-tenant by design, documented)
+    - Retrofit residue (CRITICAL, fix)
+    - Caller of retrofit residue (verify it passes a real org_id)
+Fix shape:
+  1. Remove the default (or replace with fail-loud sentinel)
+  2. Update every caller-graph site enumerated above
+  3. Add a property test or AST lint to prevent re-introduction
+```
+
+Field report #326 (Union Station v7.10 M-55): the mission brief named 9 sigs in `widget_pipeline.py`. Reality required 11 sigs (9 + 2 in `registry.py`) PLUS 2 sigs in `providers.py`. The bonus F-K-M55-1 HIGH bug — cross-tenant providers leak via `SlackCacheContext.inject` and `IdeasDbContext.enrich` defaults — was caught by Kenobi during M-55 review and fixed same-commit. Without the caller-graph enumeration upfront, it would have shipped.
+
+This is the "cleanup-density pattern" (F-V710-CLEANUP-DENSITY in the source field report). Budget for it: when a mission closes one defect in this class, expect 0.5-2 bonus defects of the same family in the same commit.
+
+### V710 Acceptance Template Inheritance Counter
+
+For multi-mission campaigns shipping a class of fix (multi-tenant retrofit, dialect migration, auth tightening), establish a project-scoped **acceptance template** — a 4-8 item matrix that every mission in the class must satisfy. Track inheritance with a monotonic counter; relax to spot-check or retire only via explicit Picard-countersigned amendment at version-rollover gates.
+
+**Template anatomy (per field report #326, v7.10):**
+
+The V710 template (Batman, M-50b R0) was 6 items:
+
+1. NO POLICY-AS-PURE-FUNCTION (policies must consume DB state, not compile-time constants)
+2. NO LOG-OUTPUT-AS-ASSERTION (test assertions must check returned values, not log lines)
+3. NO SINGLE-HAPPY-PATH (every test covers happy + at least one negative + boundary)
+4. NO `?→$N` MONKEYPATCH SHIMS (use proper fixtures, not parameter rewrites at test time)
+5. ASYNC PATHS GET ASYNC TESTS (await paths tested under `asyncio.run`, not synchronously)
+6. SHAPE OF TRUTH PINS (test asserts the literal SQL/JSON shape returned, not a derived count)
+
+Each mission's test files were reviewed against the matrix at acceptance. Counter advanced 1/1, 2/2, ... clean inheritance through 13/13 by Phase C close, 20/20 by v7.10 closeout. Zero waivers.
+
+**Why this works:**
+
+A class of bug is recurring because the test shape that would catch it is non-obvious. Document the test shape ONCE as an acceptance template; every mission in the class inherits the discipline. The counter ratchets forward without becoming bureaucratic because it's tied to a real bug class, not made-up process.
+
+**When to relax:**
+
+At version-rollover gates (v7.X → v7.X+1, phase boundaries), Picard countersigns ONE of:
+
+- **(a) re-affirm** — keep mandatory for next phase (default if unrecorded)
+- **(b) relax-to-spot-check** — sample 1 in N missions
+- **(c) retire** — the bug class is closed; future tests don't need the matrix
+
+Document the decision in a `logs/campaign-decisions-{version}.md` entry. Defaulting to re-affirm preserves discipline; relax/retire requires evidence (the bug class hasn't recurred for N missions).
+
+### Operator Decision Documents
+
+For campaigns where the operator delegates architectural calls mid-campaign (split mission X into A+B, choose recomputation over bit-cast, accept ADR amendment scope, etc.), record each call in `logs/campaign-decisions-{version}.md` with a stable ID, the call, and the rationale.
+
+**Why this is a first-class artifact:**
+
+Mission briefs encode WHAT to build. Operator decisions encode WHAT THE OPERATOR CHOSE among multiple valid paths. Without a decision log, agents reading the campaign-state later cannot distinguish operator intent from happenstance — they're equally likely to rationalize the wrong choice as "load-bearing" or "incidental."
+
+**Shape:**
+
+```
+# Campaign Decisions — v7.10
+
+## D-1: M-51 split scope (2026-05-08)
+Question: split per-org MCP topology into 1, 2, or 4 sub-missions?
+Operator chose: 4 (M-51b/c/d/e per ADR-107 §c-§f)
+Rationale: cluster-mission recognition; each sub-section was a 1-2 day mission.
+
+## D-2: M-52 recomputation vs bit-cast (2026-05-09)
+Question: V092 migrates 13.6K embedding rows. Use bit-cast or recompute from source?
+Operator chose: recompute from source (NULL → repopulate via embed_text())
+Rationale: ADR-110's bit-cast scheme was wrong as written (Spock + Loki LK-2.2 caught
+  that "bit-identical reinterpret cast" was actually a value cast that would corrupt
+  every row). Recompute is slow (~3 min for 13.6K rows) but correct.
+...
+```
+
+Field report #326 (v7.10 M-57): a literal SQL `false→true` flip referenced in D-6 would have BROKEN the contract because ADR-138 §Addendum supersedes ADR-139. Investigation surfaced the supersession; the mission honored architectural reality instead of mechanical application. The decision log captured INTENT; the mission delivered CORRECTNESS. Both are required.
+
+### LOC Growth Tracker (per-mission)
+
+After each mission's 1-round review, run a LOC sweep against files modified in the mission. Any file that crossed the 300-LOC threshold (or grew >100 LOC in a single mission) is flagged for split-or-justify review.
+
+**Detection (run post-build, before commit):**
+
+```bash
+# Files this mission touched
+git diff --name-only HEAD | while read f; do
+  if [ -f "$f" ]; then
+    lines=$(wc -l < "$f")
+    [ "$lines" -gt 300 ] && echo "LOC: $f -> $lines (over 300)"
+  fi
+done
+```
+
+When the tracker fires: Boromir or Stark reviews whether the growth is justified or if a split is overdue (per ADR-066 or project's equivalent decomposition boundary). The check costs <5 seconds; the alternative is the Gauntlet catching it 4 missions later, when the file has compounded with two other missions' changes and the safe split is harder.
+
+Field report #322 (barrierwatch): `statistical-gate.ts` grew 425 → 775 LOC across M5 + M6 + Fix Batch additions. Each per-mission review was clean in isolation — only Gauntlet Round 3 caught the cumulative violation. A per-mission LOC tracker would have surfaced it at +100, not +350.
+
 ### Pattern Replication Check
 
 When a mission duplicates or extends an existing code path (adding a version-aware path alongside a legacy path, adding a new endpoint that mirrors an existing one), verify that security patterns (locking, rate limiting, validation, sanitization) from the original path are replicated in the new path. Grep for the original pattern and confirm it exists in the new code. (Field report #38: optimistic locking in legacy chat edit was not replicated to the version-aware path.)
@@ -368,6 +516,53 @@ If you believe context justifies reducing quality:
 4. If above 85%: suggest a fresh session — do NOT reduce quality in the current session
 
 The Gauntlet is never reduced. Checkpoints are never lightweight. Debriefs are never skipped. Run `/context` or run the full protocol.
+
+### Pause-Bias Anti-Pattern (autonomous mode)
+
+When a mission completes in autonomous mode (`--blitz`, `--autonomous`, or default ADR-043 autonomous-by-default), the orchestrator's next action is to mark the next mission `in_progress` and START. Do NOT present "milestone summaries" framed as decision points. Do NOT ask "continue with M-X or pause?" Do NOT rationalize a pause as "strategic checkpoint" or "context budget management."
+
+**The distinction is structural, not stylistic:**
+
+- ✅ **Status update** (valid): "M-7.4 shipped at `6d7f5b3`. Starting M-7.5."
+- ❌ **Decision-frame question** (anti-pattern): "M-7.4 complete. Continue with M-7.5 or pause for review?"
+- ❌ **Rationalized pause** (anti-pattern): "Given the context usage, recommend resuming M-7.5 in a fresh session."
+
+Status updates are FINE — they tell the operator what happened. Questions are NOT — they shift control back to the operator, which defeats the autonomous-by-default contract.
+
+**The only valid pause triggers in autonomous mode** remain:
+1. `/context` shows actual usage above 85% (cite the number)
+2. A BLOCKED item requires user input (e.g., missing credentials, design decision)
+3. A Critical finding from `/assemble` that can't be auto-fixed (per `--autonomous` git-tag rollback)
+4. The user interrupts
+
+Field report #323 (barrierwatch Phase 2): mid-campaign, after 4 missions shipped, the orchestrator presented a "checkpoint summary" with `"Continue with M-7.5 or pause?"` The operator responded sharply that pause-bias was a recurring pattern and to stop asking questions. The rationalizations ("context budget," "strategic checkpoint") had been rejected before via project memory; the orchestrator re-introduced them anyway.
+
+**Why this happens:** the pause-frame feels like good operational hygiene. It is not. ADR-043 made autonomous the default specifically to eliminate this friction. Status updates between missions preserve transparency without re-introducing decision points. Trust the operator to interrupt if they need to.
+
+### ROADMAP Path Disambiguation
+
+If both `ROADMAP.md` (root) and `docs/ROADMAP.md` exist, the **root** file is canonical for active campaign state. `docs/ROADMAP.md` is typically historical or aspirational — do not mutate it during `/campaign` or `/architect --plan` unless explicitly scoped.
+
+Sisko + Picard verify which file holds the active campaign section at Step 0/Step 1 entry. The verification is a single `head -20 ROADMAP.md docs/ROADMAP.md` to inspect both — disambiguate before reading, not after editing the wrong one.
+
+Field report #323: Victory Gauntlet reported "no Active Campaign section in `docs/ROADMAP.md`" — false alarm because the canonical `ROADMAP.md` was at repo root (2761 LOC). Reading the wrong file produces wrong findings.
+
+### Pre-Split Blocker Phase (ADR-066-style file splits)
+
+When a campaign includes file splits of signing-critical, replay-critical, or load-bearing modules (per ADR-066 or project equivalent), the first split commit MUST be preceded by a "Phase B" of pre-split blockers. Without them, splits ship correctness regressions that surface only in production.
+
+**The four pre-split blockers** (all must pass tsc + lint + existing test suite BEFORE any split commit):
+
+1. **Signing/serialization golden-vector test** for every signing path the splits will touch (EIP-712, action hashes, HMAC, JWT). Pinned hex inputs → pinned hex output.
+2. **Byte-identical replay-equivalence harness** using a frozen test fixture. Pattern: copy live DB to `runs/fixtures/`, capture canonical stdout via the deterministic strategy/runner, commit baseline + sha256 lock, write a vitest/pytest `skipIf-fixture` test that diffs new output against baseline.
+3. **ADR amendment** declaring the canonical home for any utility being extracted (rate-limiter, types, error-envelope). Preempts ad-hoc decisions during the splits.
+4. **Load-bearing function ships first** if the campaign also implements a critical decision function (e.g., `applyReengagementGate`) — ship the function before the split that would otherwise re-route its wiring.
+
+Each blocker is its own mission, gated on tsc + lint + tests green. THEN the split missions land.
+
+Reference implementation from field report #323 (barrierwatch v0.5.0): `src/research/lib/rolling-r1-verdict.ts` (Zod-schema parser for cron output contracts), `src/__tests__/replay-equivalence.test.ts` + `scripts/replay-equivalence.sh` + `tests/fixtures/replay-r1-baseline.txt` (byte-identical regression harness), `state/db-checksum-baseline.txt` (frozen fixture pin). Three splits (`hl-exchange-client.ts`, `pm-clob-client.ts`, `main.ts`) all preserved replay-equivalence BYTE-IDENTICAL.
+
+The discipline answers: "splits worked" vs "splits worked safely."
 
 ### Step 5 — Debrief and Commit
 

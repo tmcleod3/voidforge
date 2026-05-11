@@ -100,9 +100,49 @@ Use the Agent tool to run these in parallel — they are independent analysis ta
 - **Data's Tech Debt:** Wrong abstractions, missing abstractions, premature optimization, deferred decisions, dependency debt, documentation debt. Each with impact, risk, effort, urgency.
 
 **Step 5 — ADRs + Riker's Decision Review:**
-- **Picard writes ADRs:** Architecture Decision Records for every non-obvious choice. Status, context, decision, consequences, alternatives. **Each ADR must include an Implementation Scope field:** "Fully implemented in vX.Y" or "Deferred to vX.Y — no stub code committed." This prevents the pattern where architecture is decided, stubs are shipped as placeholders, and the real implementation never arrives. (Field report: v17.0 assessment found 3,500+ lines of infrastructure built on stub adapters that were "deferred" in v11.0 and never completed through v16.1.)
+- **Picard writes ADRs:** Architecture Decision Records for every non-obvious choice. Status, context, decision, consequences, alternatives. **Each ADR must include an Implementation Scope field anchored to reality:** before writing "Fully implemented in vX.Y," verify with `ls`/`grep` that every named deliverable exists at HEAD. If any cited file is missing, status is "Proposed — to be implemented in vX.Y PR" — never "Accepted." Field reports #312 (4 of 5 ADRs falsely claimed Fully Implemented), #313 (ADR-039 said `STRUCT-006/012 fully implemented in v0.4.0`; at HEAD, neither existed), and #316 (ADR-101 claimed schema property that the schema didn't have) document the cost: false confidence in audit trails is worse than missing audit trails.
+- **Each ADR has a Verification Gate with a Fixture Bindability proof.** A gate that algebraically cannot fail under its fixture proves only refactor-correctness, not fix-correctness. State explicitly: *"Fixture: <data/scenario>. Can the gate FAIL under this fixture? <yes/no + rationale>."* If no, add a fixture where the fix CAN bind, or downgrade the verification claim. See `/docs/patterns/adr-verification-gate.md`. (Field report #313 Finding 1: ADR-040's "bit-identical 12-day forensic" PASS proved arithmetic preservation; the cap path was never exercised because proximity stayed wide.)
+- **ADRs with numbered cohort breakdowns require sum-verification.** When the ADR claims "5 cohorts of N tables totaling X," compute the sum independently and compare. If mismatch, document which is canonical, why, and where the spec is authoritative. Otherwise 3+ downstream agents waste reviewer cycles re-verifying the math. (Field report #318: Picard's M-05 ADR said "47 RLS-policied tables" in 3 places; cohort breakdown summed to 55. Spock, Trunks, and Cara Dune each caught it independently.)
+- **ADRs specifying HARD GATEs require feasibility audit.** Acceptance criteria must be derivable from the kernel/agent's actual input set, not from post-hoc forensic labels. Test: write the algebraic intersection of all gate conditions; if the solution set is empty, the gate is structurally infeasible and must be reframed BEFORE downstream missions consume it. (Field report #314 Finding 2: a regime classifier was asked to identify forensic-directional days using only pre-midnight 4h drift inputs; algebraic proof showed no parameter satisfied both directional and symmetric pins simultaneously. Required operator escalation + reframing.)
+- **ADR amendments trigger a cross-ADR cascade scan.** Any ADR amendment must scan dependent ADRs (cross-references in §References, downstream missions consuming the amended spec) for stale claims, then bundle all amendments into one commit. (Field report #314 Finding 6: M9.1a kernel amendment forced ADR-038 schema, ADR-044 enum, and ADR-036 amendments; T'Pol caught the cascade during synthesis. Without the bundled commit, downstream missions would have read stale specs.)
 - **ToS/API policy compatibility:** For ADRs selecting third-party services, verify the provider's Terms of Service and API usage policies permit the intended usage pattern (automation, bot-initiated transactions, reselling, volume). A service rejected on ToS grounds after building requires a full architecture pivot. (Field report #300)
-- **Riker reviews:** "Number One, does this hold up?" Riker challenges each ADR's trade-offs — are the alternatives truly worse? Are the consequences acceptable? Did we consider the second-order effects? **Riker also verifies the implementation scope is honest** — if an ADR says "fully implemented" but the code throws `'Implement...'`, that's a finding. Riker's review prevents architectural decisions made in a vacuum.
+- **Riker reviews:** "Number One, does this hold up?" Riker challenges each ADR's trade-offs — are the alternatives truly worse? Are the consequences acceptable? Did we consider the second-order effects? **Riker also verifies the implementation scope is honest** — if an ADR says "fully implemented" but the code throws `'Implement...'`, that's a finding. **Riker also asks "Can this gate FAIL under the proposed fixture?"** If algebraically it cannot, the gate proves only that the refactor preserved arithmetic, not that the fix is correct. Riker's review prevents architectural decisions made in a vacuum.
+- **Spec adversary pass (BEFORE implementation):** Riker reviews trade-offs; an adversarial agent (Feyd-Rautha, Maul, or Loki, chosen by domain) attacks the SPECIFICATION itself for category errors and missing constraints. **This pass runs before Stark implements.** The question Riker asks is "does this hold up?" The question the adversary asks is different: "is the spec asking the right question? Does the algebraic intersection of all constraints contain the desired solution? What's the failure mode the spec didn't name?" Field report #322 documents the cost: ADR-069 (FWER family scoping) said "filter family by p-value alone"; four agents (T'Pol, Picard, Stark, Batman) reviewed code-vs-ADR and all signed off. The bug was in the spec — the family should have been scoped to runs that passed the per-run gate. Surfaced only when M6's smoke run produced a false positive in production. A spec-adversary pass — asking "is the family definition itself correct?" before implementation — would have caught it. The rule: code-vs-ADR review confirms fidelity; spec-adversary review confirms correctness. Both are required for non-trivial methodology ADRs (statistical, security, financial, identity).
+
+### Scope-confidence interval (callsite-counted ADRs)
+
+When an ADR's effort estimate is denominated in callsite/file count ("12 sites need updating," "5-line cleanup," "~150 caller cascade"), the ADR MUST include ONE of:
+
+1. **Verifying grep with pinned `n=N`** — the literal command + the observed count at the SHA the ADR was authored against. Example: *"Verified at `f7330c6`: `grep -rcE 'org_id\s*:\s*int\s*=\s*1' app/ | awk -F: '{s+=$2} END {print s}'` → n=65."*
+2. **Uncertainty annotation** — explicit "±X×" range when verification is intentionally deferred. Example: *"Estimated 12 sites; ±5× uncertainty pending audit mission."* Downstream missions reading the ADR treat the upper bound as the planning estimate.
+
+Point estimates without verification or uncertainty are a methodology bug. Field reports #328 (architect estimates off 5-10× on M-48c.1 + M-48c.3 + M-48d) and #329 (F-V710-ORG1-DEFAULTS estimated 12, reality was 65 — 5×, restructured v7.11 plan into a parallel sub-campaign) document the cost: campaigns inherit consequences silently. The verification step is cheap. Skipping it is not.
+
+**Closeout reciprocity:** when a `/campaign` closeout report cites a followup count that will be consumed by the next plan, the followup definition MUST embed the same grep pattern. The next campaign's `/architect --plan` re-runs the grep before accepting the count. See `CAMPAIGN.md` "Closeout grep pinning."
+
+### Service-extraction test-patch checklist
+
+When a mission moves a symbol out of one module into another (PIC-002-style service extraction, refactor-into-helper, rename-with-relocation), the same commit MUST update every test that patches the symbol by old path. Imports bind at module load — `patch("app.routers.X.foo")` silently no-ops if `foo` now lives in `app.services.X.service`, and the test passes against unmocked production code.
+
+**Checklist for any extraction mission:**
+
+1. After moving the symbol, `grep -rn 'patch[(]"[^"]*\.<symbol_name>"' tests/` (or equivalent for the test framework)
+2. For every match, update the path to the new module location
+3. If the symbol is re-exported from the old path for backward compat, document it — but prefer updating tests over keeping re-exports (tests should follow code)
+
+Field report #324 (Union Station v7.8 PIC-002 trio): multiple half-Gauntlet followups had to retroactively update `patch("app.routers.X.foo")` → `patch("app.services.X.service.foo")` because the extraction missions did not include the test-patch sweep.
+
+### Signing-path audit
+
+For every file in the codebase that produces a cryptographic signature (EIP-712, EIP-191, action hashes, JWT signing, HMAC for webhooks, OAuth state signing, license signing), verify a golden-vector test exists pinning byte-identical output for fixed inputs. Asymmetry across signing paths in the same codebase is a known regression vector — the test the author didn't write is the one that catches the SDK upgrade that breaks production.
+
+**Audit step:**
+
+1. Grep for signing primitives: `signTypedData`, `sign(`, `signMessage`, `createHmac`, `jwt.sign`, `crypto.sign`, framework-specific equivalents
+2. For each call site, locate the corresponding golden-vector test (pinned inputs → expected hex output)
+3. If a signing path lacks a golden vector, the audit FAILS — write the test before the next refactor touches the path
+
+Field report #323 (barrierwatch Phase 2): the HL exchange client had a golden-vector test, but the PM CLOB client (which delegates to `@polymarket/clob-client` SDK) did not. A 35-agent /architect synthesis caught the asymmetry; without that depth, a future SDK upgrade would have shipped a silent regression.
 
 ### Npm-name availability pre-flight (ADR authoring)
 

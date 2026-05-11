@@ -108,6 +108,17 @@ If the Council finds issues:
 2. Re-run the Council (max 2 iterations).
 3. If not converged after 2 rounds, present remaining findings to the user.
 
+## Production-Parity Verification (mandatory before The Snap)
+
+Before Thanos can render verdict, verify that the test execution backend matches the project's declared production backend (`PROJECT_VERSION.md` Stack section, or equivalent). Run:
+
+```bash
+grep -nE "_backend\s*=\s*['\"]" tests/conftest.py 2>/dev/null
+grep -iE "database|backend|stack" PROJECT_VERSION.md CLAUDE.md 2>/dev/null | head
+```
+
+If `tests/conftest.py` autouse fixture pins a non-prod backend (e.g., `_backend = "sqlite"` while prod is PostgreSQL), the Gauntlet **FAILS** regardless of green test counts. Tests pinned to the wrong backend exercise none of the production-relevant integrations (RLS, asyncpg, advisory locks, LISTEN/NOTIFY, FOR UPDATE SKIP LOCKED). Field report #315 M3: this slipped past 4 dual-backend Union Station Gauntlets. Fail loud.
+
 ## The Snap — Thanos's Verdict
 
 **If all domains sign off:**

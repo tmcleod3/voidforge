@@ -48,6 +48,7 @@ Structure your debrief as:
 - Always present the full debrief report for user review before any upstream submission. The user approves what gets sent — no silent submissions.
 - Findings must map to VoidForge's vocabulary: agent names, command names, file paths, pattern references. Generic advice like "improve testing" is useless — say which agent, which check, which pattern.
 - Root causes over blame. Trace each failure to its origin category: methodology gap, missing pattern, agent error, user error, or external dependency.
+- **Verifier agents must run an explicit `git diff` against build-agent claims before signing off.** A build report that says "removed `import httpx`" or "added column `org_id` via migration V076" can be wrong — stale grep cache, wrong artifact verified, or a sandbox database confused for the repo. The verification dispatch must read the git diff against HEAD, not just trust the report's prose. Field reports #316 (build agent reported `import httpx` was removed; the import had never been there) and #317 §2 (Spock verified V076 against a sandbox PG database, not the repo's schema) document this failure mode. Mechanical fix: every verifier dispatch ends with `git diff --stat HEAD -- <touched-files>` printed verbatim, and the verifier compares that diff to the build report's claims.
 
 ## Required Context
 

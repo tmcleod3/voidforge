@@ -6,6 +6,69 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.11.0] - 2026-05-10
+
+### Field Report Triage — 18 reports closed (#313–#320, #322–#330)
+
+Combined two-batch triage. Batch 1 covers multi-tenant retrofit campaigns and Union Station v7.7-v7.9 closeouts (#313-#320). Batch 2 covers autonomous-mode campaigns + AI-execution agent reports from threadplex-ops, barrierwatch, and Union Station v7.10-v7.11 (#322-#330). 9 new patterns, 18+ methodology sections, operational learnings on 7 agents. No breaking changes.
+
+### Added
+
+**New patterns (9):**
+- **`docs/patterns/adr-verification-gate.md`** — Fixture Bindability discipline. Every ADR's verification gate must include "Can the gate FAIL under this fixture?" with algebraic/empirical rationale. Reality-anchored Implementation Scope (Proposed vs Accepted vs Deferred). Sum-verification for numbered-cohort ADRs. (#313, #314, #316, #318.)
+- **`docs/patterns/audit-log.ts`** — System-event NULL trap resolution: schema relaxation (NULL org_id) vs sentinel+JSONB tag. Append-only invariants. Hash-chained integrity. (#319 §6.)
+- **`docs/patterns/multi-tenant-property-test.ts`** — Property-based isolation test: any orgs A,B; A's writes never appear in B's reads. (#315, #316.)
+- **`docs/patterns/multi-tenant-pool-bypass.ts`** — `pre_org_resolution_scope()` ContextVar wrapper for cross-tenant lifespan/daemon code. (#318, #319.)
+- **`docs/patterns/rls-test-fixture.py`** — `db_as_app` SAVEPOINT pattern defeating the SUPERUSER + BYPASSRLS=t fixture trap. (#318, #319.)
+- **`docs/patterns/structural-sql-sentinel.py`** — Adversarial-test discipline for SQL regex sentinels: commuted comparisons, casts, IS NULL, coalesce coverage. (#320.)
+- **`docs/patterns/refactor-extraction.md`** — 8-commit per-entity large-refactor template with IDOR matrix discipline. (#320.)
+- **`docs/patterns/ai-prompt-safety.ts`** — Type A (instructions to model, statistical) vs Type B (constraints on tool, enforced); AUTHORITY-as-text caveat; SafetyStack reference shape; 3 anti-patterns. (#325, #330.)
+- **`docs/patterns/llm-state-dedup.ts`** — LLM-emitted ids are display labels, not primary keys; content-hash dedup; logical-key fallback for command-string drift; lifecycle-state snapshot completeness. (#330.)
+
+**Pattern extensions:**
+- **`docs/patterns/ai-eval.ts`** — `CLAUDE_PROMPT_EVAL_CATEGORIES` template (prompt-structure invariants, sanitizer round-trip, refusal stability on Tier-3 inputs, JSON schema adherence, cost regression). Bayta's 7-test bats spec as reference. (#325.)
+- **`docs/patterns/middleware.ts`** — Hot-path logging gate (fireOnce / shouldEmit token-bucket) preventing observability-pipeline DoS from naked `logger.critical()` per-request. (#319 §5.)
+
+**New methodology sections:**
+- **`docs/methods/SYSTEMS_ARCHITECT.md`** — Scope-confidence interval for callsite-counted ADRs (verifying grep with pinned `n=N` OR ±X× uncertainty); spec adversary pass before implementation; signing-path audit requirement; service-extraction test-patch checklist. (#322, #323, #324, #326, #328, #329.)
+- **`docs/methods/CAMPAIGN.md`** — Closeout grep pinning (reciprocal to scope-confidence); cluster-mission recognition at plan time; pause-bias anti-pattern (autonomous mode); ROADMAP path disambiguation; pre-split blocker phase; caller-graph audit for silent-default abstractions; V710 acceptance template inheritance counter; operator decision documents (`logs/campaign-decisions-{version}.md`); LOC growth tracker per-mission. (#322, #323, #326, #327, #329.)
+- **`docs/methods/SECURITY_AUDITOR.md`** — Sanitizer Bypass-Class Checklist (7 classes: case-fold, em-dash, novel marker, newline-split, char-class, encoding, length boundary). (#325.)
+- **`docs/methods/QA_ENGINEER.md`** — Strict-Mode Audit Classification (no cosmetic/WARN downgrade without behavioral evidence); Telegram-bot group-chat suffix test. (#325, #330.)
+- **`docs/methods/SUB_AGENTS.md`** — Intentionally Overlapping Mandates (3+ agents on same diff = high-signal convergence); Sub-Agent Review Contract (WARN/cosmetic requires unreachable proof OR real-path test); Agent Capability Matrix. (#322, #324, #330.)
+- **`docs/methods/BACKEND_ENGINEER.md`** — AST Lints Are Cheap (contracts with 8+ duplicates → AST lint + baseline + `--regenerate-baseline`). (#324.)
+- **`docs/methods/RELEASE_MANAGER.md`** — Per-Commit CHANGELOG Discipline (src/**, docs/adrs/**, methods/*.md commits must stage CHANGELOG); Pre-Push Lint Sweep (run all `scripts/check-*`); Post-Amend SHA Pin (detect stale state-file SHAs after `git commit --amend`). (#322, #324, #327.)
+- **`docs/methods/GAUNTLET.md`** + **`.claude/commands/gauntlet.md`** — Production-Parity Exit Criterion (test backend must match production declared in PROJECT_VERSION.md; mismatch FAILS the round regardless of green tests). (#315 M3.)
+- **`docs/methods/AI_INTELLIGENCE.md`** — Event-Ladder Severity Gradient (info < warning < error < fatal monotonic; climactic rung must be fatal). (#319 §4.)
+- **`docs/methods/DEVOPS_ENGINEER.md`** — Production Runtime Topology Authoritative-Source (single supervisor; reconcile `systemctl status` vs `ps -ef` before deploy). (#319 §7.)
+- **`docs/methods/FORGE_KEEPER.md`** — Distribution-vs-Source Drift Check (every CLAUDE.md-cited path must exist post-sync). (#317.)
+- **`docs/methods/TESTING.md`** — Decreasing-Counter Test Markers (e.g., `known_pg_gap`) for tracked migrations; monotonic counter with mission ownership in campaign-state. (#316 §7.)
+- **`docs/methods/TIME_VAULT.md`** — Verification Pass Before Sealing (live psql + code reads for table count, migration head, schema invariants, file paths, test counts, version numbers). (#318.)
+- **`.claude/commands/git.md`** — Project-vs-methodology changelog disambiguation (PROJECT_VERSION.md vs CHANGELOG.md routing); ROADMAP.md cross-check during verification. (#320 §5, #309 Fix 4.)
+- **`.claude/commands/architect.md`** — Spec-adversary pass before implementation. (#322.)
+- **`.claude/commands/campaign.md`** — Pause-bias anti-pattern mirror. (#323.)
+
+**Operational learnings (agent definitions):**
+- **`.claude/agents/picard-architecture.md`** — spec-vs-code review distinction; signing-path audit; scope-confidence interval. (#322, #323, #328.)
+- **`.claude/agents/sisko-campaign.md`** — pause-bias prohibition; ROADMAP path disambiguation; cluster-mission recognition. (#323, #326.)
+- **`.claude/agents/coulson-release.md`** — per-commit CHANGELOG sibling rule; pre-push lint sweep; post-amend SHA pin. (#322, #324, #327.)
+- **`.claude/agents/bashir-field-medic.md`** — verifiers run `git diff` against build-agent claims. (#316, #317 §2.)
+- **`.claude/agents/loki-chaos.md`** — production cohabitation check (Docker port bindings bypass UFW). (#316 §11, #241, #243.)
+- **`.claude/agents/irulan-historian.md`** — added Write + Edit tools; behavioral directive to write files when briefed to write. (#322.)
+- **`.claude/agents/silver-surfer-herald.md`** — over-count vs find-count ratio (soften over-include after de-duplication observable). (#325.)
+
+**Distribution (closes ADR-051 #317):**
+- **`packages/methodology/package.json`** — `scripts/surfer-gate/` added to npm `files` array.
+- **`packages/methodology/scripts/prepack.sh`** — copies `scripts/surfer-gate/` into package at publish time.
+- **`packages/voidforge/wizard/lib/project-init.ts`** — `chmodShellScripts()` + `mergeSettingsHook()` ship the Surfer Gate to every new project and merge the PreToolUse hook into `.claude/settings.json`. Consumer installs now get mechanical enforcement, not prose-backstop only.
+
+### Changed
+
+- **`docs/methods/CAMPAIGN.md`** Step 1 (Dax) — cluster-mission recognition inserted between cross-mission data handoff check and acceptance criteria gate.
+- **`docs/methods/SYSTEMS_ARCHITECT.md`** Step 5 — Riker review extended with spec-adversary pass for non-trivial methodology ADRs.
+- **`CLAUDE.md`** — patterns list updated with the 9 new patterns; total patterns now ~50.
+
+---
+
 ## [23.10.0] - 2026-04-20
 
 ### Field Report Triage — 6 reports closed (#303–#308)

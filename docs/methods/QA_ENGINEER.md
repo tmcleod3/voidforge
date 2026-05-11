@@ -118,6 +118,22 @@ When the project targets mobile platforms, add these to the attack plan:
 - **App lifecycle:** Background → foreground. Verify state restored (form input, scroll position, auth token). Test after 30min background.
 - **Platform differences:** Test on both iOS and Android if cross-platform. Verify platform-specific components render correctly.
 
+### Multi-Tenant Retrofit Smell (regression checklist)
+
+For any project with `org_id`, `tenant_id`, or `workspace_id` columns, run this grep before declaring a QA pass green:
+
+```bash
+grep -rnE "(\bor\s+1\b|org_id\s*:\s*int\s*=\s*1|org_id\s*:\s*int\s*\|\s*None|org_id\s*=\s*None|tenant_id\s*=\s*None|workspace_id\s*=\s*None)" \
+    --include="*.py" --include="*.ts" --include="*.tsx" \
+    --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=tests .
+```
+
+Each hit is either intentionally cross-tenant (system endpoints, admin tools — must have authorization comment naming the policy) or retrofit residue (a fallback predating the multi-tenant migration — CRITICAL, fix before sign-off). See `SECURITY_AUDITOR.md` for the full smell discussion. The pattern recurred across 6 Union Station campaigns despite previous "we already fixed that" claims (field report #315 M2). Trust the grep, not memory.
+
+### Production-Backend Parity Check
+
+Before declaring any QA pass green, verify that the test execution backend matches the production backend declared in `PROJECT_VERSION.md` / `CLAUDE.md` Stack section. Concrete check: read `tests/conftest.py` (Python) or equivalent test bootstrap; if it pins a non-prod backend (e.g., `_backend = "sqlite"` while prod is PostgreSQL since version X), this is a CRITICAL finding and the QA pass FAILS regardless of green test counts. Tests pinned to the wrong backend exercise none of the production-relevant integrations (RLS, asyncpg, advisory locks, LISTEN/NOTIFY, FOR UPDATE SKIP LOCKED) and silently mask production behavior. Field report #315 M3: this slipped past 4 dual-backend Gauntlets on Union Station before being caught at /assess. See `GAUNTLET.md` for the Gauntlet-side exit criterion.
+
 ### API Boundary Type Verification
 
 When the backend (Python, Go, Rust) and frontend (JavaScript) use different type systems, verify that types survive the API boundary correctly. Common gotcha: Python `bool` (`True`/`False`) becomes JSON `true`/`false` — but Python's string representation `"True"` is truthy in JS while `"False"` is also truthy. Check: Does the frontend compare API boolean values with `===` (strict) or `==` (loose)? Does the backend serialize booleans as JSON booleans or as strings? This catches "it works in Python tests but breaks in the browser" bugs. (Field report #66)
@@ -201,6 +217,36 @@ For services that maintain runtime state (caches, connection pools, scheduled jo
 ### Timestamp Format Enforcement
 Grep for `strftime`, `format(`, `toISOString`, `new Date().to` calls and verify they use the project's canonical timestamp format (typically `%Y-%m-%dT%H:%M:%SZ` or ISO 8601). Flag any non-canonical format strings. Non-canonical timestamps cause: cache TTL bugs (string comparison fails), sorting issues, and cross-system timestamp mismatches.
 (Field report #21: cache used `%Y-%m-%d %H:%M:%S` while all other code used `%Y-%m-%dT%H:%M:%SZ` — cache effectively never expired.)
+
+### Strict-Mode Audit Classification
+
+When the codebase ships under any strict-mode setting (bash `set -euo pipefail`, TypeScript `strict: true`, Python `-W error`, Rust `#![deny(warnings)]`, Ruby `frozen_string_literal: true`), no QA finding involving language syntax, undefined-variable references, arithmetic expansion, type coercion, or null/undefined handling may be classified as **WARN/cosmetic** without behavioral evidence.
+
+**Behavioral evidence requires ONE of:**
+
+1. **Unreachable-by-gate proof** — the code path is provably unreachable under any input, cited by the specific gate that excludes it (e.g., "this branch is guarded by `if (process.env.NODE_ENV !== 'production')` and the audit fixture pins production").
+2. **Real-path test under the same strict-mode flags as production** — the reviewer ran the non-dry-run code path with the production strict-mode settings and observed no failure. Static reading alone is not sufficient.
+
+The audit's strict-mode MUST match the script's strict-mode. A reviewer running tests with `set +u` (not strict) cannot classify a `set -u` script's undefined-variable risk as cosmetic — the production environment promotes the risk to fatal that the audit never exercised.
+
+Field report #330 (threadplex-ops): a sub-agent reviewer flagged `$(( rc_failures(rc) ))` as "cosmetic WARN — always returns 0." The function used C-style call syntax inside arithmetic expansion, which bash doesn't support — under `set -u` it parsed as undefined-variable reference and aborted immediately. The dry-run path didn't execute the branch (only reached on real label-PUT failures), so the bug was invisible during review. First real `--once` invocation tagged 100 items, then crashed mid-batch.
+
+The audit-classification was wrong, and a wrong audit classification routes around the fix. The orchestrator MUST NOT unblock a fix-batch on a WARN/cosmetic classification that lacks one of the two evidence requirements above.
+
+### Telegram-Bot Group-Chat Suffix Test (when project is a chat bot)
+
+Telegram (and similar chat platforms) append the bot's username to commands in group chats: `/system` becomes `/system@MyBotName`. A bare-anchor regex like `^/system($|[[:space:]])` rejects the group-chat form, silently breaking the bot for any group-deployed user.
+
+**Required test for every chat-bot command parser:**
+
+1. `/cmd` — direct chat (private message form)
+2. `/cmd arg1 arg2` — direct chat with arguments
+3. `/cmd@BotName` — group chat (bare command)
+4. `/cmd@BotName arg1 arg2` — group chat with arguments
+
+The parser must accept both forms. Reference normalizer: `sed -E 's#^(/[a-zA-Z_]+)@[a-zA-Z0-9_]+($|[[:space:]])#\1\2#'` (note the `#` delimiter to avoid clash with the regex's alternation operator).
+
+Field report #325 (threadplex-ops): five fix batches missed this until Round 3 V-02 caught it — the bot rejected `/system@MyBot` in group chats. Niche but real, and zero-cost to add to the QA checklist for any chat-bot product.
 
 ### Stub Detection (Oracle, Round 2)
 

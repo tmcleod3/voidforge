@@ -162,6 +162,8 @@ Fix batches happen between rounds:
 
 **Pass 2 false-positive severity:** When Pass 2 identifies a potential false-positive in a security pattern added during Pass 1, classify as **Must Fix**, not Medium. A false positive in a security scanner is functionally a regression — it degrades working features. Do not defer with "monitor in production" unless a monitoring mechanism actually exists and is configured. (Field report #121)
 
+**Production-parity exit criterion:** Before any Gauntlet round can be marked PASS, verify that the test execution backend matches the project's declared production backend. If `PROJECT_VERSION.md` (or equivalent) declares PostgreSQL but `tests/conftest.py` autouse fixture pins SQLite (or vice versa), the Gauntlet **FAILS** regardless of green test counts. Tests pinned to the wrong backend silently mask the integrations that actually run in prod (RLS, asyncpg pools, advisory locks, LISTEN/NOTIFY, FOR UPDATE SKIP LOCKED, transaction semantics). Field report #315 M3: this slipped past 4 dual-backend Gauntlets on Union Station between v6.2.1 cutover and v7.6 — every Gauntlet was structurally blind to the runtime risk it was supposed to be reviewing. Concrete check at end of each round: `grep -nE "_backend\s*=\s*['\"]" tests/conftest.py` and reconcile against `cat PROJECT_VERSION.md | grep -i 'database\|backend'`. Mismatch = FAIL the round.
+
 ## Finding Format
 
 Every finding, from every agent, in every round, uses this format:

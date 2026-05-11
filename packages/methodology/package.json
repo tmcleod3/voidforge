@@ -1,6 +1,6 @@
 {
   "name": "voidforge-build-methodology",
-  "version": "23.10.0",
+  "version": "23.11.0",
   "description": "VoidForge methodology — agents, commands, methods, patterns.",
   "license": "MIT",
   "files": [
@@ -13,7 +13,8 @@
     "HOLOCRON.md",
     "VERSION.md",
     "CHANGELOG.md",
-    "scripts/thumper/"
+    "scripts/thumper/",
+    "scripts/surfer-gate/"
   ],
   "publishConfig": {
     "access": "public"

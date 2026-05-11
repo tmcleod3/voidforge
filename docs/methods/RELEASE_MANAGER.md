@@ -136,6 +136,65 @@ When the user passes `--deploy` to `/git`, run `/deploy` automatically after the
 
 This enables one-command commit-and-deploy for ad-hoc changes outside of campaigns.
 
+## Per-Commit CHANGELOG Discipline
+
+CHANGELOG drift accumulates silently when entries are deferred to session boundaries. By the time someone notices, the test count trajectory is wrong and the per-mission delta is unrecoverable from the diff alone.
+
+**Rule:** Commits that touch `src/**`, `docs/adrs/**`, or load-bearing method docs (`docs/methods/*.md`) MUST include a `CHANGELOG.md` entry as part of the staged paths. Coulson rejects commits matching those globs that omit `CHANGELOG.md`.
+
+**Exceptions** (no CHANGELOG entry needed):
+- Pure refactor / move with no behavior change (label the commit `chore:`)
+- Test-only changes that don't add a new test pattern
+- Documentation typo fixes
+- Files explicitly listed under `.changelog-exempt` if present
+
+**Enforcement check (Coulson runs before commit):**
+
+```bash
+if git diff --cached --name-only | grep -qE '^(src/|docs/adrs/|docs/methods/.*\.md$)'; then
+  git diff --cached --name-only | grep -q '^CHANGELOG\.md$' || {
+    echo "Commit touches src/adrs/methods but omits CHANGELOG.md"; exit 1
+  }
+fi
+```
+
+Field report #322 (barrierwatch): test count trajectory showed 1207 when reality was 1209+ after Fix Batch 1; CHANGELOG drift caught only by Round 3 Nightwing. Without that agent, the release would have shipped with a stale CHANGELOG.
+
+## Pre-Push Lint Sweep
+
+Project-specific lint gates (`scripts/check-*.sh`, `scripts/lint_*.py`, `bin/preflight`, etc.) are easy to forget without a checklist — and the cost is a hotfix loop where the first push fails CI on a contract gate that local development never exercised.
+
+**Rule:** Before `git push`, Coulson runs every executable under `scripts/check-*` (or framework equivalent — `scripts/lint_*`, `bin/preflight`, `make preflight`). If any returns non-zero, push is blocked until the finding is resolved (fix the code OR add an explicit `# <gate>-allowed` waiver with rationale).
+
+**Discovery shape:**
+
+```bash
+find scripts/ -maxdepth 2 -type f \( -name 'check-*' -o -name 'lint_*' \) -executable 2>/dev/null
+```
+
+For each script discovered, document its purpose + waiver convention in the project README or `docs/CONTRIBUTING.md`. Field report #324 (Union Station v7.8) documents 3 separate hotfix loops in a single session where the waiver convention (`# system-org-allowed` for source code, double-backticks for prose) existed but was not surfaced in any reviewer-readable checklist.
+
+**Methodology vs project tooling:** the SCRIPTS are project-specific; the DISCIPLINE (run all gates before push) is methodology. The orchestrator does not need to know what each script does — only that it exists and must pass.
+
+## Post-Amend SHA Pin
+
+`git commit --amend` rewrites the SHA but `logs/campaign-state.md` rows still reference the pre-amend SHA. Across a long campaign, these dangling references accumulate and break post-hoc audits (`git log --grep` against the recorded SHA returns nothing).
+
+**Rule:** After any `git commit --amend`, Coulson scans `logs/campaign-state.md` (and `logs/build-state.md`, `logs/gauntlet-state.md` if present) for SHA placeholders that may now be stale.
+
+**Detection pattern:**
+
+```bash
+# Find recorded SHAs that no longer exist in git
+grep -oE '\b[a-f0-9]{7,40}\b' logs/campaign-state.md 2>/dev/null | sort -u | while read sha; do
+  git cat-file -e "$sha^{commit}" 2>/dev/null || echo "STALE: $sha in campaign-state.md"
+done
+```
+
+**Resolution:** Replace the stale SHA with the post-amend SHA. Land both the amend and the state-file pin in one logical operation (squash if not yet pushed; new commit if already on remote).
+
+Field report #327 (Union Station v7.10 Phase C): every mission shipped as a `<mission> + <followup pin SHA>` pair because amends were routine and the state file always lagged by one SHA. The discipline ergonomically holds, but it's a known foot-gun — surface it explicitly so future operators don't rediscover it.
+
 ## Post-Push Deploy Check
 
 After pushing to remote, if the project runs on a persistent server (PM2, systemd, Docker):

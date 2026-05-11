@@ -156,7 +156,66 @@ async function copyMethodology(
     count += await copyDir(thumperSrc, join(projectDir, 'scripts', 'thumper'));
   }
 
+  // Surfer-gate scripts (ADR-051 enforcement — closes #317).
+  // Ship the gate to every new project so the hook can mechanically enforce
+  // CLAUDE.md's Silver Surfer procedure. Without this the prose-backstop is
+  // the only thing holding the line in consumer installs.
+  const surferGateSrc = join(methodologyRoot, 'scripts', 'surfer-gate');
+  if (existsSync(surferGateSrc)) {
+    count += await copyDir(surferGateSrc, join(projectDir, 'scripts', 'surfer-gate'));
+    await chmodShellScripts(join(projectDir, 'scripts', 'surfer-gate'));
+    await mergeSettingsHook(projectDir);
+  }
+
   return count;
+}
+
+async function chmodShellScripts(dir: string): Promise<void> {
+  if (!existsSync(dir)) return;
+  const { chmod } = await import('node:fs/promises');
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.endsWith('.sh')) {
+      await chmod(join(dir, entry.name), 0o755);
+    }
+  }
+}
+
+async function mergeSettingsHook(projectDir: string): Promise<void> {
+  const snippetPath = join(projectDir, 'scripts', 'surfer-gate', 'settings-snippet.json');
+  const settingsPath = join(projectDir, '.claude', 'settings.json');
+  if (!existsSync(snippetPath)) return;
+
+  const snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
+  const productionHook = snippet?.production_hook;
+  if (!productionHook?.PreToolUse) return;
+
+  let settings: Record<string, unknown> = {};
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+    } catch {
+      // Existing settings.json is unreadable — leave it alone.
+      return;
+    }
+  } else {
+    await mkdir(join(projectDir, '.claude'), { recursive: true });
+  }
+
+  const existingHooks = (settings.hooks ?? {}) as Record<string, unknown>;
+  const existingPreTool = (existingHooks.PreToolUse ?? []) as Array<Record<string, unknown>>;
+  const alreadyHasGate = existingPreTool.some((entry) => {
+    const hooks = (entry?.hooks ?? []) as Array<Record<string, unknown>>;
+    return hooks.some((h) => typeof h?.command === 'string' && h.command.includes('surfer-gate/check.sh'));
+  });
+
+  if (alreadyHasGate) return;
+
+  settings.hooks = {
+    ...existingHooks,
+    PreToolUse: [...existingPreTool, ...productionHook.PreToolUse],
+  };
+  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
 }
 
 // ── Identity Injection ───────────────────────────────────

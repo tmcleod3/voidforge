@@ -99,6 +99,23 @@ The pickup prompt is the vault's delivery mechanism. It's printed to console, no
 - **Campaign pause** — When `/campaign` pauses between missions across sessions.
 - **Before destructive operations** — Before `git reset`, branch switches, or major refactors.
 
+### 6.5. Verification Pass Before Sealing
+
+A vault that mis-states load-bearing facts misleads the next session. Field report #318 documented vault-2026-04-29-2 carrying 4 inaccuracies (table count off, migration head wrong, advisory lock id wrong, FK claim contradicted by the actual schema) — three independent reviewers caught them via live psql + code inspection in the next session, costing ~30-60 min of corrected work.
+
+Before sealing, **run a verification pass** on every load-bearing fact:
+
+| Claim type | How to verify |
+|------------|--------------|
+| Table count | Live DB: `SELECT count(*) FROM pg_class WHERE relkind='r' AND relnamespace='public'::regnamespace` (PG) or equivalent |
+| Migration head | `git log -1 --format=%H -- <migrations-dir>` and the latest applied row in the migrations table |
+| Schema invariants (advisory lock id, FK constraints, NOT NULL flags) | Read the code, not memory: `grep -nE "advisory_lock|crc32" <code>`, `\d <table>` in psql |
+| File paths cited as deliverables | `[ -f <path> ] && echo present \|\| echo MISSING` |
+| Test counts | `pytest --collect-only -q | tail -1` or equivalent |
+| Version numbers | `cat VERSION.md`, `cat package.json | jq .version` |
+
+Document each verified fact with the source (`from psql`, `from VERSION.md:3`, `from <file>:<line>`). If a previously-true claim is no longer true at sealing time, fix the claim — do not seal known drift. The vault carries the **truth at sealing time**; drift between the vault and reality is methodology debt that compounds across sessions.
+
 ### 7. Operational Learnings Sync
 
 At session end, before sealing the vault, check for approved operational learnings from this session:

@@ -41,4 +41,12 @@ rm -rf "$PKG_DIR/scripts/thumper"
 mkdir -p "$PKG_DIR/scripts/thumper"
 cp "$REPO_ROOT"/scripts/thumper/* "$PKG_DIR/scripts/thumper/"
 
+# Copy scripts/surfer-gate/ (ADR-051 enforcement — closes #317 distribution gap).
+# Without this, the PreToolUse hook prose in CLAUDE.md cites scripts that don't
+# exist in consumer projects, leaving every install on prose-backstop only.
+rm -rf "$PKG_DIR/scripts/surfer-gate"
+mkdir -p "$PKG_DIR/scripts/surfer-gate"
+cp "$REPO_ROOT"/scripts/surfer-gate/* "$PKG_DIR/scripts/surfer-gate/"
+chmod +x "$PKG_DIR"/scripts/surfer-gate/*.sh 2>/dev/null || true
+
 echo "Prepack: done. Files ready for npm pack."

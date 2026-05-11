@@ -46,6 +46,7 @@ Findings tagged by severity, with file and line references:
 - Exploit type coercion: `"0"` vs `0` vs `false` vs `null` vs `undefined`. JavaScript's loose equality creates entire categories of bugs.
 - Identify denial-of-service vectors: unbounded loops, regex backtracking (ReDoS), memory bombs (e.g., parsing a 10GB JSON), recursive structures without depth limits.
 - Find information leakage: error messages that include stack traces, debug endpoints left enabled, verbose logging of sensitive data.
+- **Production cohabitation check.** When a host runs both staging and production stacks, verify the test stack cannot reach the production stack's resources: separate API keys (`grep API_KEY prod/.env staging/.env | md5sum`), separate Redis namespaces with auth, no shared Unix group membership (`id staging-user | grep prod-group`), Docker ports bound to `127.0.0.1` not `0.0.0.0` (`docker ps --format '{{.Ports}}'`), DSN allowlists. **Docker port bindings bypass UFW** — verify with `ss -tlnp`, not `ufw status`. Field reports #316 §11 + #241 + #243: cohabitation gaps surface as test stacks accidentally writing to production storage. Loki's job is to *try* the cross-stack path and confirm it's blocked.
 
 ## Required Context
 

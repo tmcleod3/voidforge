@@ -118,6 +118,24 @@ Fetch the latest from the source:
    - **Unchanged** — identical
    - **Locally modified** — local version differs from BOTH the old upstream and new upstream (user made custom changes)
 
+### Step 1.4 — Distribution-vs-Source Drift Check (Goldberry)
+
+When syncing methodology, verify that every artifact mentioned in the published `CLAUDE.md` prose is actually present after sync. CLAUDE.md cites scripts and paths as if they exist; if the npm package's `files` array or `prepack.sh` doesn't ship them, downstream consumers get prose that points at nothing.
+
+**Procedure:**
+1. Grep the synced `CLAUDE.md` for path-shaped strings: `scripts/`, `.claude/settings`, `docs/adrs/`, `bash scripts/`.
+2. For each path, run `[ -e <path> ] && echo present || echo MISSING`.
+3. If any cited path is missing, this is a **distribution gap** — flag to the user with the specific missing entries.
+4. Surface the gap as a manifest line in Step 2:
+   ```
+   Distribution gap detected:
+     - scripts/surfer-gate/check.sh — cited in CLAUDE.md but not shipped
+     - scripts/surfer-gate/record-roster.sh — cited in CLAUDE.md but not shipped
+   Action: pull from tmcleod3/voidforge:<paths> and re-run sync, OR upgrade to vX.Y.Z+ where the gap is closed.
+   ```
+
+This catches future ADR-051-shaped drift: a permanent enforcement mechanism that the methodology documents as live but never actually ships. Field report #317 documents this exact failure for the Silver Surfer Gate scripts pre-v23.10.0 — the gap was known and recorded in CHANGELOG.md for at least one published version before being closed.
+
 ### Step 1.5 — Spring Cleaning (Treebeard)
 
 When upgrading across versions, check the **Migration Registry** for one-time cleanup actions that apply to the version range being crossed. Migrations only run once — they clean up artifacts from older VoidForge versions that should never have been on npm package.

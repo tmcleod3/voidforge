@@ -177,6 +177,23 @@ steps:
   - run: npx playwright test --shard=${{ matrix.shard }}
 ```
 
+### Decreasing-Counter Test Markers (e.g., `known_pg_gap`)
+
+When a multi-mission migration introduces deliberate, tracked test failures (a backend swap, a forced-RLS rollout, a schema canonicalization), use a **decreasing-counter marker** to keep CI green while the gap closes.
+
+**Pattern:**
+1. Pick a marker name describing the migration (`known_pg_gap`, `known_v2_schema_gap`, `known_force_rls_gap`).
+2. Tag every currently-failing test with the marker. Add a one-line reason: `# known_pg_gap: pinned to SQLite — exercises asyncpg LISTEN/NOTIFY in M-04c`.
+3. CI runs with the marker excluded by default: `pytest -m "not known_pg_gap"`. Treat green as actionable.
+4. **Each mission removes its tag as it closes the gap.** The total count of tagged tests is a monotonically decreasing counter; campaign-state.md tracks it.
+5. Final mission (boundary or victory) removes the last tag, drops the marker registration, and asserts `pytest -m known_pg_gap` collects 0 tests.
+
+**Why:** without this, dual-backend or boundary-tightening campaigns either ship CI red for weeks (eroding the green-CI invariant) or freeze the migration mid-flight to land all tests at once (which is high-risk). The decreasing counter lets each mission ship green while reducing the tracked debt.
+
+**Anti-pattern:** using the marker for genuinely-broken tests with no plan to remove it. Markers must be paired with mission ownership in campaign-state.md. Untracked markers become permanent test-suite scar tissue.
+
+Field report #316 §7 (Union Station v7.7 M-13a — 83 known_pg_gap tags landed during the SQLite→PG canonicalization, decreasing across M-04..M-12).
+
 ### Flaky Test Protocol
 
 Flaky tests erode trust in the test suite. Huntress (stability monitor) tracks flake rates.

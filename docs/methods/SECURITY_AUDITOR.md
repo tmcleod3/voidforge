@@ -106,6 +106,59 @@ These require full codebase context — run sequentially:
 - **JS execution:** `eval()`, `Function()`, `setTimeout`/`setInterval` with string arguments
 (Field report #38: sanitizer missed `object`, `embed`, `applet`, `base`, `meta[http-equiv]` — 5 potential XSS vectors.)
 
+### Sanitizer Bypass-Class Checklist
+
+When auditing any prompt-injection sanitizer, command-injection filter, or content sanitizer that operates on adversary-controlled text, verify coverage against the canonical bypass classes. Sanitizers built incrementally (adding patterns as discovered) inevitably miss entries — each fix-batch produces a narrower bypass that the next round catches, compressing 3 fix batches into 1.
+
+**Required coverage for every text-input sanitizer:**
+
+1. **Case-fold variants** — `APPROVED ACTION`, `approved action`, `Approved Action`, `aPPROVED aCTION`. The sanitizer MUST be case-insensitive (regex `i` flag, ICU case-fold, or explicit `.lower()` pre-check). Test with mixed-case input.
+2. **Unicode lookalikes & em-dash variants** — em-dash (`—`), en-dash (`–`), figure-dash (`‒`), minus sign (`−`), full-width hyphen (`－`), Cyrillic `а`/`е`/`о` substituted for Latin `a`/`e`/`o`. Normalize to NFKC before matching, OR explicitly enumerate the lookalike set.
+3. **Newline-split variants** — `sed` is line-oriented by default; a marker split across `\n` defeats line-level regex. Use `sed -zE` (whole-buffer), Perl `-0777`, or Python re.DOTALL/re.MULTILINE depending on language. Test with `\r\n`, `\n`, ` `, ` `.
+4. **Character-class glob variants** — patterns like `AUTHORIT[Yy]` or `appr[o0]ved` exploit blocklist regexes that miss numeric/alpha substitutions. The sanitizer should normalize obfuscation classes (l33t-speak, `0`/`o`, `1`/`l`, `$`/`s`) OR reject any non-ASCII letter in security-relevant context.
+5. **Encoding variants** — base64, URL-encoded, HTML-entity, JS-escape (`\x41`, `A`), hex-escape, double-encoded. The sanitizer must decode BEFORE matching, not after.
+6. **Length-boundary variants** — payloads at exactly the truncation boundary, payloads with leading/trailing whitespace that strips to a malicious core, payloads that exceed max-length and trigger truncation that creates a different malicious string.
+7. **Novel-marker variants** — the sanitizer that catches `[APPROVED]` should catch `「APPROVED」`, `«APPROVED»`, `\\xe2\\x80\\xbaAPPROVED\\xe2\\x80\\xba`. Test with at least 3 unusual delimiter pairs.
+
+Field report #325 (threadplex-ops Victory Gauntlet): each fix batch on the prompt-injection sanitizer introduced a narrower bypass that the next round caught. Fix Batch 1 added noun-whitelist `sed`; Round 3 found case-fold + em-dash + novel marker bypasses. Fix Batch 3 added shape-blacklist `sed -E i`; Round 4 found newline-split bypass (sed line-oriented). Fix Batch 4 used `sed -zE` (whole-buffer). The checklist above would have collapsed those three iterations into one — the bypass classes are knowable upfront, not discoverable per-round.
+
+**Audit step:** for every sanitizer the codebase ships, verify the test suite covers all 7 classes above with at least 2 samples each. Missing classes are pre-flagged finding (HIGH severity for security-relevant sanitizers, MEDIUM otherwise).
+
+### Multi-Tenant Retrofit Smell (`or 1` / `org_id=None`)
+
+A recurring data-leak class across multi-tenant retrofit campaigns. When a project adds `org_id` columns and composite PKs but leaves the `else` branch / `or 1` fallback alive, queries silently leak across tenants when authentication is missing or partial. Field report #315 M2 documents this recurring across 6 Union Station campaigns (v3.0 → v3.6.1 → v7.0 → v7.0.1 → v7.4 → v7.6).
+
+**Mandatory grep pass on every multi-tenant codebase:**
+
+```bash
+# Catches all variants
+grep -rnE "(\bor\s+1\b|org_id\s*:\s*int\s*=\s*1|org_id\s*:\s*int\s*\|\s*None|org_id\s*=\s*None|tenant_id\s*=\s*None|workspace_id\s*=\s*None)" \
+    --include="*.py" --include="*.ts" --include="*.tsx" \
+    --exclude-dir=node_modules --exclude-dir=.venv .
+```
+
+Each hit must be classified:
+- **Defensible** — a system endpoint that explicitly serves cross-tenant data (admin tools, reporting), with documented authorization checks. Annotate with a comment naming the policy.
+- **Retrofit residue** — a fallback that predates the multi-tenant migration. **CRITICAL** finding; rewrite to fail-fast.
+- **Test-only** — fixture default. Acceptable in `tests/`, **never** in production code.
+
+This grep is part of every `/sentinel` run on projects with `org_id` columns. Also runs in `/qa` regression checklists (see QA_ENGINEER.md). Do not skip it for "we already fixed that" — the pattern recurs.
+
+### IDOR Matrix for Parametric-Path Routers
+
+Mandatory when a router has parametric paths (`/X/{id}`) AND additional fixed-suffix paths under the same entity prefix (`/X/batch-update`, `/X/merge`, `/X/export`). FastAPI dispatches first-matching-route — `/X/{person_id}` is more general than `/X/batch-update` and shadows the fixed suffix when registered first. The fixed-suffix endpoint then becomes silently unreachable, returning 422 (path-arg parse failure) instead of running.
+
+Field report #320 §2 documents M-10 commit 5: `PATCH /people/batch-update` had been **unreachable in production for an unknown duration** because `/people/{person_id}` shadowed it. Surfaced only when Strange's IDOR matrix test attempted cross-org denial on `batch-update` and got 422 instead of 403.
+
+**Matrix shape (one row per fixed-suffix endpoint × one column per access pattern):**
+
+| | Same-org user | Cross-org user | No auth |
+|---|---|---|---|
+| `PATCH /X/batch-update` | 200 + scoped result | 403 (or 404 per ADR) | 401 |
+| `POST /X/merge` | 200 | 403 | 401 |
+
+**Fix when the matrix surfaces a route shadow:** add path-converter type hints (`{person_id:int}`, `{company_id:int}`) so the parametric route is restricted to its actual type. Do not reorder routes — type-converted paths are unambiguous; reordering is fragile. Then re-run the matrix to confirm fixed-suffix routes reach their handlers.
+
 ### Proxy Route SSRF
 
 For any route that proxies requests to external APIs (image proxies, API gateways, CDN wrappers):

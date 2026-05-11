@@ -142,6 +142,22 @@ Known issues when deploying Tailwind v4 to Vercel or similar build platforms:
 
 Never combine methodology syncs (`/void`) with unrelated debugging in the same session. If a sync introduces a problem, the debug commits interleave with sync commits, making it impossible to identify which change broke what. Rule: sync first, verify, THEN debug separately. If needed, hard-reset to the pre-sync state and reapply incrementally. (Field report #29: 6 retcon commits interleaved with 20 CSS-fix commits.)
 
+### Production Runtime Topology Authoritative-Source
+
+Production runtime should run under a **single supervisor** — typically systemd, sometimes PM2 or Docker — and the active topology must be discoverable from one source. Temporary workarounds drift the topology silently:
+
+- A `nohup`/`tmux`/manual `&` launch outlives its purpose; the systemd unit drifts from reality.
+- `ExecStart` paths ossify against an old binary location (`~/.local/bin/uvicorn` vs `.venv/bin/uvicorn`).
+- `StartLimitBurst` exhausts; the unit shows `failed` while a manual process serves traffic.
+
+When a temporary workaround is acceptable, document it in `OPERATIONS.md` §Runtime Topology (or equivalent) as the canonical runtime, then either fix the systemd unit OR set a calendar reminder to revisit it. Field report #319 §7: Union Station served via nohup-launched uvicorn from 2026-03-27 onward — the systemd unit was `enabled` but `failed`. M-05 cutover required killing the nohup process (brief outage), fixing `ExecStart`, `systemctl reset-failed`, `daemon-reload`, `restart`. None of that should have been in the cutover contract.
+
+**Pre-deploy check (mandatory):**
+
+1. `systemctl status <unit>` (or `pm2 list`) — what does the supervisor think is running?
+2. `ps -ef | grep <binary>` — what's actually running?
+3. Reconcile. If they disagree, fix BEFORE the deploy starts.
+
 ### Process Manager Discipline
 
 If a process manager (PM2, systemd, Docker, supervisord) owns the application port, NEVER kill the port directly (`fuser -k`, `kill`, `lsof -ti | xargs kill`). Always reload through the process manager: `pm2 reload`, `systemctl restart`, `docker compose restart`. Killing the port causes the process manager to auto-restart the old build, creating a race condition with any manual start attempt — the user sees stale code while the fix is already built. (Field report #123: 30+ minutes of stale code serving in production because `fuser -k 5005/tcp` raced with PM2's auto-restart.)

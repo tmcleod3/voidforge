@@ -27,6 +27,8 @@ The Prophets have shown me the path. Time to execute the plan.
 
 **In blitz mode, make ALL decisions autonomously. Never ask the user a question. If uncertain, choose the option that preserves quality (e.g., run the Gauntlet, not skip it). The only human interaction in blitz mode is the final completion summary.**
 
+**Pause-bias anti-pattern (autonomous-by-default per ADR-043 — also applies outside `--blitz`).** When a mission completes, the orchestrator's next action is to mark the next mission `in_progress` and start. Status updates are FINE ("M-7.4 shipped at `6d7f5b3`. Starting M-7.5."); decision-frame questions are NOT ("Continue with M-7.5 or pause?"). Do NOT rationalize a pause as "strategic checkpoint," "context budget management," or "natural milestone." The only valid pause triggers are: (1) `/context` >85% with the actual number cited, (2) a BLOCKED item, (3) a Critical /assemble finding with no auto-fix, (4) the user interrupts. (Field report #323: operator pushed back sharply on a mid-campaign pause-bias instance; the rationalizations had been rejected before via project memory.) See `CAMPAIGN.md` "Pause-Bias Anti-Pattern" for full rules.
+
 **Blitz per-mission checklist** (verify ALL before continuing to next mission):
 1. `/assemble` completed
 2. `/git` committed

@@ -154,6 +154,89 @@ export function withRequestLogging(
   }
 }
 
+// --- Hot-path logging gate (fire-once / rate-limited) ---
+//
+// Source: Field report #319 §5. Stark's RlsDeadlineMiddleware originally
+// emitted `logger.critical(...)` on every 503 — at 100 rps × 24h = 8.6M
+// critical-level lines/day. No rate-limit, no fire-once. Would crater the
+// log aggregator and Sentry quota.
+//
+// ANY middleware that emits log lines on a hot path (every request, every
+// connection) MUST gate the emission. Two acceptable patterns:
+//
+// 1. Fire-once flag (preferred for state transitions): emit once when
+//    state changes, then suppress until reset. Pair with an audit row
+//    + Sentry capture inside the same fire-once branch.
+// 2. Rate-limit window (sample-based): emit at most N per window via a
+//    token-bucket or last-emit-timestamp gate.
+//
+// Naked `logger.critical(...)` per-request is a denial-of-service vector
+// against your own observability pipeline.
+
+type FireOnceState = { fired: boolean; firedAt: number | null };
+const fireOnceStates = new Map<string, FireOnceState>();
+
+/**
+ * Fire-once gate. Returns true if the caller should emit; false if
+ * emission has already happened for this key (until reset()).
+ *
+ * Use for state-transition events (deadline tripped, circuit opened,
+ * degraded mode entered) where the climactic event matters once.
+ */
+export function fireOnce(key: string): boolean {
+  const state = fireOnceStates.get(key) ?? { fired: false, firedAt: null };
+  if (state.fired) return false;
+  state.fired = true;
+  state.firedAt = Date.now();
+  fireOnceStates.set(key, state);
+  return true;
+}
+
+export function resetFireOnce(key: string): void {
+  fireOnceStates.delete(key);
+}
+
+/**
+ * Token-bucket rate limiter for hot-path logs. Returns true if the caller
+ * should emit; false if the bucket is empty.
+ *
+ * Use for sampled logging where you want N emissions per window
+ * (e.g., 1 per minute, 10 per hour).
+ */
+const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>();
+
+export function shouldEmit(
+  key: string,
+  maxPerWindow: number,
+  windowMs: number,
+): boolean {
+  const now = Date.now();
+  const bucket = tokenBuckets.get(key) ?? { tokens: maxPerWindow, lastRefill: now };
+  const elapsed = now - bucket.lastRefill;
+  if (elapsed >= windowMs) {
+    bucket.tokens = maxPerWindow;
+    bucket.lastRefill = now;
+  }
+  if (bucket.tokens > 0) {
+    bucket.tokens -= 1;
+    tokenBuckets.set(key, bucket);
+    return true;
+  }
+  tokenBuckets.set(key, bucket);
+  return false;
+}
+
+// Usage example: 503 deadline middleware
+//
+//   if (deadlinePassed) {
+//     if (fireOnce('rls-deadline-tripped')) {
+//       logger.fatal({ deadline_iso, evidence }, 'RLS migration deadline tripped');
+//       writeAuditRow({ action: 'rls_deadline_tripped', decisions: { ... } });
+//       Sentry.captureMessage('rls_deadline_tripped', 'fatal');
+//     }
+//     return new Response('Service Unavailable', { status: 503 });
+//   }
+
 // --- Rate limiting middleware ---
 // Simple in-memory rate limiter. Replace with Redis for multi-instance.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()

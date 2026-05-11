@@ -227,6 +227,21 @@ If issues found, return to Phase 3. Maximum 2 iterations.
 ### AI Gate Bootstrapping (Cold-Start Problem)
 AI-gated approval systems have a cold-start problem: no historical outcomes -> gate rejects all requests -> no operations -> no outcomes. During the first N decisions (configurable, default 20), the gate should approve at reduced size (0.5-0.7x normal) to build a track record. The gate should never reject solely because "no historical data exists." Include explicit prompt guidance: "Lack of history is not a reason to reject — approve at reduced size to build the track record." (Field report #152)
 
+### Event-Ladder Severity Gradient
+
+When implementing an event ladder (engagement → escalation → climactic), every rung's Sentry / observability severity must be **strictly louder** than the previous rung: `info < warning < error < fatal`. The climactic event MUST emit at least at `fatal`, never silence into prose-only logs.
+
+Common failure mode (field report #319 §4): the immediate event is `error`, the hourly reminder is `warning`, and the deadline-trip becomes `logger.critical(...)` only — **inverting the gradient.** The most consequential event becomes the LEAST observable. This is structural, not malicious — agents implement events one at a time and lose track of relative severity across rungs.
+
+**Implementation checklist:**
+
+- [ ] List every rung of the ladder with its Sentry level
+- [ ] Verify monotonic ordering: each rung ≥ the previous
+- [ ] Climactic rung is `fatal` (not `critical`-via-logger-only, not `warning` because "we already alerted earlier")
+- [ ] Add a unit test that asserts the ordering — `assert ladder.severities == sorted(ladder.severities)` or equivalent
+
+Pair with `/docs/patterns/middleware.ts` hot-path logging gate (fire-once or rate-limited emission) so the louder severity doesn't translate to log flooding.
+
 ## Anti-Patterns
 
 | Anti-Pattern | What Happens | Fix |

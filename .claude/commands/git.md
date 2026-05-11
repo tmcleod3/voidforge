@@ -35,9 +35,18 @@ Determine the version bump:
 5. User confirms or overrides
 
 ## Step 3 — Chronicle (Wong)
+
+**Disambiguation: project changelog vs methodology changelog.**
+
+If `PROJECT_VERSION.md` exists at repo root, it is the project's changelog (version history). The repo's `CHANGELOG.md` is voidforge-methodology-scoped (versions match the methodology package, not the project) — do NOT edit it for project work. Update `PROJECT_VERSION.md`'s "Current" / "In Progress" / "Next" lines and add a row to the Version History table instead.
+
+If only `CHANGELOG.md` exists, follow the standard flow — that's a methodology repo or a single-version-history project.
+
+If both files exist and the project is a downstream consumer of VoidForge, the project's history goes in `PROJECT_VERSION.md` and the methodology's bundled CHANGELOG is read-only (Bombadil owns it via `/void` sync). Field report #320 §5 documents the confusion this caused before the disambiguation was written.
+
 Update all version files:
-1. Read the top of `CHANGELOG.md` (~30 lines for format reference)
-2. Write new CHANGELOG entry at the top (after the header), using the categories from Step 1:
+1. Read the top of the **active changelog** (PROJECT_VERSION.md if present at repo root, else CHANGELOG.md) — ~30 lines for format reference.
+2. Write the new entry at the top (after the header), using the categories from Step 1:
    - User-facing language, not file-level details
    - Group by Added/Changed/Fixed/Removed/Security
    - Include today's date
@@ -62,8 +71,9 @@ Confirm everything is consistent:
 2. Check version consistency:
    - `VERSION.md` current version matches
    - `package.json` version matches
-   - `CHANGELOG.md` has an entry for this version
+   - The **active changelog** (PROJECT_VERSION.md if present, else CHANGELOG.md) has an entry for this version
    - Commit message starts with the correct version tag
+   - **ROADMAP.md cross-check (field report #309 Fix 4):** if `ROADMAP.md` exists, grep it for the new version string. If milestones in ROADMAP.md reference a higher version than `package.json`, that's drift — surface it and offer to bump. If ROADMAP claims a milestone is "DONE" at a version that doesn't match the just-committed bump, surface that too. Drift between ROADMAP and package.json typically goes unnoticed for weeks.
 3. Run `git status` — verify working tree is clean (no forgotten files)
 4. If any inconsistency found, flag it and offer to fix
 
