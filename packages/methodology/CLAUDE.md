@@ -120,6 +120,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `refactor-extraction.md` — 8-commit per-entity large-refactor template with IDOR matrix discipline
 - `ai-prompt-safety.ts` — Type A (instructions, statistical) vs Type B (constraints, enforced); AUTHORITY-as-text caveat; defense-in-depth stack
 - `llm-state-dedup.ts` — LLM ids are display labels, not keys; content-hash dedup; lifecycle-state snapshot completeness
+- `autonomous-ops-triage-policy.md` — 4-bucket model (self-resolving / runbook-safe / operator-approval / hard-never) + SessionStart hook visibility rule for ops-flavored projects
 
 ## Slash Commands
 

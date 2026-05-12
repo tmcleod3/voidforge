@@ -101,9 +101,10 @@ When the user passes `--plan [description]`, Sisko updates the plan instead of e
 1. Read the current PRD and ROADMAP.md
 2. Dax analyzes where the new idea fits — new feature (PRD), improvement (ROADMAP), or reprioritization
 3. Odo checks dependencies — does this depend on something not yet built?
-4. Present proposed changes for user review
-5. Write updates on confirmation
-6. Do NOT start building — planning only
+4. **Scope-adversary check for bug classes.** When the new idea is a bug fix OR documents a specific bug class, dispatch at least one verification agent (Riker, Feyd-Rautha, or Spock) with an explicit prompt: *"This mission fixes a [slug-array / render-time data / schema-constraint / IDOR / etc.] class. List all other surfaces in this codebase that this class touches but were NOT in the mission scope."* The plan must explicitly account for every class-instance found, or explicitly defer with rationale. (Field reports #332 + #338: voidforge-marketing-site planning missed `/patterns` because the bug was scoped to `/commands`; same class, both surfaces, only one fixed. Class-generalization is a briefing discipline that costs zero code and prevents whole categories of regressions.)
+5. Present proposed changes for user review
+6. Write updates on confirmation
+7. Do NOT start building — planning only
 
 This is how ideas get into the plan without breaking the execution flow. The user describes what they want in plain language; Dax figures out where it goes.
 

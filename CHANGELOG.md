@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.11.4] - 2026-05-12
+
+### Wong promotion cluster + #260 closeout
+
+After v23.11.3 shipped, a fresh `/debrief --inbox` re-triage on all 9 open field reports produced 3 promotion-ready clusters (each backed by 3+ data points across different reports / different projects / different operators) plus the deferred remainder of #260.
+
+### Added
+
+- **`docs/patterns/autonomous-ops-triage-policy.md`** (pattern #48) — codifies the 4-bucket model (self-resolving / runbook-safe / operator-approval-required / hard-never) for ops-flavored projects (infrastructure repos, monitoring daemons, homelab automation). Two operators independently reinvented this exact model across three projects (#337 F3, #336 F7, #334 F5). Pattern includes SessionStart hook visibility rule (the hook output is context-only — assistant must `echo` it back to the operator to confirm the policy is live), JSON Lines log format, decision tree, and adoption checklist.
+- **CLAUDE.md Code Patterns table** — new row for `autonomous-ops-triage-policy.md` in both root and `packages/methodology/CLAUDE.md`.
+
+### Changed
+
+- **`docs/methods/BUILD_PROTOCOL.md` Principles #11 — Derived counts discipline.** Any user-facing numeric claim ("141+ pages", "Gated pages: 19", "6 missions completed", "1390 tests") must be derived from source truth at build time OR explicitly marked with `<!-- last-verified: YYYY-MM-DD -->` and tracked in the RELEASE_MANAGER Verification Checklist. No unverified scalar claims ship. Three independent projects (#336 F6, #334 F6, #332 hidden #5) drifted the same class — this is the scalar equivalent of the No Stubs doctrine.
+- **`docs/methods/CAMPAIGN.md` Planning Mode — Scope-adversary check for bug classes.** New Step 4 in `--plan` mode: when a mission documents a specific bug class, dispatch a verification agent (Riker, Feyd-Rautha, or Spock) with the explicit prompt "list all other surfaces this class touches that were NOT in the mission scope." voidforge-marketing-site (#332) deployed with a known bug class on two surfaces because the plan was scoped to one. #338 #2 independently demonstrated the same need.
+- **`docs/methods/PRODUCT_DESIGN_FRONTEND.md` Operating Rule #12 — Tutorial-context checklist for slash commands.** Standalone `/<command>` references in tutorial content must establish "inside Claude Code" context (preceding `claude` block, callout box, or contextual prose). First-touch user content with missing launch context is a Critical UX defect. Galadriel's Step 1.5 Usability Review now explicitly flags this. (#260 remainder.)
+- **`docs/methods/QA_ENGINEER.md` Operating Rule #13 — Tutorial smoke test for slash commands.** Batman's QA pass on tutorial/onboarding docs runs a grep-based check: every `/<command>` mention must have launch context within 5 lines or a callout block on the same page. Sister-rule to PRODUCT_DESIGN_FRONTEND.md #12. (#260 remainder.)
+- **`packages/voidforge/package.json`** methodology dep range `^23.11.3` → `^23.11.4` per ADR-062 discipline (always pin methodology dep to current version on every release).
+
+### Closes
+
+- **#260** — HOLOCRON preamble shipped in v23.11.3; PRODUCT_DESIGN_FRONTEND.md + QA_ENGINEER.md tutorial checklist proposals now ship in v23.11.4. Fully addressed.
+
+### Pipeline
+
+This release is the first Wong promotion-cluster pass executed end-to-end in one session: `/debrief --inbox` triaged all 9 field reports, identified the 3 ready-now clusters, and promoted them directly into method docs and pattern library. 11 field reports remain open as v23.12 methodology campaign scope (7 priority clusters identified by Bashir: security & declaration discipline, database migration patterns, PRD/release sync, architect protocol, build/CI gates, Plex pattern bundle, container/infra patterns).
+
+---
+
 ## [23.11.3] - 2026-05-12
 
 ### Issue #331 destructive-bug fix + HIGH CVE patch + dep contract pin + CI hardening
