@@ -3,8 +3,10 @@
  * VoidForge CLI — v21.0 The Extraction
  *
  * npx voidforge                       Launch wizard (browser UI at :3141)
- * npx voidforge init                  Create new project (Gandalf flow)
- * npx voidforge init --headless       Create project without browser
+ * npx voidforge init                  Create new project — prompts: browser or CLI
+ * npx voidforge init --browser        Skip the prompt, go straight to the browser wizard
+ * npx voidforge init --headless       Create project without browser (CLI prompts for name/dir)
+ * npx voidforge init --headless --name "X"   Fully non-interactive CLI init
  * npx voidforge init --core           Minimal methodology (no Holocron, no patterns)
  * npx voidforge update                Update project methodology (Bombadil)
  * npx voidforge update --self         Update the wizard itself
@@ -188,6 +190,47 @@ async function launchWizard(mode: 'init' | 'deploy' = 'init'): Promise<void> {
   if (!isRemote && !isLan) await openBrowser(url);
 }
 
+function slugifyName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase();
+}
+
+function defaultProjectDir(name: string): string {
+  return join(
+    process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.',
+    'Projects',
+    slugifyName(name),
+  );
+}
+
+async function prompt(question: string): Promise<string> {
+  const { createInterface } = await import('node:readline');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise<string>((res) => {
+    rl.question(question, (answer) => { rl.close(); res(answer.trim()); });
+  });
+}
+
+/**
+ * Asks the user to pick browser vs headless mode for `voidforge init`.
+ * Requires a TTY — caller must guard with process.stdin.isTTY.
+ */
+async function promptInitMode(): Promise<'browser' | 'headless'> {
+  console.log('');
+  console.log('  VoidForge — init');
+  console.log('');
+  console.log('  How would you like to set up this project?');
+  console.log('    1) Browser wizard (Gandalf) — interactive, guided UI');
+  console.log('    2) CLI (headless)            — prompts here in the terminal');
+  console.log('');
+  // Loop until we get a valid answer.
+  for (;;) {
+    const answer = (await prompt('  Choice [1]: ')).toLowerCase();
+    if (answer === '' || answer === '1' || answer === 'b' || answer === 'browser') return 'browser';
+    if (answer === '2' || answer === 'c' || answer === 'cli' || answer === 'h' || answer === 'headless') return 'headless';
+    console.log('  Please enter 1 (browser) or 2 (CLI).');
+  }
+}
+
 async function cmdInitHeadless(): Promise<void> {
   const nameFlag = args.find((a, i) => args[i - 1] === '--name');
   const dirFlag = args.find((a, i) => args[i - 1] === '--dir');
@@ -196,32 +239,64 @@ async function cmdInitHeadless(): Promise<void> {
   const repoFlag = args.find((a, i) => args[i - 1] === '--repo');
   const isCore = args.includes('--core');
 
-  if (!nameFlag) {
-    console.error('Error: --name is required for headless init.');
-    console.error('Usage: npx voidforge init --headless --name "My Project" [--dir path] [--oneliner "..."]');
-    process.exit(1);
+  let name = nameFlag;
+  let directory = dirFlag;
+  let oneliner = onelinerFlag;
+  let domain = domainFlag;
+  let repoUrl = repoFlag;
+
+  // If --name is missing, prompt interactively (TTY only).
+  if (!name) {
+    if (!process.stdin.isTTY) {
+      console.error('Error: --name is required for headless init in non-interactive contexts.');
+      console.error('Usage: npx voidforge init --headless --name "My Project" [--dir path] [--oneliner "..."]');
+      process.exit(1);
+    }
+
+    console.log('');
+    console.log('  VoidForge — Headless Init');
+    console.log('  Press Enter to accept defaults shown in [brackets]. Optional fields can be left blank.');
+    console.log('');
+
+    while (!name) {
+      const answer = await prompt('  Project name: ');
+      if (answer) name = answer;
+      else console.log('  Project name is required.');
+    }
+    const defaultDir = defaultProjectDir(name);
+    if (!directory) {
+      const answer = await prompt(`  Directory [${defaultDir}]: `);
+      directory = answer || defaultDir;
+    }
+    if (!oneliner) {
+      const answer = await prompt('  One-line description (optional): ');
+      oneliner = answer || undefined;
+    }
+    if (!domain) {
+      const answer = await prompt('  Domain (optional): ');
+      domain = answer || undefined;
+    }
+    if (!repoUrl) {
+      const answer = await prompt('  Repo URL (optional): ');
+      repoUrl = answer || undefined;
+    }
   }
 
-  const defaultDir = join(
-    process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.',
-    'Projects',
-    nameFlag.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase(),
-  );
-  const directory = dirFlag ?? defaultDir;
+  if (!directory) directory = defaultProjectDir(name);
 
   const { createProject } = await import('../wizard/lib/project-init.js');
   const result = await createProject({
-    name: nameFlag,
+    name,
     directory,
-    oneliner: onelinerFlag,
-    domain: domainFlag,
-    repoUrl: repoFlag,
+    oneliner,
+    domain,
+    repoUrl,
     core: isCore,
   });
 
   console.log('');
   console.log(`  VoidForge — Project Created`);
-  console.log(`  Name:      ${nameFlag}`);
+  console.log(`  Name:      ${name}`);
   console.log(`  Directory: ${result.projectDir}`);
   console.log(`  Files:     ${result.filesCreated} methodology files`);
   console.log(`  Marker:    ${result.markerId}`);
@@ -337,7 +412,8 @@ function showHelp(): void {
   console.log('  --help, -h         Show this help');
   console.log('  --remote           Launch in remote mode (0.0.0.0 + auth)');
   console.log('  --lan              Launch in LAN mode');
-  console.log('  --headless         CLI-only (no browser)');
+  console.log('  --browser          init: skip the mode prompt and launch the browser wizard');
+  console.log('  --headless         init: CLI-only flow (prompts for name/dir if not passed)');
   console.log('  --self             Deploy VoidForge itself');
   console.log('  --env-only         Write vault credentials to .env');
   console.log('');
@@ -583,13 +659,24 @@ async function main(): Promise<void> {
         break;
       }
 
-      case 'init':
-        if (args.includes('--headless')) {
+      case 'init': {
+        const wantsHeadless = args.includes('--headless');
+        const wantsBrowser = args.includes('--browser');
+        if (wantsHeadless) {
           await cmdInitHeadless();
-        } else {
+        } else if (wantsBrowser) {
           await launchWizard('init');
+        } else if (process.stdin.isTTY) {
+          const mode = await promptInitMode();
+          if (mode === 'headless') await cmdInitHeadless();
+          else await launchWizard('init');
+        } else {
+          console.error('Error: `voidforge init` was run in a non-interactive context without a mode flag.');
+          console.error('Pass --browser to launch the wizard UI, or --headless [--name "..."] for CLI init.');
+          process.exit(1);
         }
         break;
+      }
 
       case 'heartbeat': {
         const subCmd = args[1]; // start | stop | status

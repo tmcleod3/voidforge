@@ -29,12 +29,12 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 **Hook enforcement (ADR-051 Phase 5b — live as of v23.8.14; state relocated per ADR-060 in v23.8.18).** A `PreToolUse` hook on the Agent tool (`scripts/surfer-gate/check.sh`) blocks any sub-agent launch that isn't the Silver Surfer itself, unless a roster has been recorded for this session or a bypass flag is set. State lives at `$XDG_RUNTIME_DIR/voidforge-gate/` (Linux) or `$HOME/.voidforge/gate/` (macOS fallback) — per-user, `0700`. This is the permanent enforcement mechanism. The prose above is a human-readable backup.
 
-**Orchestrator contract** (you run these Bash commands at the right moments):
+**Orchestrator contract** (you run these Bash commands at the right moments — wrap each in an existence guard so projects on older methodology versions don't error):
 
-1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `bash scripts/surfer-gate/record-roster.sh` (optionally pass the roster JSON as the first argument for audit). This is a no-op when the hook is inactive, so it is always safe to call.
-2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `bash scripts/surfer-gate/bypass.sh --light` (or `--solo`). No-op when the hook is inactive. **Fails closed on unknown flag values** (ADR-060 v23.8.18 hardening, SEC-003) — passing anything other than `--light` or `--solo` exits 2 with an error. No silent bypass.
+1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `[ -x scripts/surfer-gate/record-roster.sh ] && bash scripts/surfer-gate/record-roster.sh || true` (optionally pass the roster JSON as the first argument for audit). The existence guard is a defensive no-op for projects that predate v23.10.0 — when the gate started shipping via the npm methodology package per #317.
+2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `[ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true` (or `--solo`). **Fails closed on unknown flag values** (ADR-060 v23.8.18 hardening, SEC-003) — passing anything other than `--light` or `--solo` exits 2 with an error. No silent bypass.
 
-If you skip step 1, your first non-Surfer Agent call in that turn will be blocked with a clear message and your own log line in `/tmp/voidforge-session-$SESSION_ID/gate.log`. You are expected to comply with the block (launch Surfer / run record-roster), not to fight it.
+If `scripts/surfer-gate/check.sh` exists but you skip step 1, your first non-Surfer Agent call in that turn will be blocked with a clear message and your own log line in `/tmp/voidforge-session-$SESSION_ID/gate.log`. You are expected to comply with the block (launch Surfer / run record-roster), not to fight it. If the script does not exist, your project predates v23.10.0; pull the gate from `tmcleod3/voidforge:scripts/surfer-gate/` and merge `settings-snippet.json` into `.claude/settings.json`, or re-run `npx voidforge-build init` against the methodology source.
 
 **Why.** Seven field incidents (logged in `.claude/agents/silver-surfer-herald.md`) document the cost of skipping: the orchestrator cannot predict cross-domain relevance from the command name alone. The hook makes skipping mechanically impossible for non-bypass cases. Launch the Surfer. Every time.
 
@@ -111,6 +111,15 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `e2e-test.ts` — Playwright E2E + axe-core a11y: page objects, auth helpers, network mocks, CWV measurement
 - `combobox.tsx` — Accessible combobox with value source management, keyboard nav, async search (+ HTMX)
 - `kongo-integration.ts` — Landing page engine: client, from-PRD generation, growth signal, webhook handlers
+- `adr-verification-gate.md` — Fixture Bindability discipline: gates that algebraically can fail; reality-anchored Implementation Scope
+- `multi-tenant-property-test.ts` — Property-based isolation test (any orgs A,B; A's writes never appear in B's reads)
+- `multi-tenant-pool-bypass.ts` — `pre_org_resolution_scope()` ContextVar wrapper for cross-tenant lifespan/daemon code
+- `rls-test-fixture.py` — `db_as_app` SAVEPOINT pattern (defeats SUPERUSER + BYPASSRLS=t fixture trap)
+- `structural-sql-sentinel.py` — Adversarial-test discipline for SQL regex sentinels (commuted/cast/IS NULL/coalesce coverage)
+- `audit-log.ts` — System-event NULL trap resolution (schema relaxation vs sentinel+JSONB tag); append-only invariants
+- `refactor-extraction.md` — 8-commit per-entity large-refactor template with IDOR matrix discipline
+- `ai-prompt-safety.ts` — Type A (instructions, statistical) vs Type B (constraints, enforced); AUTHORITY-as-text caveat; defense-in-depth stack
+- `llm-state-dedup.ts` — LLM ids are display labels, not keys; content-hash dedup; lifecycle-state snapshot completeness
 
 ## Slash Commands
 

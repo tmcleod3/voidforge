@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.11.2] - 2026-05-12
+
+### `voidforge init` mode prompt + methodology surfer-gate distribution
+
+Two threads of polish: the CLI now asks before launching, and the Silver Surfer gate finally ships in the methodology npm package.
+
+### Added
+
+- **`voidforge init` mode prompt.** With no flag, `init` now asks "Browser wizard or CLI (headless)?" instead of silently launching the browser server. Prompt appears only when stdin is a TTY.
+- **`--browser` flag on `voidforge init`.** Explicit opt-in to the wizard UI — skips the prompt for users (or scripts) that want the prior default behavior.
+- **Interactive headless init.** `voidforge init --headless` now prompts for project name (required), directory (defaulted to `~/Projects/<slug>`), and optional oneliner/domain/repo when `--name` is omitted in a TTY. Fully non-interactive when all flags are passed.
+- **`packages/methodology/scripts/surfer-gate/`** (8 files) — the Silver Surfer PreToolUse hook scripts (`check.sh`, `record-roster.sh`, `bypass.sh`, `_paths.sh`, `validate.sh`, `test.sh`, `README.md`, `settings-snippet.json`) now ship via the `voidforge-build-methodology` npm package, closing the ADR-051 distribution gap (#317). Previously the scripts lived only at the repo root and never reached downstream projects via `npx voidforge-build update`.
+- **9 pattern-table rows** in `packages/methodology/CLAUDE.md` — propagates the v23.11.0 pattern additions (adr-verification-gate, multi-tenant-property-test, multi-tenant-pool-bypass, rls-test-fixture, structural-sql-sentinel, audit-log, refactor-extraction, ai-prompt-safety, llm-state-dedup) into the methodology package copy so they reach downstream projects.
+
+### Changed
+
+- **Non-TTY `voidforge init` without a flag** now exits with a clear error directing the user to `--browser` or `--headless`. Previously it silently launched a wizard server into a context where no browser would ever open — a latent bug.
+- **Surfer Gate orchestrator-contract bash commands** in `packages/methodology/CLAUDE.md` are now wrapped in `[ -x ... ] && ... || true` existence guards with documented fallback ("if the script does not exist, your project predates v23.10.0; pull the gate or re-run `npx voidforge-build init`"). Lets the methodology cleanly cover both pre-#317 and post-#317 projects.
+
+### Why this exists
+
+The init server-launch was the loudest "this CLI doesn't ask before doing things" surface in onboarding — first-run users got a server URL with no opportunity to choose CLI mode. Two flags (`--browser`, `--headless`) now span the choice; the bare command asks. Separately, the surfer-gate scripts had been documented as shipping in the methodology package since v23.11.0 changelog #317, but the scripts themselves were never copied into `packages/methodology/`. This release actually ships them.
+
+---
+
 ## [23.11.1] - 2026-05-10
 
 ### `/git` release-discipline patch — close the silent-release gap
