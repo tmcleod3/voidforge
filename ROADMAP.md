@@ -2,9 +2,9 @@
 
 > The plan for the plan-maker.
 
-**Current:** v23.8.11 (2026-04-12)
+**Current:** v23.11.3 (2026-05-12)
 **Next:** v24.0 (TBD)
-**Status:** v23.5 complete (Campaigns 34-37). Herald intelligent dispatch shipped.
+**Status:** v23.11 series shipped — Surfer Gate npm distribution (v23.11.0), /git release-discipline (v23.11.1), init mode prompt (v23.11.2), $HOME boundary fix + dep pin + CI hardening (v23.11.3).
 **1384 tests**, 9 universes, agents (see AGENT_CLASSIFICATION.md), 28 slash commands, 37 code patterns.
 
 ---

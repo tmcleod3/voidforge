@@ -47,6 +47,7 @@ Keep your VoidForge installation current without breaking your project. Every up
 8. **Keep the mood light.** Bombadil sings. Updates are good news, not chores.
 9. **Batch sync when multiple versions behind.** Compare directly to the latest upstream version — don't step through each intermediate version. Sync to the latest in one pass and batch all content handoffs together. (Field report #35)
 10. **NEVER write to `~/.claude/`.** All methodology files go to the PROJECT root (where `.voidforge` or `.git` exists). Writing to `~/.claude/commands/` or `~/.claude/agents/` creates user-level duplicates that appear alongside project-level commands in Claude Code. Before any sync, check if `~/.claude/commands/` or `~/.claude/agents/` contain VoidForge files — if so, remove them automatically and warn the user.
+11. **NEVER write to `$HOME` itself.** Any code path that resolves a "project root" via directory-walk MUST enforce a `$HOME` boundary — the walk stops at `$HOME` and treats it as "no project found," not as the root. The boundary is mechanical (`statSync().isFile()` guard on the marker file + `$HOME` walk break), not advisory. A walk that falls through to `$HOME` and starts writing methodology files there destructively overwrites the user's personal config (e.g. `~/CLAUDE.md`). Enforced by the `no-home-writes.integration.test.ts` integration test. (ADR-063, Issue #331 — the `npx voidforge-build update` $HOME write incident, v23.11.3.)
 
 ## Shared Methodology Files
 

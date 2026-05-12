@@ -25,7 +25,11 @@ fi
 # Methodology files — needed by project creation (api/project.ts uses SCAFFOLD_DIR)
 # SCAFFOLD_DIR resolves to dist/ in the npm package, so methodology must be here.
 if [ -f "$REPO_ROOT/CLAUDE.md" ]; then
-  cp "$REPO_ROOT/CLAUDE.md" "$DIST/CLAUDE.md"
+  # CLAUDE.md is filtered to strip the template Project section (ADR-058),
+  # matching packages/methodology/scripts/prepack.sh — published consumers fill
+  # the [PROJECT_NAME] block via `npx voidforge-build init`, not from the bundled scaffold.
+  sed '/<!-- REMOVE-FOR-NPM-PUBLISH/,/END-REMOVE-FOR-NPM-PUBLISH -->/d' \
+      "$REPO_ROOT/CLAUDE.md" > "$DIST/CLAUDE.md"
   cp "$REPO_ROOT/HOLOCRON.md" "$DIST/HOLOCRON.md" 2>/dev/null || true
   cp "$REPO_ROOT/VERSION.md" "$DIST/VERSION.md" 2>/dev/null || true
   cp "$REPO_ROOT/CHANGELOG.md" "$DIST/CHANGELOG.md" 2>/dev/null || true

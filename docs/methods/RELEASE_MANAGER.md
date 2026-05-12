@@ -120,6 +120,8 @@ After every commit, Barton verifies:
 - [ ] `git status` shows clean working tree
 - [ ] No untracked files that should have been included
 - [ ] If `--npm` was used: every published package returns the new version from `npm view <name> version`
+- [ ] `ROADMAP.md` "Current:" line matches `VERSION.md` (added v23.11.3 — field-report #309 Fix 4 and v23.11.2 deploy synthesis both flagged drift; ROADMAP had been pinned ~24 versions back before this checklist line existed)
+- [ ] For monorepo CLI/methodology pairs: the CLI's `voidforge-build-methodology` dep range is `^<current-version>`, never `"*"` (ADR-062 — pin tightening shipped in v23.11.3 to close the silent-cross-major drift)
 
 ## CLAUDE.md Command Table Integrity Check
 

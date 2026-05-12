@@ -36,7 +36,7 @@ jobs:
         run: npm test
 
   publish-voidforge:
-    needs: test
+    needs: [test, publish-methodology]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +74,19 @@ jobs:
         run: npm publish -w packages/voidforge --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify voidforge-build on registry
+        if: steps.check-cli.outputs.skip == 'false'
+        run: |
+          VERSION=$(jq -r .version packages/voidforge/package.json)
+          for i in 1 2 3 4 5 6; do
+            if npm view "voidforge-build@${VERSION}" version 2>/dev/null | grep -q "^${VERSION}$"; then
+              echo "Verified voidforge-build@${VERSION}"; exit 0
+            fi
+            echo "Not visible yet (attempt $i/6); sleeping 10s"; sleep 10
+          done
+          echo "::error::voidforge-build@${VERSION} not visible after 60s"; exit 1
+        timeout-minutes: 2
 
   publish-methodology:
     needs: test
@@ -114,3 +127,45 @@ jobs:
         run: npm publish -w packages/methodology --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify voidforge-build-methodology on registry
+        if: steps.check-methodology.outputs.skip == 'false'
+        run: |
+          VERSION=$(jq -r .version packages/methodology/package.json)
+          for i in 1 2 3 4 5 6; do
+            if npm view "voidforge-build-methodology@${VERSION}" version 2>/dev/null | grep -q "^${VERSION}$"; then
+              echo "Verified voidforge-build-methodology@${VERSION}"; exit 0
+            fi
+            echo "Not visible yet (attempt $i/6); sleeping 10s"; sleep 10
+          done
+          echo "::error::voidforge-build-methodology@${VERSION} not visible after 60s"; exit 1
+        timeout-minutes: 2
+
+  recover-partial:
+    needs: [publish-voidforge, publish-methodology]
+    if: |
+      always() &&
+      (needs.publish-voidforge.result == 'failure') !=
+      (needs.publish-methodology.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Deprecate orphan half
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CLI_RESULT: ${{ needs.publish-voidforge.result }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          V=${VERSION#v}
+          MSG="v${V} partial publish — sibling package failed; do not install"
+          if [ "$CLI_RESULT" = "success" ]; then
+            npm deprecate "voidforge-build@${V}" "$MSG"
+          else
+            npm deprecate "voidforge-build-methodology@${V}" "$MSG"
+          fi
+      - name: Fail the workflow
+        run: exit 1

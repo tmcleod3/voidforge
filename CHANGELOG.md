@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.11.3] - 2026-05-12
+
+### Issue #331 destructive-bug fix + HIGH CVE patch + dep contract pin + CI hardening
+
+Three-phase pipeline output: `/architect --plan` → `/debrief --inbox` → `/campaign`. 12 fix missions + 2 ADRs + 1 LEARNINGS entry + 2 mechanical guards landed in one release.
+
+### Security
+
+- **HIGH CVE patch** — `npm audit fix --omit=dev` resolved three vulnerabilities (2 HIGH, 1 MODERATE) in `fast-xml-parser` (≤5.6.0) and `fast-xml-builder` (≤1.1.6), pulled transitively via `@aws-sdk/xml-builder` through `@aws-sdk/client-ec2`, `client-rds`, `client-s3`, `client-elasticache`, `client-sts`. No SDK major bump required; lockfile-only change. AWS provisioner API surface unaffected.
+
+### Fixed
+
+- **Issue #331 — `npx voidforge-build update` silently overwrote `~/CLAUDE.md` and 44 other methodology files in `$HOME`** when run outside a VoidForge project. Root cause: `findProjectRoot()` in `packages/voidforge/wizard/lib/marker.ts` had no `$HOME` boundary, and its `existsSync()` check could not distinguish the `.voidforge` file marker from the `~/.voidforge/` state directory (ADR-060). Fix: added `statSync().isFile()` guard and `$HOME` walk break. The function now returns null/undefined when no project root is found, never `$HOME` or `/`. Codified as ADR-063 and FORGE_KEEPER Rule #11. New integration test `no-home-writes.integration.test.ts` mechanically enforces "no escape writes" by spawning the built CLI against a temp HOME and asserting zero methodology files leak out of a project boundary.
+- **Issue #260 — new users tried slash commands at their shell prompt and saw "command not found"** because no doc told them to launch Claude Code first. HOLOCRON Quick Start now opens with "Before any slash command: launch Claude Code" instructions before the install snippets.
+- **Issue #333 (partial — npm-prefix only)** — `npm install -g voidforge-build` failing with `EACCES` on `/usr/local` is a fragile-globals problem, not a VoidForge bug, but worth a documented workaround. HOLOCRON now shows the `npm config set prefix ~/.npm-global` recipe.
+
+### Changed
+
+- **Dep contract pin (ADR-062)** — `voidforge-build`'s `voidforge-build-methodology` dependency range changed from `"*"` to `"^23.11.3"`. The wildcard was live on the registry in v23.11.1 and v23.11.2, allowing any future breaking methodology major to silently pair with old CLI installs. Enforced mechanically going forward by a new `check-methodology-pin.sh` script wired as `voidforge-build`'s `prepublishOnly` — `npm publish` fails closed if the methodology range is `*`, `x`, `latest`, empty, or a `>`/`>=` open-ended range.
+- **`packages/methodology/package.json`** — added `"engines": { "node": ">=20.11.0 <25.0.0" }` matching the CLI's existing constraint. Advisory, not enforced, but closes the silent-divergence gap.
+- **`.github/workflows/publish.yml` hardening** (three coordinated changes):
+  - Post-publish `npm view` verification step appended to both publish jobs. 6 attempts × 10s = 60-second propagation window. Hard-fails the job on still-mismatch. Closes the silent "publish succeeded at API but registry never serves" failure mode (v23.11.2 deploy synthesis, Dors + Crusher both flagged it).
+  - `recover-partial` job runs `if: always() && (publish-voidforge.result == 'failure') != (publish-methodology.result == 'failure')` (XOR). On half-publish, it `npm deprecate`s the orphan with a clear "do not install" message and exits 1 to fail the workflow red. `npm unpublish` is intentionally not used (72-hour lockout breaks immutability).
+  - `publish-voidforge` now declares `needs: [test, publish-methodology]` (was `needs: test` only). Methodology publishes first; voidforge-build resolves its pinned `^23.11.3` methodology dep against a registry that already has it. Closes Bel Riose's parallel-publish race window.
+- **`packages/voidforge/scripts/copy-assets.sh`** — `CLAUDE.md` copy now uses the same `sed` strip as `packages/methodology/scripts/prepack.sh` (ADR-058 `<!-- REMOVE-FOR-NPM-PUBLISH ... -->` markers). Closes the inconsistency Rhodes flagged in v23.11.2 deploy synthesis where `voidforge-build`'s bundled scaffold shipped the unstripped template Project block.
+- **`docs/methods/RELEASE_MANAGER.md` Verification Checklist** — two new lines: "ROADMAP.md Current line matches VERSION.md" and "monorepo CLI's methodology dep range is `^<current-version>`, never `*` (ADR-062)". Mechanical drift like the 24-version ROADMAP gap should fail the checklist, not slip silently.
+- **`ROADMAP.md`** — Current pointer bumped from `v23.8.11 (2026-04-12)` to `v23.11.3 (2026-05-12)`. Status block rewritten to reflect the v23.11 series shipped.
+
+### Added
+
+- **ADR-062 — Always pin methodology dep to current version.** Mandates that every `voidforge-build` release bumps the `voidforge-build-methodology` dep range to `^<current-version>`. Enforced via `check-methodology-pin.sh` + prepublishOnly + a CI lint that can be added later.
+- **ADR-063 — Never write to `$HOME`.** Any code path that resolves a project root via directory-walk MUST enforce a `$HOME` boundary. Enforced via `no-home-writes.integration.test.ts` running the CLI against a temp HOME.
+- **`docs/LEARNINGS.md` entry** — generalizable lesson: any directory-tree walker must define a sentinel boundary (typically `$HOME` or `/`) or risk destructive past-root writes.
+- **FORGE_KEEPER Rule #11** — "NEVER write to `$HOME` itself" (companion to Rule #10's "NEVER write to `~/.claude/`"). Codifies ADR-063 for Bombadil's sync logic.
+- **Mechanical guards** — `check-methodology-pin.sh` (pin lint) and `no-home-writes.integration.test.ts` (boundary test). Per Frieren's planning recommendation: disciplines with silent-failure modes get mechanical enforcement; advisory disciplines (ROADMAP sync, partial-publish recovery procedure) stay documented.
+
+### Pipeline
+
+This release is the first multi-phase pipeline executed end-to-end in a single session: `/architect --plan` (17 agents) → `/debrief --inbox` triage (Bashir, 13 open issues categorized) → `/campaign --plan` (16 planning agents merged Phase 1 + Phase 2 into 12 missions across 4 waves) → `/campaign` execution (18 specialist agents). Honest dissents from Faramir ("cut to 6") and Erwin ("split to 2 in v23.11.3, rest in v23.11.4") were surfaced; user selected the full scope. The destructive bug fix (#331) was filed one day before this release and was the highest-priority item — Picard's earlier "tightest patch" framing was correctly overridden by Bashir's triage.
+
+---
+
 ## [23.11.2] - 2026-05-12
 
 ### `voidforge init` mode prompt + methodology surfer-gate distribution

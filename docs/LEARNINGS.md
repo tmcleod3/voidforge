@@ -1,7 +1,7 @@
 # Project Operational Learnings
 
 Persistent knowledge from live operations. Things code reviews can't catch.
-Updated: 2026-04-20 | Entries: 14/50
+Updated: 2026-05-12 | Entries: 15/50
 
 ---
 
@@ -26,6 +26,15 @@ Keys use `ke_live_` prefix, created at kongo.io/dashboard/api. No OAuth provider
 - **context:** PRD originally specified OAuth provisioning (ADR-036). Changed to manual API key entry during build. Provisioner validates prefix, verifies connection, stores in financial vault.
 
 ## Root Causes
+
+### Directory-tree walkers must define a sentinel boundary (e.g., $HOME) to prevent silent past-root directory creation
+`findProjectRoot()` in `packages/voidforge/wizard/lib/marker.ts` walked up the directory tree looking for a `.voidforge` marker but had no boundary check. On non-VoidForge projects, the walk reached `~/` and silently created 45 methodology files in `$HOME`, overwriting `~/CLAUDE.md` and personal config. Root cause: missing isFile guard (`.voidforge` file vs `.voidforge/` state dir per ADR-060) and no $HOME sentinel to stop the walk.
+
+- **category:** root-cause
+- **verified:** 2026-05-11
+- **scope:** `packages/voidforge/wizard/lib/marker.ts` — findProjectRoot
+- **evidence:** Field report #331; user ran `npx voidforge-build update` outside a project. Fix added isFile check + $HOME boundary check. ADR-063 codified this for all future directory walkers. FORGE_KEEPER Rule #11 documents the pattern.
+- **context:** Any code that walks up a directory tree to find a project root must define a sentinel boundary (typically `$HOME` or `/`). Silent walk-past is destructive. Pair with ADR-063.
 
 ### Statistical code passes tests but is mathematically wrong when tests validate buggy behavior
 The growth signal z-test shipped with 3 Critical bugs: (1) control = worst variant instead of first by creation order, (2) normalCdf used as confidence instead of computing 1-pValue, (3) poll timeout 120s for 2-10 min generation. All tests passed because they asserted the buggy output. Only adversarial Gauntlet agents (Stark/Spock) caught the issues by reasoning about the math, not running tests.

@@ -6,8 +6,8 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 
@@ -64,12 +64,31 @@ export function createMarker(
 /**
  * Walk up from `startDir` to find the nearest `.voidforge` marker.
  * Returns the directory containing the marker, or null if none found.
+ *
+ * Safety guards (issue #331):
+ *   Option A — marker MUST be a regular file. A `.voidforge` directory
+ *     (e.g. someone's stray folder, or an extension's data dir) is ignored.
+ *   Option B — the walk stops at the user's home directory. We never treat
+ *     `$HOME` or any ancestor as a project root, so `update`/`init` cannot
+ *     overwrite files in `~/` when invoked outside a project.
  */
 export function findProjectRoot(startDir: string = process.cwd()): string | null {
-  let current = startDir;
+  const home = resolve(process.env['HOME'] ?? process.env['USERPROFILE'] ?? homedir());
+  let current = resolve(startDir);
   while (true) {
-    if (existsSync(join(current, MARKER_FILE))) {
-      return current;
+    // Option B: never accept $HOME (or anything at/above it) as a project root.
+    if (current === home) return null;
+
+    const markerPath = join(current, MARKER_FILE);
+    if (existsSync(markerPath)) {
+      // Option A: marker must be a regular file, not a directory.
+      try {
+        if (statSync(markerPath).isFile()) {
+          return current;
+        }
+      } catch {
+        // stat raced with deletion or permission error — treat as no marker.
+      }
     }
     const parent = dirname(current);
     if (parent === current) break; // filesystem root
