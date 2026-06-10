@@ -32,7 +32,7 @@ Read deploy target from PRD frontmatter. If not specified, scan for evidence:
 
 Levi verifies the deploy is safe:
 1. **Build passes:** `npm run build` (or equivalent) must succeed
-2. **Tests pass:** `npm test` must pass (if test suite exists)
+2. **Tests pass:** `npm test` must pass (if test suite exists). The **full suite** is the deploy gate — a targeted/isolation-green run is necessary but NOT sufficient, because environment coupling can regress unrelated tests invisibly to isolation runs. *Isolation-green is not deploy-green* (field report #354 F3): run the whole suite before the gate clears, not just the tests for the change at hand.
 3. **No uncommitted changes:** `git status` clean
 4. **Credentials available:** SSH key, API token, or platform credentials accessible
 5. **Version tagged:** Current version from VERSION.md matches the commit being deployed

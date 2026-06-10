@@ -38,6 +38,10 @@ Report findings by WCAG criterion:
 
 Summary with WCAG AA pass/fail assessment.
 
+## Operational Learnings
+
+- Token NAMES are NOT proxies for VALUES (field report #355 F1): a token called `paper` may resolve to near-black, `ink` to near-white. Never infer contrast from token names. Before rating any contrast finding Critical, cite the literal source hex for BOTH foreground and background with file:line (e.g. `tailwind.config.ts:42` / `globals.css:18`) and re-grep that the class pairing actually exists in the rendered markup — a token pairing that never co-occurs is not a real contrast failure.
+
 ## Reference
 
 - Agent registry: `/docs/NAMING_REGISTRY.md`

@@ -156,6 +156,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | `/campaign` | Sisko's War Room — read the PRD, pick the next mission, finish the fight, repeat until done | All |
 | `/imagine` | Celebrimbor's Forge — AI image generation from PRD visual descriptions | All |
 | `/debrief` | Bashir's Field Report — post-mortem analysis, upstream feedback via GitHub issues | All |
+| `/audit-docs` | Documentation audit — Surfer-led doc roster (Troi/Wong/Irulan/Coulson) for currency, cross-references, command↔method sync | All |
 | `/dangerroom` | The Danger Room (X-Men, Marvel) — installable operations dashboard for build/deploy/agent monitoring | Full |
 | `/cultivation` | Cultivation (Cosmere Shard) — installable autonomous growth engine: marketing, ads, creative, A/B testing, spend optimization | Full |
 | `/grow` | Kelsier's 6-phase growth protocol — initial setup within Cultivation, then autonomous loop | Full |

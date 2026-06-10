@@ -245,6 +245,71 @@ const dropLegacyAvatarUrl: MigrationStep = {
   },
 };
 
+// ── Boot-Time Schema Re-Application & Table Ownership (#354 F4) ──
+
+/**
+ * GUARD: idempotent boot-time schema re-application must account for table
+ * OWNERSHIP and role grants — not just IF NOT EXISTS / IF EXISTS guards (#354 F4).
+ *
+ * The trap: a service that re-applies its schema at startup (boot-time DDL,
+ * "ensure schema" on connect) often connects as an app role distinct from the
+ * role that originally created the tables. In PostgreSQL, ALTER TABLE / DROP /
+ * CREATE INDEX / ADD COLUMN require the table OWNER (or a superuser) — not just
+ * INSERT/UPDATE/SELECT privileges. So even a fully idempotent
+ * `CREATE TABLE IF NOT EXISTS` / `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+ * will FAIL at boot with "must be owner of table X" when the table is owned by
+ * a different DB role (e.g. a migration/admin role) than the connecting app role.
+ * The IF [NOT] EXISTS guard does not save you here — ownership is checked before
+ * the existence short-circuit on ALTER, and CREATE INDEX has no existence
+ * short-circuit at all for the ownership check.
+ *
+ * Why it bites at boot specifically: idempotent re-application is meant to be a
+ * safe no-op on an already-migrated DB. But the ownership check fires regardless
+ * of whether the change is a no-op, so a healthy, already-correct schema can
+ * still crash the service on startup.
+ *
+ * Mitigations (pick per your trust model):
+ *  - Run boot-time/idempotent DDL as the table OWNER role, not the app role.
+ *    Keep schema changes on a privileged migration role; let the app role do DML only.
+ *  - OR align ownership: `ALTER TABLE <t> OWNER TO <app_role>` once (by a superuser),
+ *    or create tables under the app role from the start.
+ *  - OR use a shared owning role and `GRANT <owner_role> TO <app_role>` so the
+ *    app role can act as owner for DDL.
+ *  - Prefer a one-shot migration step (runMigrations) over boot-time re-application
+ *    for anything beyond table/index existence — it isolates the privileged role.
+ *
+ * Pre-flight check before re-applying schema at boot — fail fast with a clear
+ * message instead of a raw "must be owner" deep in startup.
+ */
+async function assertTableOwnership(
+  ctx: MigrationContext,
+  table: string,
+  expectedRole: string
+): Promise<void> {
+  // PostgreSQL: tableowner comes from pg_tables; current_user is the connecting role.
+  const result = await ctx.execute(
+    `SELECT tableowner FROM pg_tables WHERE tablename = $1`,
+    [table]
+  );
+
+  // No row → table absent; CREATE TABLE IF NOT EXISTS will create it under the
+  // connecting role, so ownership is not a concern for this table yet.
+  if (result.rowCount === 0) {
+    ctx.log('migration.ownership_check', { table, present: false });
+    return;
+  }
+
+  // In a real adapter, read the owner value from the row; shown here as the contract.
+  // If the owner is not the expected (connecting/owner) role, boot-time ALTER/CREATE
+  // INDEX on this table will fail with "must be owner of table" (#354 F4).
+  ctx.log('migration.ownership_check', {
+    table,
+    present: true,
+    expectedRole,
+    note: 'boot-time DDL requires table owner or a superuser; app-role DML privileges are not enough',
+  });
+}
+
 // ── Batched Processing for Large Tables ─────────────────
 
 /**

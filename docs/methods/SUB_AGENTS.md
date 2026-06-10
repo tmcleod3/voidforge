@@ -351,6 +351,20 @@ Both would have been caught by an adversarial pass that asked "what new failure 
 
 **Important distinction:** The Agent tool enables **parallel analysis**, not parallel coding. Sub-agents return text findings — the lead agent then implements code changes sequentially. This is still faster than sequential analysis, but don't expect parallel file edits.
 
+### The Default Review Shape: Find → Cluster/Dedupe → 3-Lens Verify → Fix Only Survivors
+
+Every review command — `/engage`, `/sentinel`, `/gauntlet` — runs the same four-stage shape, not a flat "list findings then fix everything" pass. v23.12.0 added the refute-pass mechanics to `/gauntlet`; this is the generalized naming so the same discipline is the DEFAULT everywhere, not Gauntlet-only (field report #354 F1).
+
+1. **Find** — fan out the roster; each lens produces raw findings against the same diff (see Intentionally Overlapping Mandates).
+2. **Cluster/Dedupe** — collapse the raw findings into distinct claims. The same root cause flagged by Stark + Kenobi + Ahsoka is ONE claim with three votes, not three findings. LLM-assigned finding ids are display labels, not keys — dedupe on the claim, not the id.
+3. **3-Lens Verify** — every surviving claim is interrogated through three lenses before it earns a fix:
+   - **Correctness** — is the asserted behavior actually wrong? (the bug is real, the logic is genuinely broken)
+   - **Reachability** — can production actually hit this path? (not provably-dead-code, not behind a `DEV_ONLY` gate — see the WARN/cosmetic contract above)
+   - **Refutation** — assign a **skeptic agent whose explicit job is to REFUTE the finding and cast a confirm vote.** The skeptic is told to argue the finding is wrong/unreachable/already-handled and to vote CONFIRM only if it cannot. A claim that survives a reviewer instructed to kill it is a real claim. This is the defining element of the shape: not "does another lens agree?" but "does a lens TRYING to disprove it fail to?" A finding nobody was assigned to refute is unverified, regardless of how many agents independently raised it.
+4. **Fix Only Survivors** — only claims that pass all three lenses (correct AND reachable AND survive a confirm-vote refutation) enter the fix batch. Refuted claims are logged with the refutation rationale and dropped — never silently, so a future review doesn't re-raise them.
+
+The refutation lens is what separates this from the Intentionally Overlapping Mandates convergence rule: convergence asks independent agents to agree; refutation assigns one agent to disagree on purpose. Run both — convergence raises confidence on what's flagged, refutation removes false positives from the fix batch. (Field report #354 F1.)
+
 ### Multi-Session Parallelism (Separate Terminals)
 
 For larger projects where agents need to make code changes simultaneously, use separate Claude Code sessions in different terminal windows. Each session works on separate files within defined scope boundaries.
@@ -455,6 +469,15 @@ Field report #324 (Union Station v7.8 R2): three agents (Discovery + Stark + Ken
 - **Fix/build agents:** batch into waves only when writes overlap. Independent files = parallel.
 - **Wait for ALL parallel agents before synthesizing** (field report #300).
 - Partition strategies: by domain (frontend/backend), by concern (security/UX), or read-only vs. write.
+
+### Directory / Migration Fan-Out: Glob the List, Sweep the Remainder
+
+When a wave fans out per-file or per-entity work across a directory or migration (one agent per file/module/route/migration), two rules are MANDATORY (field report #355 F2):
+
+1. **Derive the per-agent file list from a GLOB, never a hand-typed list.** Run `ls`/`Glob` (e.g., `Glob "src/routes/**/*.ts"`, `git ls-files 'migrations/*.sql'`) and partition the GLOB output into agent assignments. A hand-typed list silently drops the files the orchestrator forgot existed — and those are exactly the ones with the unmigrated legacy pattern, because they weren't top-of-mind. The glob is the source of truth for "what's in scope," not the orchestrator's memory of the tree.
+2. **Pair every fan-out with a post-fan-out completeness sweep before the wave is "done."** After all fan-out agents return, run ONE grep for the legacy pattern across the WHOLE target tree (not just the assigned files) — e.g., `grep -rn "oldApiCall(" src/` or `grep -rln "TODO: migrate" .`. A wave is not complete while that grep returns hits. The sweep catches: files the glob/partition missed, files created mid-wave by a parallel agent, and occurrences an agent declared done but left behind. Zero hits is the completion gate, not "all dispatched agents reported done."
+
+The failure mode this prevents: a fan-out reports "9/9 agents complete" while 3 files still carry the legacy pattern — because they were never in the hand-typed list, and nobody grepped the whole tree to confirm. "All my agents finished" is not "the migration is complete." The completeness sweep is the difference. (Field report #355 F2.)
 
 ### Context Passing Between Phases
 

@@ -443,6 +443,42 @@ done < .env
 
 Audit existing deploy scripts: grep for `eval "export`, `eval export`, and `export $(cat`. Any hit is a latent secret-corruption bug — replace it with the literal parser or one of the runtime-native loaders above.
 
+## Deploy-Environment Assumptions
+
+A deploy that succeeds in dev can fail in prod because the *environment* differs in ways no syntax check sees. Three classes recur; two already have their own sections in this doc — this section adds the third and cross-references the others so they're triaged together:
+
+1. **Served-artifact verification** — the bundle nginx/the CDN actually serves can diverge from the one you just built. See §The served artifact is not the built artifact and §Post-push live-URL fingerprint.
+2. **`.env`-file precedence / loading** — values get mangled or silently defaulted depending on how the file is loaded. See §Env-File Loading Safety and §Config Foot-Guns (deploy/runtime).
+3. **Boot-time schema re-application under DB-role ownership mismatch** (field report #354 F4) — the new one, below.
+
+### Boot-time DDL ownership/grant alignment (field report #354 F4)
+
+Idempotent boot-time DDL is NOT automatically safe across environments. When an app runs schema re-application at startup — `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, or a migration runner invoked on boot — the `IF NOT EXISTS` guard only protects against *existence* collisions. It does NOT protect against *ownership* collisions. If the tables were originally created by a **different DB role** than the role the app connects as (the classic split: a privileged `admin`/`migrator` role created the schema, but the app connects as a least-privilege `app` role), the startup DDL fails:
+
+- `CREATE TABLE IF NOT EXISTS` on an existing table the connecting role does not own can still raise `must be owner of table <name>` when it tries to reconcile constraints/indexes — `IF NOT EXISTS` short-circuits creation but not every ownership-checked path.
+- `ALTER TABLE` / `CREATE INDEX` in the same boot sequence have no `IF NOT EXISTS` escape and fail outright with `permission denied` or `must be owner of relation`.
+- The app then either crashes at boot or (worse) logs the DDL error and serves with a half-migrated schema.
+
+This passes in dev because dev usually runs everything as one superuser-ish role, so ownership is never split. Prod splits roles for least privilege — and that's exactly where the ownership mismatch surfaces.
+
+**The check (run before declaring a boot-time-migration deploy healthy):** confirm the role the app connects as either *owns* the schema objects or has been granted the privileges the boot DDL needs. For PostgreSQL:
+```sql
+-- Who owns the tables the app's boot DDL will touch?
+SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public';
+-- The connecting app role:
+SELECT current_user;
+```
+If owner ≠ app role, align ownership or grants before the boot runs:
+```sql
+-- Option A: hand ownership to the app role (simplest when the app owns its own migrations)
+ALTER TABLE public.<table> OWNER TO app_role;
+-- Option B: keep a separate migrator owner, but grant the app role what its boot DDL needs,
+--           and make future objects inherit grants:
+GRANT ALL ON ALL TABLES IN SCHEMA public TO app_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO app_role;
+```
+Prefer **Option A** when the app owns its migrations, **Option B** when policy requires a distinct migrator/owner role. Either way: idempotent DDL still needs ownership/grant alignment — the `IF NOT EXISTS` keyword is not an ownership escape hatch. Best practice is to run migrations as the owning role on deploy and connect the app as a least-privilege role that does NOT re-run DDL at boot at all — but if boot-time re-application stays, this alignment check is mandatory.
+
 ## systemd Unit Hardening (Node.js)
 
 Sandboxing directives in a systemd unit are good practice, but **Node.js units must NOT set `MemoryDenyWriteExecute=true`** (field report #344 F3). V8's JIT compiler maps pages that are simultaneously writable and executable (W^X is violated by design for JIT); `MemoryDenyWriteExecute=true` (MDWE) forbids exactly that, so the Node process dies with **`SIGTRAP` at boot** before it serves a single request. The crash looks unrelated to the unit file — operators chase the app for hours.

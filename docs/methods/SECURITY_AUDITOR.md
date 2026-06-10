@@ -263,6 +263,17 @@ For any system that sends URLs to users (transactional emails, SMS, push notific
 
 This is the outbound mirror of SSRF prevention: SSRF stops external URLs from reaching internal services, outbound URL safety stops internal URLs from reaching external users. (Field report #44: verification email sent with `localhost:5005` URL — worked on same machine, broke from any other device.)
 
+### Enforcement-Layer Severity Rubric (field report #354 F2)
+
+Key a finding's severity to the **enforcement layer**, not the **symptom location**. The question that sets severity is not "where did I see the leak?" but **"where is this actually enforced?"** Before you assign P0/P1, trace the request to the layer that *decides* — the server-side authorization check, the database query scope, the policy engine — and confirm the gap exists *there*.
+
+- **Client-side affordance leak with intact server enforcement = UX-only (P2/P3), not a breach.** A hidden admin button that renders in the DOM, a disabled-but-present form field, an action the SPA shows but the API rejects with 403/404 — these are **render-then-403** patterns. The client showed something it shouldn't, but the actually-enforcing layer (the server) still says no. That is an information-disclosure or UX-polish finding, not a Critical. Rating a server-enforced client affordance leak as Critical is a false-positive that wastes a remediation slot and erodes trust in the report.
+- **A gap at the actually-enforcing layer = P0/P1.** If the server itself does not check ownership, the role gate is missing on the route, or the query has no `org_id` scope, the breach is real regardless of what the client renders. The symptom may surface in the UI, but the severity comes from the server hole.
+
+**Verification before scoring (always do this for any "exposed in the UI" finding):** reproduce the action against the API directly — `curl`/Postman with the victim's resource ID and the attacker's credentials, no browser. If the server returns 403/404/401 and writes nothing, the enforcing layer holds → downgrade to P2/P3 and note "server-enforced; client affordance leak only." If the server returns 200 + data or commits a write, the enforcing layer is breached → P0/P1. Never infer the server's behavior from the client's rendering.
+
+This is an explicit lens in **both** the audit (Phase 1/2: for every "this is visible/clickable" observation, ask "where is this actually enforced?" and probe that layer) and the re-verify pass (Phase 4: Maul must confirm a downgraded affordance-leak finding by hitting the API directly, not by re-checking the DOM). (#354 F2)
+
 ### Credentials Never in API Responses
 
 API responses must NEVER include credentials, tokens, or secrets — even in "admin-only" or "internal" endpoints. Grep for responses that include: `password`, `secret`, `token`, `api_key`, `private_key`, `credentials`. Common violations: user profile endpoints returning the password hash, API key management endpoints including the full key in GET responses (show only last 4 characters), internal debug endpoints returning environment variables. (Field report #66: API settings endpoint returned full MCP connection credentials in the response body.)
@@ -366,7 +377,7 @@ When fixing an auth, authorization, or validation check: trace ALL callers of th
 
 After remediations are applied:
 
-**Maul — Red Team Verification:** Re-probe all remediated vulnerabilities. Verify fixes hold under adversarial conditions. Check that fixes didn't introduce new attack vectors. Attempt to bypass the remediations.
+**Maul — Red Team Verification:** Re-probe all remediated vulnerabilities. Verify fixes hold under adversarial conditions. Check that fixes didn't introduce new attack vectors. Attempt to bypass the remediations. **Apply the enforcement-layer lens (#354 F2):** for any finding rated Critical/High off a UI-visible symptom, confirm severity by hitting the API directly — a finding that only reproduces in the DOM but returns 403/404 server-side is a server-enforced affordance leak (P2/P3), not the breach it was filed as. Re-score before sign-off.
 
 **Padmé — Functional Verification:** After Maul confirms security holds, Padmé verifies the primary user flow still works end-to-end. Open the app, complete the main task, verify output. This catches "secure but broken" regressions that pure security re-testing misses.
 

@@ -18,6 +18,8 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
+**Focused single-domain reviews — partition by surface, don't stack personas (field report #355 F3).** When the user names exactly ONE lens via `--focus` (copy-only, contrast-only, perf-only, etc.), do NOT spin up the full multi-domain roster, and do NOT stack near-duplicate personas that all review the entire surface. Cap the roster at ~6-8 agents and PARTITION them by SURFACE/SECTION — each agent owns a distinct set of files/routes/components and reviews only that slice through the single requested lens. One copy reviewer per surface zone (auth pages, dashboard, settings, marketing), not four copy reviewers all re-reading every screen. Partitioning by surface gives coverage without redundant overlap; persona-stacking on one lens just re-finds the same issues.
+
 ## Context Setup
 1. Read `/logs/build-state.md` — understand current project state
 2. Read `/docs/methods/PRODUCT_DESIGN_FRONTEND.md`
@@ -98,6 +100,8 @@ Log all findings to `/logs/phase-10-ux-audit.md`:
 Categories: UX, Visual, A11y, Copy, Performance, Edge Case
 
 **Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Samwise found it, escalate to Padmé or Nightwing) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 7.5.
+
+**Enforcement-keyed severity — don't escalate a client affordance leak the server still enforces (field report #354 F2).** Before assigning Critical to a "leak," ask whether the server still enforces the underlying rule. A client-side affordance that exposes something it shouldn't — a hidden-but-rendered admin button, a disabled control the user can re-enable in devtools, a stale UI showing a forbidden option — is a UX defect (P2/P3), NOT a security breach, AS LONG AS the server rejects the action. The fix is to hide/disable the affordance correctly; severity is UX-grade. Reserve Critical for cases where the server actually honors the leaked affordance (a real access-control gap) — and that finding belongs to Kenobi (`/sentinel`), routed via Handoffs, not graded here as a UX Critical.
 
 ## Step 5 — Enhancement Specs (before coding)
 For each fix: problem statement, proposed solution, acceptance criteria, a11y requirements (**Samwise** `subagent_type: Samwise` signs off), copy (**Bilbo** `subagent_type: Bilbo` signs off). **Faramir** `subagent_type: Faramir` checks whether polish effort targets the right screens — high-traffic core flows, not low-traffic edge pages.

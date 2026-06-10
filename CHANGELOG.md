@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.12.1] - 2026-06-09
+
+### Follow-on triage — #354/#355 (8 fixes) + chronic CI-check fix
+
+`#354` and `#355` were filed *during* the v23.12.0 run, so a second `/debrief --inbox` triaged them against the post-v23.12.0 tree. The adversarial verify pass overturned one false "already-fixed" (#355 F4); `#355 F5` was confirmed already-shipped (derived-counts doctrine). 8 fixes applied across 15 files.
+
+### Changed
+
+- **REFUTE lens reaches `/engage` + `/sentinel`** (#354 F1) — v23.12.0 added the vote-based adversarial REFUTE pass (skeptics told to refute, ≥1 CONFIRM to keep, re-rate from votes) to `/gauntlet` + `/assemble`, but `/engage` and `/sentinel` still used the older "second agent disagrees → drop" model. Ported as `/engage` Step 2.5 and a `/sentinel` Phase 3 gate; named find→cluster→3-lens-verify as the default review shape in `SUB_AGENTS.md`.
+- **Enforcement-keyed severity rubric** (#354 F2) — severity keys to the enforcement *layer*, not the symptom location: a client affordance leak the server still enforces (render-then-403) is UX-only (P2/P3), not a breach. "Where is this actually enforced?" added to the audit + verify lens. → `SECURITY_AUDITOR.md`, `PRODUCT_DESIGN_FRONTEND.md`, `/ux`, `/sentinel`.
+- **"Isolation-green ≠ deploy-green"** (#354 F3) — targeted/isolation test runs are necessary but not sufficient; only the full suite is the deploy gate (environment coupling regresses unrelated tests invisibly to isolation runs). → `BUILD_PROTOCOL.md`, `/deploy`, `QA_ENGINEER.md`.
+- **Boot-time DDL-ownership class** (#354 F4) — startup schema re-application can fail on tables owned by a different DB role than the app connects as; the other two deploy-env classes it named (served-artifact, `.env` precedence) were already covered by v23.12.0/prior. → `DEVOPS_ENGINEER.md`, `database-migration.ts`.
+- **Contrast findings must cite source hex** (#355 F1) — a contrast finding must quote the literal source hex for *both* fg and bg with `file:line`, and re-grep that the class pairing exists, before being rated Critical; token NAMES are not proxies for VALUES (a token called "paper" may be near-black). Defends against the token-name-swap false site-wide Critical. → `PRODUCT_DESIGN_FRONTEND.md`, `GAUNTLET.md`, `samwise-accessibility.md`.
+- **Glob-derived fan-out work-lists** (#355 F2) — derive per-agent file lists for a directory/migration fan-out from a glob, never a hand-typed list, and pair every fan-out with a mandatory post-fan-out completeness sweep before the wave is "done"; an "unsampled"/"not-checked" flag is coverage debt to carry forward. → `CAMPAIGN.md`, `SUB_AGENTS.md`, `silver-surfer-herald.md`.
+- **Focused single-lens roster sizing** (#355 F3) — when `--focus` names one lens, cap the roster ~6–8 and partition agents by surface, not by near-duplicate persona. → `silver-surfer-herald.md`, `/ux`, `GAUNTLET.md`.
+- **Per-wave staging deploy = status checkpoint** (#355 F4) — inlined in `CAMPAIGN.md` Step 4/5 action prose (the anti-pattern callout existed; the inline action-prose statement did not — caught by the verify pass).
+- **Fixed the chronically-red `validate-branches.yml` slash-command check** — its `grep '| \`/[a-z]'` matched the Docs-Reference table's `/docs/*.md` rows and the `sed` mangled them into bogus `MISSING` paths, failing the job on every release since v23.11.0. Now anchored to bare `/command` cells (letters/hyphens, closing backtick) so `/docs/...` and `/HOLOCRON.md` are excluded. This is itself the #352 "gate that doesn't gate" class. (Note: the workflow's separate `e2e-tests` job still fails on a pre-existing wizard `aria-required-children` a11y issue — unrelated to methodology.)
+- **Registered `/audit-docs`** in the CLAUDE.md Slash Commands table (shipped as a command in v23.12.0 but not listed). Synced to `packages/methodology/CLAUDE.md`.
+- **`packages/voidforge/package.json`** methodology dep range `^23.12.0` → `^23.12.1` (ADR-062).
+
+### Closes
+
+- **#354**, **#355**. #355 F5 already shipped (derived-counts doctrine); no out-of-scope items.
+
+---
+
 ## [23.12.0] - 2026-06-09
 
 ### Field Report Triage — 12 reports closed (#342–#353), 58 fixes + 5 new files

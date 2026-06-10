@@ -17,8 +17,13 @@ jobs:
 
       - name: Verify all slash commands have command files
         run: |
-          # Extract command names from CLAUDE.md table
-          grep '| `/[a-z]' CLAUDE.md | sed 's/.*`\/\([a-z]*\)`.*/\1/' | while read cmd; do
+          # Extract command names from the Slash Commands table only.
+          # Match BARE `/command` cells — letters/hyphens with the closing
+          # backtick immediately after the name — so Docs-Reference rows like
+          # `/docs/PRD.md` and the `/HOLOCRON.md` guide path are NOT mis-read
+          # as commands (field report #352: the old pattern matched them and
+          # the sed mangled the line into a bogus MISSING path).
+          grep -oE '\| `/[a-z][a-z-]*`' CLAUDE.md | sed -E 's/.*`\/([a-z-]+)`/\1/' | sort -u | while read cmd; do
             if [ ! -f ".claude/commands/${cmd}.md" ]; then
               echo "MISSING: .claude/commands/${cmd}.md (listed in CLAUDE.md)"
               exit 1

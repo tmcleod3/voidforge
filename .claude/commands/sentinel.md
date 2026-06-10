@@ -58,7 +58,22 @@ Write all findings to `/logs/phase-11-security-audit.md` (or appropriate phase l
 
 Severity = exploitability x impact. Critical (auth bypass, data leak) > High (injection, IDOR) > Medium (missing headers, weak config) > Low (best practice)
 
+**Enforcement-keyed severity check (field report #354 F2).** Before assigning any severity — and again when re-rating in the REFUTE Gate — ask: *"Where is this ACTUALLY enforced?"* A client-side affordance leak (a hidden admin button rendered in the DOM, a disabled field, a route present in the bundle) is a breach ONLY if the server fails to enforce the boundary. If the SERVER still enforces it — the request returns 403/404 even though the affordance leaked (render-then-403) — the finding is **UX-only (P2/P3)**, not a breach. Do NOT rate server-enforced client affordance leaks as P0/P1. To prove a P0/P1, the skeptic must show the privileged action SUCCEEDING server-side (a 200 with the protected effect), not merely that the control was visible client-side. A leaked affordance with a server 403 behind it is polish, not a vulnerability.
+
 **Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Maul found it, escalate to Deathstroke or Constantine) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Phase 4.
+
+#### REFUTE Gate — Adversarial Verification (before fixing any Critical/High) (field report #354 F1)
+
+A single Maul red-team pass is not enough to drive fixes — one agent's accusation is not a verdict. Before fixing critical and high findings, run a vote-based REFUTE lens. This mirrors the canonical REFUTE Gate in `.claude/commands/gauntlet.md` ("REFUTE Gate — Adversarial Verification" section) — same shape, applied per-audit instead of per-round (field report #354 F1).
+
+**Procedure — execute per Critical/High finding:**
+
+1. **Cluster the findings.** Group findings that describe the same root cause or the same file/flow so skeptics vote on one accusation, not a dozen restatements of it.
+2. **Spawn skeptics to REFUTE.** For each Critical/High finding (or cluster), launch at least two skeptic agents in parallel via the Agent tool, drawn from a DIFFERENT universe than the agent that raised it (a Star Wars finding gets DC + Marvel skeptics) so no agent grades its own homework. Each skeptic is instructed: *"Default to REFUTED. This finding is unproven until you open the cited file and confirm the exploit exists in the actual code. Do not trust the description. Return CONFIRM (with the exact line(s) that prove it) or REFUTE (with the reason the code does not exhibit the claimed problem)."* A skeptic that cannot point to confirming code MUST return REFUTE.
+3. **Keep ≥1-CONFIRM survivors.** Keep the finding only if it draws **≥1 CONFIRM** backed by cited lines. An all-REFUTE finding is dropped from the fix list and logged as `REFUTED` with the skeptics' reasons — not silently deleted.
+4. **Re-rate severity from the votes.** Recompute severity from the confirming evidence, not the original claim: unanimous CONFIRM at the original tier holds; a split vote (some CONFIRM, some REFUTE) downgrades one tier (Critical→High, High→Medium); confirmed-but-narrower-than-claimed downgrades to match the proven blast radius. Record the new severity and the vote split on the finding.
+
+Only ≥1-CONFIRM survivors at their re-rated severity proceed to the fix step below. Medium/Low findings skip the gate (they are not fix-blocking) but may still be escalated under the low-confidence rule above. Log every vote (CONFIRM/REFUTE, agent, universe, cited lines or refute reason) and the re-rated severity to the audit log.
 
 Fix critical and high findings immediately. Medium findings get tracked. For each fix:
 1. Apply the fix

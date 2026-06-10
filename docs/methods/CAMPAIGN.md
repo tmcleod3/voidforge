@@ -67,6 +67,24 @@ Examples that triggered this rule:
 
 Skip this step only when the ADR's scope is bounded by entity (one file, one table, one route group) — bounded ADRs don't need an audit because the count is visible in the scope itself.
 
+### Fan-out completeness (glob-derived lists + mandatory sweep)
+
+This is distinct from the plan-time audit grep above. The audit grep *counts* sites so the architect can *estimate* effort. Fan-out completeness governs *execution*: when a mission fans a directory-wide or migration-wide change across parallel agents, it ensures every file in scope is actually touched and nothing is silently dropped at the seams between agents (field report #355 F2).
+
+**Two rules, both mandatory:**
+
+1. **Derive per-agent file lists from a GLOB, never a hand-typed list.** When splitting a directory/migration fan-out across N agents, the source-of-truth file list MUST come from a glob expansion (`git ls-files 'src/widgets/**/*.ts'`, `find migrations -name '*.sql'`, `grep -rl '<legacy pattern>' <tree>`), then partitioned among agents — never a list typed from memory or eyeballed from a tree view. A hand-typed list is a fan-out's single biggest source of silent omission: the one file nobody remembered never gets an agent, compiles clean in isolation, and ships the legacy pattern. The glob is the manifest; agent assignments are slices of it.
+
+2. **Pair every fan-out with a post-fan-out completeness sweep BEFORE the wave is declared done.** After all fan-out agents return, re-run the legacy pattern across the *whole* target tree — not the per-agent slices, the entire tree — and assert zero residual hits (or a fully-justified allowlist):
+
+   ```bash
+   # The wave touched src/widgets/**; sweep the whole tree for the old pattern.
+   grep -rnE '<legacy pattern>' src/ | grep -v '<intentional-keep paths>'
+   # Must be empty (or every line individually justified) before the wave closes.
+   ```
+
+   The per-agent reviews each pass — every slice is internally consistent — yet the union can still miss a file that fell between two agents' globs, a file added after the manifest was captured, or a path one agent assumed another owned. The completeness sweep is the only check that sees the whole tree at once. A fan-out wave is NOT done until its sweep is green. (Field report #355 F2: a directory-wide migration declared complete on green per-agent reviews still shipped legacy-pattern residue because no sweep ran the old pattern across the full tree after the wave.)
+
 ### Closeout grep pinning
 
 When a `/campaign` closeout report cites a followup count or backlog size (e.g., "F-V710-ORG1-DEFAULTS — ~12 sites remaining" or "~21 cumulative followups"), the followup definition MUST embed the literal grep pattern + observed `n=N` at closeout HEAD. The next campaign's `/architect --plan` re-runs the same grep before accepting the count.
@@ -279,6 +297,7 @@ User confirms, redirects, or overrides. On confirm → Step 4.
 3. Fury runs the full pipeline (or `--fast` if user prefers). **Note:** `--fast` skips Crossfire + Council but NEVER skips `/sentinel` if the mission adds new endpoints, WebSocket handlers, or credential-handling code.
 3a. **Per-mission Kenobi quick-scan:** If the mission creates or modifies auth, crypto, HMAC, credential handling, or webhook verification code, run a focused Kenobi security scan within the mission — do not defer to the Victory Gauntlet. The reduced pipeline's single review round is calibrated for business logic, not security-sensitive code. Quick-scan scope: credential leakage, timing attacks, input validation, error message exposure. (Field report #265: webhook HMAC bypass, credential leakage in errors, and auth header override all shipped through the reduced pipeline and were only caught by the Victory Gauntlet.)
 4. Only checkpoint if `/context` shows actual usage above 85%. Do not preemptively suggest checkpoints.
+4a. **A per-wave staging deploy is a STATUS checkpoint — report and continue, never a decision-frame pause** (field report #355 F4). When a mission or fan-out wave pushes to staging mid-campaign, treat the deploy result exactly like a mission-complete status line: announce it ("M-7.4 deployed to staging, health check green — starting M-7.5") and proceed to the next wave. Do NOT frame the staging deploy as a gate, milestone, or "continue or pause?" question — the staging push is part of the autonomous flow, not a hand-back point. The only valid pauses remain the ones in the Pause-Bias Anti-Pattern list below (context >85%, BLOCKED item, un-auto-fixable Critical, user interrupt). This is the action-prose statement of that rule; the callout below is its rationale.
 5. On completion → Step 5
 
 **Post-infrastructure enforcement gate:** For infrastructure campaigns (deploy targets, CI/CD, monitoring, staging environments): after the infrastructure is provisioned, run `/architect --plan` to verify workflow enforcement gates exist — not just infrastructure existence. Infrastructure without process gates is incomplete.
