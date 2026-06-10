@@ -53,11 +53,12 @@ Update all version files:
 3. Update `VERSION.md`:
    - Change "**Current:** X.Y.Z" to the new version
    - Add a row to the Version History table with date and one-line summary
-4. Update `package.json` version field
+4. Update the version in **every** versioned `package.json`. For a single-package repo that is the root `package.json`. For a workspaces/monorepo it is each non-private workspace package — VoidForge has **two**: `packages/voidforge/package.json` and `packages/methodology/package.json` (the root is `"private": true` with no version). **Also bump any internal dep pin:** when one workspace package depends on a sibling, set the range to `^<new-version>` — for VoidForge, `voidforge-build`'s `voidforge-build-methodology` dependency, per ADR-062. A bump that updates one package but not its sibling or the pin ships an inconsistent release (and the Step 7 publish skips any package whose version doesn't match).
+5. **Re-sync tracked generated copies of release files.** If a source file changed this release has a tracked copy that is regenerated at publish, re-sync it so the in-repo copy doesn't go stale between releases. VoidForge: `packages/methodology/CLAUDE.md` is the root `CLAUDE.md` with the ADR-058 template block stripped — `sed '/<!-- REMOVE-FOR-NPM-PUBLISH/,/END-REMOVE-FOR-NPM-PUBLISH -->/d' CLAUDE.md > packages/methodology/CLAUDE.md`.
 
 ## Step 4 — Commit (Rogers)
 Stage and commit:
-1. Stage all modified version files: `VERSION.md`, `CHANGELOG.md`, `package.json`
+1. Stage all modified version files: `VERSION.md`, the active changelog (`CHANGELOG.md` or `PROJECT_VERSION.md`), **every** bumped `package.json` (all workspace packages, not just the root), and any generated copy re-synced in Step 3
 2. Stage any other files that are part of this release (from Step 0)
 3. Craft commit message in the format: `vX.Y.Z: One-line summary`
    - If elaboration needed, add a blank line then details
@@ -78,7 +79,8 @@ Confirm everything is consistent:
 1. Run `git log -1 --format="%H %s"` — verify the commit exists and message is correct
 2. Check version consistency:
    - `VERSION.md` current version matches
-   - `package.json` version matches
+   - **every** versioned `package.json` matches the new version (all workspace packages, not just the root), and any internal dep pin reads `^<new-version>` (ADR-062)
+   - any tracked generated copy re-synced in Step 3 reflects this release (VoidForge: `packages/methodology/CLAUDE.md` diff against the stripped root `CLAUDE.md` is empty)
    - The **active changelog** (PROJECT_VERSION.md if present, else CHANGELOG.md) has an entry for this version
    - Commit message starts with the correct version tag
    - `git tag --list vX.Y.Z` returns the tag (unless `--no-tag` was used)

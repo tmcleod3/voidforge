@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.12.2] - 2026-06-09
+
+### `/git` monorepo release-discipline fix
+
+A review of `/git` after the v23.12.0/.1 releases found that its version-*bump* steps (3–5) still assumed a single `package.json` — even though its *publish* step (7) was already monorepo-aware. On this two-package monorepo that meant `/git` would have bumped only one (nonexistent root) `package.json` and missed both workspace packages and the ADR-062 dep pin — exactly the three things bumped by hand in v23.12.0 and v23.12.1. Same doc↔reality drift class as #320/#342.
+
+### Changed
+
+- **`.claude/commands/git.md` Step 3** — bump **every** versioned `package.json` (names both `packages/voidforge` and `packages/methodology`; notes the root is `"private"` with no version), **bump the internal dep pin** `voidforge-build-methodology` → `^<new-version>` (ADR-062), and **re-sync tracked generated copies** (`packages/methodology/CLAUDE.md` via the ADR-058 `sed` strip). Steps 4 (staging) and 5 (verify) updated to check all workspace packages + the pin + the generated copy.
+- **`docs/methods/RELEASE_MANAGER.md` `/git --npm` section** — added two troubleshooting rules learned this session:
+  - **`npm error E404` on publish = account/scope, not expiry.** npm returns 404 (not 403) on publish to hide package existence, so E404 means the credential lacks write access to *that package* — wrong-account token, unscoped/read-only granular token, or wrong registry. Check `npm owner ls <pkg>` and verify the token's account (`npm whoami --userconfig`) *before* rotating. In CI the local preflight doesn't run, so an E404 points at the `NPM_TOKEN` secret's account. (Cites the incident where a v23.12.x publish failed E404 four times on a token minted from a non-owner account.)
+  - **Sequential oldest-first publish** when catching up multiple unpublished versions, so the `latest` dist-tag lands on the newest semver rather than whichever CI run finished last.
+
+### Pipeline
+
+First release cut via the corrected `/git` procedure (dogfood) — both packages and the dep pin bumped together. Dep range `^23.12.1` → `^23.12.2` (ADR-062).
+
+---
+
 ## [23.12.1] - 2026-06-09
 
 ### Follow-on triage — #354/#355 (8 fixes) + chronic CI-check fix
