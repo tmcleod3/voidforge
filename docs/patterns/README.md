@@ -34,6 +34,9 @@ Reference implementations for common code structures. These show the **shape and
 | Data Pipeline | `data-pipeline.ts` | ETL with checkpoint/resume, quality checks, idempotent processing | Node.js streams, Python polars, SQL/dbt |
 | Backtest Engine | `backtest-engine.ts` | Walk-forward validation, no-lookahead, Sharpe/drawdown metrics | Python vectorbt/backtrader |
 | Execution Safety | `execution-safety.ts` | Order validation, position limits, exchange precision, paper/live toggle | CCXT, Alpaca, IBKR |
+| Design Tokens | `design-tokens.ts` | Semantic color/type tokens so theme pivots are a token change (field report #351) | CSS vars + Tailwind + React |
+| Nginx Vhost | `nginx-vhost.conf` | Cloudflare-Flexible-safe vhost: security headers, ACME passthrough (field report #351) | Nginx |
+| Error Message Categorization | `error-message-categorization.tsx` | Categorize errors at the UI boundary before showing copy (field report #351) | React (framework-agnostic notes) |
 
 ## How to Use
 

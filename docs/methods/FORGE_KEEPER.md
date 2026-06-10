@@ -143,6 +143,15 @@ When upgrading across versions, check the **Migration Registry** for one-time cl
 
 **Important:** Some cleanup targets (like `docs/ARCHITECTURE.md`) could be the user's own project files, not leaked VoidForge artifacts. Before removing any file, **fingerprint it** — check if it contains VoidForge-specific markers (e.g., header says "VoidForge", references `wizard/`, or matches a known stale version like "15.2.1"). If the file looks like the user's own work, skip it and note why.
 
+**Consumer vs. clone — gate the whole Migration Registry on this first (field report #343 F10).** Spring Cleaning is destructive, and the "Always remove" list below is calibrated for **methodology clones** (projects scaffolded from the `scaffold` or `core` source, which carry no application code of their own). On a **methodology consumer** — an application project that adopted VoidForge but has its own production source tree — files like `playwright.config.ts`, `vitest.config.ts`, `tsconfig.json`, and `package-lock.json` are **legitimate application files**, not leaked VoidForge artifacts. Deleting them on a consumer is **data loss**: you would be removing the project's real test config, TypeScript config, and dependency lockfile.
+
+**Detection heuristic:** Read the project's `package.json`. If it declares non-VoidForge `dependencies` or `devDependencies` (anything beyond a bare name + version + description), the project is a **CONSUMER**. If `package.json` is minimal or absent (no real dependencies — the shape scaffold/core ship), the project is a **CLONE**.
+
+- **CONSUMER** → **SKIP the entire "Always remove" list.** Do not apply the version-range migrations that delete config/lockfiles. The only files Spring Cleaning may touch on a consumer are ones that fingerprint **unambiguously** as VoidForge artifacts (e.g., `PRD-VOIDFORGE.md`, a `docs/ARCHITECTURE.md` whose header literally says "VoidForge" / "Version: 15.2.1"). Fingerprint **defensively** before deleting anything; when a file is ambiguous, keep it and note why. Never delete `playwright.config.ts`, `vitest.config.ts`, `tsconfig.json`, or `package-lock.json` on a consumer.
+- **CLONE** → apply the full Migration Registry as written below, including the "Always remove" list.
+
+When unsure which side of the line the project sits on, treat it as a CONSUMER (the safe default — keeping a file is reversible, deleting it is not).
+
 **Process:**
 1. Determine which migrations apply based on the local version → upstream version range
 2. For each applicable migration, scan for the listed files
@@ -163,15 +172,15 @@ When upgrading across versions, check the **Migration Registry** for one-time cl
 
 Prior to v20.2, the scaffold and core branches contained files that should only exist on main. These were cleaned from upstream npm package but may persist in projects that cloned earlier versions.
 
-**Always remove (unambiguous VoidForge artifacts):**
+**Always remove (unambiguous VoidForge artifacts) — CLONES ONLY. On a methodology consumer, skip this entire list (field report #343 F10); `package-lock.json`, `playwright.config.ts`, `vitest.config.ts`, and `tsconfig.json` are the consumer's real application files and deleting them is data loss:**
 ```
 PRD-VOIDFORGE.md                           ← VoidForge's own product PRD
 PROPHECY.md                                ← Historical roadmap, all items shipped
 WORKSHOP.md                                ← Workshop guide requiring wizard/
-package-lock.json                          ← Scaffold/core have no dependencies
-playwright.config.ts                       ← References wizard/e2e
-vitest.config.ts                           ← References wizard/__tests__
-tsconfig.json                              ← References wizard/**/*.ts
+package-lock.json                          ← Scaffold/core have no dependencies (CONSUMER: real lockfile — keep)
+playwright.config.ts                       ← References wizard/e2e (CONSUMER: real test config — keep)
+vitest.config.ts                           ← References wizard/__tests__ (CONSUMER: real test config — keep)
+tsconfig.json                              ← References wizard/**/*.ts (CONSUMER: real TS config — keep)
 packages/voidforge/scripts/voidforge.ts                       ← CLI entry point, imports wizard/
 scripts/vault-read.ts                      ← Imports packages/voidforge/wizard/lib/vault
 scripts/danger-room-feed.sh                ← Feeds wizard dashboard
@@ -274,6 +283,8 @@ Verify and celebrate:
    - Conflicts resolved: [list]
    ```
 4. Check for handoffs — if new commands or agents were added, mention them
+4b. **Restart required before new agents are launchable (field report #343 F1a).** Agent registration is **session-scoped**: Claude Code reads `.claude/agents/*.md` at session start, so any agent files this sync *added* are NOT yet usable as `subagent_type` values in the current session. If the sync added one or more `.claude/agents/` files, tell the operator: *"New agents were synced into `.claude/agents/`. Restart the Claude Code session before launching them — until you do, they can't be used as `subagent_type` values."* Files that were merely *updated* (already present at session start) work without a restart; only newly-added agent files need one.
+4c. **Silver Surfer Gate bypass flags are per-session (field report #343 F4).** `--solo` and `--light` bypasses recorded by `scripts/surfer-gate/bypass.sh` live in per-session gate state, so a bypass is **not durable across `/clear` or a session restart**. After clearing context or restarting, any prior `--solo`/`--light` no longer applies and must be **re-issued** on the next gated command. Don't assume a bypass set earlier in a different session is still in effect — if the operator restarted or ran `/clear` since granting it, the gate is live again until the flag is passed afresh.
 5. **Content drift check:** If the sync changed methodology counts (agent counts, command counts, pattern counts) AND the project has a data layer that displays VoidForge metadata (e.g., `releases.ts`, `commands.ts`, site content), flag: "The sync changed [N] agents/commands/patterns. If your project displays these counts, update the data layer to match." This prevents stale counts on marketing sites and docs pages after version bumps. (Field report #113)
 5b. **Description accuracy check (Radagast):** For projects that display command descriptions (marketing sites, docs sites, README generators), compare each command's user-facing description against the upstream method doc's actual steps. If the upstream method doc gained new steps, flags, or capabilities in this sync that aren't reflected in the site's description, flag: "Command /X gained [capability] in this sync but the site description doesn't mention it. Update the description in [data file]." Count-based checks catch missing entries; this catches stale descriptions on existing entries. The most common void sync change is adding capabilities to existing commands, not adding new commands. (Field report #267: 9 commands had outdated descriptions after a sync that added capabilities to 12 agents — the biggest feature was invisible on the site.)
 5c. **Version history check:** If VERSION.md was updated, compare the version table entries against any project pages that display release history (roadmap pages, changelog displays, "shipped versions" sections). Flag versions present in VERSION.md that are missing from site content. This prevents version drift between the methodology's version history and user-facing release pages.

@@ -261,6 +261,25 @@ Oracle scans for methods that return success without side effects — the most d
 
 Flag as **High severity**. In financial systems (trading, payments, billing), flag as **Critical**. (Field report #125: `ProtectionService._place_stop_loss()` returned `True` after logging but never called the exchange. `OrderService.cancel_order()` returned `True` without cancelling.)
 
+### Failure Attribution (multi-file test runs)
+
+A test failure observed during a multi-file suite run is **NOT attributed to your change** until BOTH of these hold:
+
+1. **It reproduces with that file run in ISOLATION.** Re-run only the failing test file by itself (e.g., `pytest path/to/test_x.py`, `npm test -- path/to/x.test.ts`, `go test ./pkg/x`). If the failure vanishes when the file runs alone, it is a cross-file collision, not your regression.
+2. **It does NOT reproduce on clean HEAD.** `git stash` your working changes, re-run the same isolated file, and observe. If the failure is present on clean HEAD too, your change did not cause it. `git stash pop` to restore.
+
+Shared-DB and shared-fixture suites routinely produce cross-file collisions — duplicate-seed conflicts, ordering dependencies, leaked global state, autoincrement-id assumptions — that masquerade as regressions introduced by the change under review. Attributing one of these to your fix sends the QA pass down a false trail and can trigger a "revert the good fix" overcorrection. Run the isolation check and the clean-HEAD check before you write the bug down or blame the diff. (Field report #349 F-3)
+
+### Planted-Bug Check — Gates Must Gate
+
+For every gate, threshold, or invariant a mission introduces (auth allowlist, eval scorer, rate cap, boot guard, validation boundary, feature flag), the review MUST confirm the gate actually gates: a deliberate inversion or revert of the gate's logic WOULD fail at least one test. Procedure — for each gate:
+
+1. Identify the line(s) that enforce the gate.
+2. Mentally (or, when cheap and reversible, actually) invert it — flip the comparison, negate the predicate, widen the allowlist, make the scorer return a constant pass, push the boundary off by one.
+3. Ask: does any existing test now go red? If yes, the gate is covered. If no test trips, the gate is **untested** — the finding is **High**, and the deliverable is the missing test that would have caught the inversion.
+
+A gate with no test that fails on its inversion is a **vacuous invariant**: it looks like protection but enforces nothing, because nothing observes whether it holds. Recurring vacuous-invariant anti-patterns (these surfaced **4x in a single session**): an eval scorer that always passes regardless of output; an auth allowlist with an inverted `!`-check that admits everyone; an off-by-one cap boundary that never actually caps; a truthy boot-guard that is always truthy and so never guards. Treat any newly-introduced gate as guilty until a failing-on-inversion test proves it innocent. (Field report #352 #1)
+
 ### Safety-Critical Return Value Verification
 
 For systems with safety-critical operations (stop-loss placement, circuit breakers, rollback triggers, payment captures, credential revocations): verify the return value of the safety operation BEFORE transitioning state. The pattern: `call safety operation → check return → only then transition`.

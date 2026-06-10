@@ -356,6 +356,25 @@ Do NOT create custom DDL in test files — it drifts from the real schema (missi
 
 Custom DDL causes test DB schema mismatches that require 2-3 fix-and-retry cycles per occurrence. (Field report #31)
 
+### Failure Attribution in Shared-State Suites
+
+When a test fails in a suite that shares mutable state across files (a shared test DB, module-level singletons, a global fixture, an ordering-sensitive runner), do NOT attribute a multi-file failure to your change until you have reproduced it in isolation. Shared state means a failure can surface in file B while the root cause lives in file A — or in test ordering itself, not in your edit at all. (Field report #349 F-3)
+
+**Procedure:**
+
+1. **Isolate the failing file.** Run only the failing test file (or the single test), so cross-file state pollution can't contribute. Use the framework's isolation/single-worker flag so the runner doesn't parallelize or randomize:
+
+   | Framework | Isolate single-worker / no parallelism | Disable random ordering |
+   |-----------|----------------------------------------|-------------------------|
+   | vitest | `vitest run --no-threads <file>` (or `--pool=forks --poolOptions.forks.singleFork`) | `--sequence.shuffle=false` |
+   | jest | `jest --runInBand <file>` | `--testSequencer` (default is deterministic) |
+   | pytest | `pytest <file>::<test>` | `pytest -p no:randomly` (disable pytest-randomly) |
+
+2. **Compare against clean HEAD.** Stash your change (`git stash`) and re-run the same isolated command on a clean tree. If it still fails on clean HEAD, the failure is pre-existing — not yours. Restore with `git stash pop` afterward.
+3. **Only after isolation + clean-HEAD comparison** attribute the failure to your change, and fix the actual cause rather than the symptom.
+
+This is the canonical rule in `/docs/methods/QA_ENGINEER.md` (Failure Attribution) — see it for the full decision tree. This section is the testing-runner-flag companion to it.
+
 ## Setup Checklist
 
 When setting up testing for a new project:

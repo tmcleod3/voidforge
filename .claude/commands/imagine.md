@@ -47,6 +47,21 @@ Construct a **style prefix** that gets prepended to every generation prompt.
 
 If `$ARGUMENTS` contains `--style "override"`, use that instead.
 
+## Step 3.5 — Reference Grounding (World-Scan) (Celebrimbor)
+
+(Field reports #347, #4.)
+
+Before generating any image, ground the visual direction in the **real, current** design world — never from training priors alone. Image models regress toward the statistical center of their training distribution, producing the averaged, instantly-recognizable look users perceive as "AI slop." A style prefix assembled only from PRD adjectives ("modern," "clean," "vibrant") inherits that mean and lands there.
+
+Fan out to real references first, then cite **named** artifacts in the generation prompt:
+- **Award galleries and curated current work** — Awwwards, FWA, Godly, Typewolf, Dribbble (for the specific illustration or art style in play).
+- **The live reference set** — the actual products, illustration styles, or visual identities the PRD names or implies as adjacent. Name the real move worth adapting ("Stripe's gradient-on-scroll hero treatment," "a Studio Ghibli watercolor light wash," "Linear's flat-with-grain iconography"), not a generic descriptor.
+- **Cite specific real-world mechanics and styles** in the prompt — a named typeface, a named lighting model, a named composition convention — rather than relying on the model's default for "good design."
+
+Fold the resulting **reference dossier** into the style prefix from Step 3: every generation prompt must carry at least one named, real-world reference anchor. A prompt with no reference anchor is unanchored from reality — regenerate it with one before spending an API call. This mirrors Galadriel's mandatory Reference Grounding discipline; see `/docs/methods/PRODUCT_DESIGN_FRONTEND.md` "Step 1.8 — Reference Grounding (World-Scan)" for the full rationale on committee-converges-on-the-mean and why external reference is the gravity that pulls work off the statistical center.
+
+If `$ARGUMENTS` contains `--style "override"`, the override is trusted as the dossier and this scan may be skipped.
+
 ## Step 4 — Present the Plan
 
 ```

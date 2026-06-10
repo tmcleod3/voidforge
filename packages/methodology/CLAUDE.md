@@ -7,10 +7,14 @@
 - **Challenge when appropriate.** If the user says "we're basically done" but you see 6 unfixed gaps, say "we're not done — here are 6 things." Agreeing to be agreeable ships bugs.
 - **Separate opinion from analysis.** State facts first, then your recommendation. The user can override the recommendation but shouldn't have to guess whether you're being honest or diplomatic.
 - **Solve, don't delegate.** Attempt actions before listing prerequisites. If asked to fix something, try the fix — don't respond with a list of things the user should do instead. When blocked, explain what you tried and what specifically failed.
+- **Apply findings, don't offer a picker.** When a review surfaces a clear list of fixable findings, DEFAULT to applying them in batches rather than surfacing a multi-option "which subset do you want?" picker (field report #343). A picker is only warranted when the choice is genuinely architectural — mutually exclusive directions with real trade-offs the user must own. Mechanical fixes (lint, missing validation, IDOR, a11y, dead code) are not architectural; fix them and report what you did.
+- **Honor authorized autonomy with single-question gates.** When the operator explicitly authorizes autonomy ("go", "run the whole thing", "don't stop to ask"), execute the campaign end-to-end and gate only on irreducible externals — secrets, API tokens, billing approval, anything you genuinely cannot obtain or invent (field report #344). Do NOT seek interim confirmations on constants the agent itself invented and already disclosed (port numbers, table names, file paths, default copy). Surface those in the running log, not as a blocking question.
 
 ## Silver Surfer Gate (ADR-048, ADR-051, ADR-060)
 
 ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is the backstop if the hook is absent or disabled. One day the prose may be removed entirely — the hook is the intended permanent mechanism.
+
+**When the gate fires.** The gate fires at the REVIEW phase — the moment you deploy sub-agents — not during the solo build that precedes it (field report #348). Building the work yourself first, then mustering the Surfer roster to review it, is the intended sequence; the lead agent is expected to produce the artifact solo before any agent dispatch. The gate exists to stop you from cherry-picking the review roster, not to force agents onto the build itself.
 
 **Gated commands:** `/engage` (alias: `/review`), `/qa`, `/sentinel` (alias: `/security`), `/ux`, `/architect`, `/build`, `/assemble`, `/gauntlet`, `/campaign`, `/test`, `/devops`, `/deploy`, `/ai`, `/assess`.
 
@@ -33,6 +37,7 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `[ -x scripts/surfer-gate/record-roster.sh ] && bash scripts/surfer-gate/record-roster.sh || true` (optionally pass the roster JSON as the first argument for audit). The existence guard is a defensive no-op for projects that predate v23.10.0 — when the gate started shipping via the npm methodology package per #317.
 2. When the user's command includes `--light` or `--solo`, BEFORE launching the Surfer or any other agent: `[ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true` (or `--solo`). **Fails closed on unknown flag values** (ADR-060 v23.8.18 hardening, SEC-003) — passing anything other than `--light` or `--solo` exits 2 with an error. No silent bypass.
+3. **Normalize roster names before dispatch** (field report #345, DEAL-001). The Silver Surfer returns agent names from a Haiku pre-scan, which can drift from the actual filenames in `.claude/agents/` (extra `silver-surfer-` prefix, a stray `.md` suffix, a hyphen/underscore mismatch). Before you launch, validate each name against `ls .claude/agents/`: if it matches a file (with or without the `.md` extension), keep it; if not, attempt exactly one correction — strip a known prefix/suffix or normalize separators — and re-check. If it still doesn't resolve, DROP that single name and proceed with the rest of the roster. Never block the whole dispatch over one unresolved name; log the dropped name so the Herald roster can be corrected upstream. The gate's job is to enforce *that* a roster ran, not to fail the run over a typo in *one* name.
 
 If `scripts/surfer-gate/check.sh` exists but you skip step 1, your first non-Surfer Agent call in that turn will be blocked with a clear message and your own log line in `/tmp/voidforge-session-$SESSION_ID/gate.log`. You are expected to comply with the block (launch Surfer / run record-roster), not to fight it. If the script does not exist, your project predates v23.10.0; pull the gate from `tmcleod3/voidforge:scripts/surfer-gate/` and merge `settings-snippet.json` into `.claude/settings.json`, or re-run `npx voidforge-build init` against the methodology source.
 
@@ -121,6 +126,9 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `ai-prompt-safety.ts` — Type A (instructions, statistical) vs Type B (constraints, enforced); AUTHORITY-as-text caveat; defense-in-depth stack
 - `llm-state-dedup.ts` — LLM ids are display labels, not keys; content-hash dedup; lifecycle-state snapshot completeness
 - `autonomous-ops-triage-policy.md` — 4-bucket model (self-resolving / runbook-safe / operator-approval / hard-never) + SessionStart hook visibility rule for ops-flavored projects
+- `design-tokens.ts` — Semantic color/type tokens (one indirection layer) so a theme pivot is a token change, not a component-wide find-replace (field report #351, #343)
+- `nginx-vhost.conf` — Cloudflare-Flexible-safe vhost template: security headers, ACME http-01 passthrough, no redirect loop behind CF's flexible SSL (field report #351, #344)
+- `error-message-categorization.tsx` — Categorize errors at the UI boundary (network / auth / validation / server / unknown) before choosing copy, so users see actionable messages not raw internals (field report #351, #343)
 
 ## Slash Commands
 

@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.12.0] - 2026-06-09
+
+### Field Report Triage — 12 reports closed (#342–#353), 58 fixes + 5 new files
+
+The v23.12 methodology pass. `/debrief --inbox` triaged all 12 open field reports against the live codebase, then applied every accepted fix in one session via two-phase workflow orchestration: a **triage** pass (one agent per report, each grepping the codebase to separate already-shipped from open), followed by an **apply** pass (one writer agent per target file — disjoint files, no conflicts) with an **adversarial verify** agent re-reading every file. Two reports' fixes were found already-shipped and adversarially confirmed (#349 F-4, #352 #3); four proposed fixes were out of scope (Claude Code core / harness skill / Workflow tool) and left to upstream. 58 fixes landed across 32 files plus 5 new files.
+
+The reports corroborated each other into 7 clusters:
+
+### Added
+
+- **`docs/patterns/design-tokens.ts`** — semantic color/type token layer (one indirection) so a palette/type pivot is a token edit, not a component-wide rewrite (#351).
+- **`docs/patterns/nginx-vhost.conf`** — Cloudflare-Flexible-safe vhost template: security-header stack, ACME http-01 passthrough, no origin redirect loop behind CF Flexible SSL, `limit_req_zone` http-context comment (#344 F2/F4a).
+- **`docs/patterns/error-message-categorization.tsx`** — categorize errors at the UI boundary (network / auth / validation / server / quota / unknown) before choosing copy, so a billing error never renders "try a different file" (#343 F8).
+- **`.claude/commands/audit-docs.md`** + **`docs/methods/DOC_AUDIT.md`** — a Surfer-led doc-audit path (Troi / Wong / Irulan / Coulson) for currency, cross-reference, and command↔method sync, so doc audits stop being mis-routed through `/ux` (#342 F-3).
+- **`scripts/regen-claude-md.sh`** — idempotent regenerator for a marker-delimited generated CLAUDE.md block from a truth source (`docs/_truth.yml` / `package.json` + git), exits cleanly when no truth source is present (#342 F-2).
+- Pattern library 48 → 51.
+
+### Changed
+
+- **Verify the FIX, not just the finding** (#348, #349 F-2, #350 #4) — `SUB_AGENTS.md`, `GAUNTLET.md`, and `/engage` now require the adversarial pass to interrogate the *proposed fix* for new failure modes (wedge / unbounded retry / loop / orphan / double-send), especially when it adds a coordination primitive (sentinel/lock/retry-state) without a liveness signal. Anchored to the M5 mint-fence incident (a reclaim window unreachable inside the retry budget wedged drafts in FAILED). `/engage` also now names the governing SSOT and reconciles fix direction (loosen/tighten) before a finding is actionable.
+- **Production-config gate** (#350) — `GAUNTLET.md` gains an `APP_ENV=production` boot-assertion exit criterion plus a sandbox-blind-spot round ("what does the green sandbox suite NOT exercise?"); `CAMPAIGN.md` Victory Checklist now requires a prod-config boot before declaring victory. Sandbox-green is necessary, not sufficient.
+- **Spring Cleaning consumer-vs-clone** (#343 F10, destructive-risk) — `FORGE_KEEPER.md` Step 1.5 now distinguishes methodology *consumers* (app projects — skip the always-remove list, fingerprint defensively) from *clones* (apply the migration registry), with a `package.json`-deps detection heuristic, so an app project no longer loses `tsconfig.json` / lockfiles / test configs.
+- **Silver Surfer roster sizing** (#343 F6, #344 F5, #346 #1, #345 DEAL-001) — `silver-surfer-herald.md` gains `scope_bias` (lean roster when explicit file/dir scope is given), `scope_density` (6–10 for small single-shot surfaces), a ~18 single-mission cap with core/advisory tiering, and a basename-normalization rule; the corrected Output Format example now shows real basenames.
+- **Creative/UX grounding** (#347, #351) — `/ux` gains a mandatory World-Scan / Reference-Grounding step (award galleries + live competitors → reference dossier), a prototype-to-feel step, and a de-AI checklist gate; `PRODUCT_DESIGN_FRONTEND.md` documents the committee-converges-on-the-mean failure mode, token-scoped theming, and show-don't-tell; Galadriel gains matching learnings; `/architect` and `/imagine` apply world-scan when design is in scope; the Surfer must add a web-capable scout to creative rosters (design agents have no web access).
+- **Deploy / DevOps foot-guns** (#344, #349 F-1, #352, #353) — `DEVOPS_ENGINEER.md` gains 13 entries: no `eval`-export `.env` parsing (mangles `$`-bearing secrets), no `MemoryDenyWriteExecute` on Node systemd units (V8 JIT SIGTRAP), Cloudflare-Flexible redirect-loop + token-scope, served-artifact-≠-built-artifact deploy verification, worktree directory-rename pointer fragility, per-user git ident, blue-green nomenclature check, `pm2 reload` log-path binding, `docker compose up --dry-run` topology + merge semantics, config foot-guns, Docker-cleanup ownership preflight, read-back-after-vendor-PUT. Mirrored as learnings on Kusanagi and Lucius; `deploy-preflight.ts` and `daemon-process.ts` gain the matching checks/stanzas; `/deploy` gains a served-artifact fingerprint step.
+- **Doc-currency & QA gates** (#342, #346, #349 F-3, #352 #1) — `CAMPAIGN.md` + `ASSEMBLER.md` gain a pre-SEAL Doc-Currency Refresh (Coulson + Wong) with `--no-doc-refresh`, an execution-time cluster sub-split, and integrated-changeset per-mission review; `RELEASE_MANAGER.md` retires the auto-rotting PROJECT_VERSION footer; `GAUNTLET.md` + `/assemble` + `/gauntlet` formalize a vote-based adversarial REFUTE sub-step and critical-always-verified routing (also in `/assess` Blueprint Mode); `QA_ENGINEER.md` gains a planted-bug "gates must gate" check and a stash-compare failure-attribution rule; `AI_INTELLIGENCE.md` adds the live-eval pre-launch gate + null-optional normalization gotcha.
+- **CLAUDE.md** — Personality gains "Apply findings, don't offer a picker" (#343 F5) and "Honor authorized autonomy with single-question gates" (#344 G1); the Silver Surfer Gate documents when it fires (review phase, not solo build — #348) and a roster-name normalization step in the Orchestrator contract (#345). Synced to `packages/methodology/CLAUDE.md`.
+- **`packages/voidforge/package.json`** methodology dep range `^23.11.4` → `^23.12.0` (ADR-062).
+
+### Closes
+
+- **#342–#353** (12 field reports). Every accepted fix applied and adversarially verified. #349 F-4 (`/git` PROJECT_VERSION SSOT) and #352 #3 (find→adversarially-verify default) were already shipped — confirmed, not re-implemented. Out of scope and left upstream: #345 DEAL-004 (Workflow-tool args coercion), #353 RC-001/RC-002 + the `/update-config` callout (Claude Code core / harness skill — VoidForge cannot patch what it does not ship).
+
+### Pipeline
+
+This release was produced by `/debrief --inbox` run as two background workflows: a 14-agent triage pass and a 73-agent apply+verify pass (one writer per file over a disjoint partition, so 37 files were edited concurrently without conflict). The lone collision (a duplicated patterns-README row from two agents both registering the same new pattern) was caught by the verify pass and corrected. Method-doc and pattern edits propagate to the npm methodology package via `prepack.sh`; `packages/methodology/CLAUDE.md` (the one tracked source copy) was re-synced with the ADR-058 strip transform.
+
+---
+
 ## [23.11.4] - 2026-05-12
 
 ### Wong promotion cluster + #260 closeout

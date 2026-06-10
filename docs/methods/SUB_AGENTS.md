@@ -115,6 +115,10 @@ This powers the Danger Room's live agent ticker. The wizard server watches this 
 
 This is **methodology-driven logging**, not hook-driven. Hooks cannot extract agent identity from tool input — the orchestrator must write the log entry explicitly. (Field report #128, architectural review)
 
+### Workflow-Tool Progress-Tree Labels
+
+When dispatching via the Workflow tool, set the agent **label** so the named character surfaces in the `/workflows` progress tree. Use the form `"<agent> · <key>"` (e.g., `"Picard · review:architecture"`, `"Kenobi · sentinel:auth"`, `"Galadriel · ux:a11y"`), or omit the label entirely so the underlying `agentType` surfaces on its own. If you instead pass only a dimension key like `review:architecture` as the label, that key OVERRIDES the agent identity and the tree shows the dimension instead of Picard/Kenobi/Galadriel — the roster becomes anonymous in the dashboard and the Danger Room ticker correlation breaks. Keep the character name as the leading token of every workflow label. (Field report #348 #2.)
+
 ## Delegation Template
 
 ```
@@ -330,6 +334,21 @@ This pattern applies to:
 - Galadriel's UX (Samwise + Radagast re-verify)
 - Kenobi's Security (Maul re-probes remediations)
 
+#### Verify the FIX, not just the finding
+
+The adversarial-verify step has two distinct jobs, and orchestrators routinely collapse them into one:
+
+1. **Re-probe the fixed AREA** — after a fix lands, confirm the original finding is gone and no neighboring regression appeared. This is the Pass 2 above.
+2. **Interrogate the fix DESIGN** — before or as the fix lands, challenge the *proposed remediation itself* for NEW failure modes it introduces: wedge (a state that can never be exited inside the available budget), unbounded retry, infinite loop, orphaned record, double-send. This is NOT the same as re-probing the area; it scrutinizes the design of the change, not its installed effect.
+
+Job 2 is **especially mandatory when the fix adds a coordination primitive** — a sentinel, a lock, a retry-state record, a fence, a dedup marker — **without a corresponding liveness signal** (a guaranteed path that releases the primitive, an upper bound on retries, a reclaim window that is actually reachable). A coordination primitive with no liveness signal is a wedge waiting to happen: it makes the original bug rarer but converts it into a stuck state that is harder to diagnose.
+
+Motivating incidents:
+- **M5 mint-fence** (field report #348 #1 / #350 #4): the fix added a mint fence so a draft couldn't be re-minted concurrently, with a reclaim window to recover abandoned fences. But the reclaim window was set *longer than the retry budget* — so every retry exhausted before the window opened, and the reclaim path was algebraically unreachable inside the retry budget. Drafts wedged permanently in `FAILED`. The fix's own coordination primitive (the fence) had no reachable liveness path.
+- **M6 lifecycle-sweep** (field report #348 #1 / #350 #4): the fix swept lifecycle records on a schedule but compared against a stale `send_at` snapshot captured before the sweep, so a record whose `send_at` had advanced got swept AND re-sent — a double-send introduced by the remediation, not present in the original bug.
+
+Both would have been caught by an adversarial pass that asked "what new failure mode does THIS fix create?" rather than only "is the old finding gone?" When a fix introduces a sentinel/lock/retry-state, the verify dispatch brief MUST name the wedge/loop/orphan/double-send checklist explicitly and require the agent to trace the liveness path.
+
 **Important distinction:** The Agent tool enables **parallel analysis**, not parallel coding. Sub-agents return text findings — the lead agent then implements code changes sequentially. This is still faster than sequential analysis, but don't expect parallel file edits.
 
 ### Multi-Session Parallelism (Separate Terminals)
@@ -371,6 +390,18 @@ Proven in production: a full `/assemble --muster` (11 phases, 15+ agents) ran en
 | Make decisions at gates | Generate findings from raw code |
 | Track status, report to user | Do work an agent could do |
 | Git operations (commit, push) | Launch agent-to-agent dispatch |
+
+### Default to Fixing, Not to Asking Which to Fix
+
+When a review surfaces a clear list of fixable findings, the orchestrator's DEFAULT is to apply them in batches — not to surface a multi-option "which subset should I fix?" picker and wait. A list of well-scoped findings with obvious remediations is a work queue, not a decision fork. Presenting it back to the user as a menu of options offloads triage the orchestrator was dispatched to do, and stalls a batch that could already be landing.
+
+Apply the findings in batches (partition by domain/concern per the Concurrency Rules), verify after each batch, and report what was fixed. Only stop to ask when a choice is **genuinely architectural or irreversible** — e.g., two incompatible schema directions, a data migration that can't be rolled back, a dependency that changes the deploy target, or a trade-off the PRD is silent on (then follow Multi-agent conflict resolution). "Which of these 9 lint/logic findings should I fix?" is not such a choice; "should this be event-sourced or CRUD?" is. (Field report #343 F5.)
+
+### Use AskUserQuestion at Genuine Forks
+
+The flip side of the anti-picker rule: when the orchestrator hits a **genuine creative or scope fork** — 2-3 mutually-exclusive directions, none obviously dominant, where guessing wrong means rework — present them with `AskUserQuestion` and an option preview for each, rather than silently picking one or surfacing a single take-it-or-leave-it option. Give each option a short label and a one-line preview of what it commits to (the trade-off, the consequence, what it forecloses), so the user can decide in one read instead of an interview.
+
+Use it for: which of two layouts/IA directions, which scope to ship first when both are valid, an irreversible architectural split, a naming/contract convention that downstream agents will all inherit. Do NOT use it as a substitute for triage you should be doing yourself (see the anti-picker rule above), and do NOT pad it past 3 options — a fork with 6 options usually means the scope wasn't analyzed enough to narrow it. One option presented as a question ("shall I do X?") is also an anti-pattern: either it's the obvious default (just do it) or there's a real alternative (show both). (Field report #351 #5.)
 
 ### Standard Agent Brief
 

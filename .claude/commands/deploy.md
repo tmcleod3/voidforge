@@ -96,6 +96,30 @@ Reference implementation: `docs/patterns/post-deploy-probe.sh`. Any 200 response
 
 Evidence: field reports #305 (credential leak) and #303 (methodology exposure).
 
+## Step 4.6 — Served-Artifact Verification (Levi) — MANDATORY FINAL GATE
+
+A health check returning HTTP 200 only proves *something* is alive at the URL — it does NOT prove the live URL is serving the artifact you just built. Build + restart can each exit 0 while production still serves the *old* bundle. The classic split: the host's static root (e.g. `/var/www/app/dist`, an nginx `root`, or a Vercel/Cloudflare CDN cache) is NOT the same directory the build wrote into (e.g. a Docker container's internal `/app/dist`, or a fresh `dist/` that was never copied to the served path). Every step succeeds; prod is stale.
+
+This step closes that gap by fetching a fingerprint back through the **public/served path** and comparing it to what was actually built. Verifying exit codes is not enough — verify identity.
+
+**Procedure:**
+
+1. **Capture the built fingerprint** (before or during Step 3, record it; here we read it):
+   - Preferred: a build-time version/commit stamp the app exposes. Inject the commit SHA at build time (e.g. `VITE_BUILD_SHA=$(git rev-parse HEAD)`, `NEXT_PUBLIC_BUILD_SHA`, or a generated `build-info.json` / `version.json` containing `{ "sha": "...", "version": "...", "builtAt": "..." }`).
+   - Fallback when no version stamp exists: hash the primary built entrypoint locally —
+     `BUILT_HASH=$(find dist -name 'index.html' -o -name 'index-*.js' | head -1 | xargs sha256sum | cut -d' ' -f1)`
+     and capture the hashed-filename of the main JS/CSS bundle (build tools that content-hash filenames, e.g. `index-a1b2c3d4.js`, make this trivial — the filename *is* the fingerprint).
+
+2. **Fetch the served fingerprint through the public URL** (never the local filesystem, never `ssh ... cat dist/...` — that would re-read the build output, not what's served):
+   - Version stamp: `curl -sf https://$DEPLOY_URL/version.json` (or `/build-info.json`, or scrape the `<meta name="build-sha">` / `window.__BUILD_SHA__` the app emits).
+   - Hashed bundle: `curl -sf https://$DEPLOY_URL/ | grep -oE 'index-[a-f0-9]+\.(js|css)'` — the referenced hashed filename(s) ARE the fingerprint of what's live.
+   - Pull the served fingerprint through the CDN/proxy with cache-busting (`curl -H 'Cache-Control: no-cache' -H 'Pragma: no-cache'`, or append `?_cb=$(date +%s)`) so a stale CDN edge cannot mask a stale origin.
+
+3. **Compare.** `SERVED == BUILT` → log `served-artifact: verified <sha-or-hash>` to deploy-state.md and proceed to Step 6.
+   `SERVED != BUILT` (or the version/build-info endpoint 404s when the build emits one) → the deploy did NOT take effect at the served path. Do NOT report success. Trigger **Step 5 (Rollback)** is wrong here (the OLD artifact is already live), so instead: ABORT, flag a **stale-serve / wrong static-root** misconfiguration, print both fingerprints, and notify the operator. The fix is almost always a path mismatch (build output dir vs. served root, or a Docker volume / CDN cache not invalidated) — the operator must reconcile the served root with the build output.
+
+This gate is mandatory and non-skippable for any deploy that serves a built frontend bundle or a versioned backend artifact. A green health check with an unverified artifact is a false "DEPLOY COMPLETE." (field report #349 [F-1] — host static-root vs docker-internal-dist split: every step returned 0, prod served the old bundle, health check passed, stale code lived in production undetected.)
+
 ## Step 5 — Rollback (Valkyrie)
 
 If health check fails:
@@ -116,9 +140,12 @@ If health check fails:
   Version:    v2.9.0
   Commit:     abc123
   Health:     ✓ 200 OK (142ms)
+  Artifact:   ✓ served == built (sha a1b2c3d)
   Timestamp:  2026-03-22T12:00:00Z
 ═══════════════════════════════════════════
 ```
+
+Do not print this block until Step 4.6 confirms `served == built` (field report #349). A green health line without a verified `Artifact:` line is an incomplete deploy.
 
 Update `/logs/deploy-state.md` with deploy results.
 
@@ -134,6 +161,7 @@ Update `/logs/deploy-state.md` with deploy results.
 - Never deploy with uncommitted changes
 - Never deploy without a passing build
 - Always health check after deploy
+- Always verify the served artifact matches the built artifact through the public URL before reporting success — a 200 is not proof of a fresh deploy (field report #349)
 - Always rollback on health check failure
 - Deploy log with timestamps for audit trail
 - In autonomous campaign mode: auto-deploy after Victory Gauntlet passes

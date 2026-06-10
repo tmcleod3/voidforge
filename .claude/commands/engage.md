@@ -103,6 +103,8 @@ Severity: Must Fix > Should Fix > Consider > Nit
 
 **Confidence scoring is mandatory.** Every finding includes a confidence score (0-100). If confidence is below 60, escalate to a second agent from a different universe (e.g., if Spock found it, escalate to Oracle or Stark) to verify before including. If the second agent disagrees, drop the finding. High-confidence findings (90+) skip re-verification in Step 3.5.
 
+**SSOT direction reconciliation (mandatory for access/permission/contract findings — field report #349).** For any finding whose fix touches access control, a permission, or an API/data contract, the finding is NOT actionable until you NAME the governing single source of truth (the permission matrix, the relevant ADR, or the API contract) and reconcile the fix DIRECTION against that doctrine before recording it. State explicitly which way the fix moves — loosen vs tighten, and who gains access — and confirm that direction matches the SSOT. This extends the verify-the-FIX discipline (#348): a finding can be "verified" as real and still carry a backwards fix that widens a permission the doctrine says to restrict. A fix that is real, lands cleanly, and tests green can still be wrong-direction. If no governing SSOT can be named, flag the finding for architecture review (Picard) rather than auto-fixing it.
+
 ## Step 3 — Fix (small batches)
 Fix "Must Fix" and "Should Fix" items. After each batch:
 1. Re-run `npm test`

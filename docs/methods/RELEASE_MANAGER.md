@@ -230,3 +230,30 @@ After pushing to remote, if the project runs on a persistent server (PM2, system
 2. **If stale:** Prompt: "Server is running an older version. Rebuild and restart? [Y/n]"
 3. **In blitz mode:** Auto-rebuild if a deploy script or PM2 ecosystem config exists.
 4. Pushing code to GitHub is NOT deploying it. The server must be rebuilt and restarted for changes to take effect. (Field report #104: 22 commits pushed but PM2 was still running v3.8.1 while code was v3.10.0.)
+
+## No Auto-Rotting Production-Status Footer (field report #342 F-4)
+
+Do NOT add a "Production binary still vX.Y — vA, B, C await operator deploy" footer to the `PROJECT_VERSION.md` template (or any per-version block). The pattern is seductive — it reads as a helpful reminder when written — but it rots silently: it is accurate only at the instant of the version it was written under, and the *next* version bump leaves it pointing at a stale "still on vX.Y" claim that nobody re-reads. By the third release it actively lies about what production is running.
+
+**Rule:** Production-deploy status lives in exactly two places, both of which a release bump already touches:
+
+1. **The single source of truth**, if the project keeps one — `docs/_truth.yml` (or equivalent machine-readable status file). One canonical `production_version:` field, not a prose footer.
+2. **The topmost "Current" block** of `PROJECT_VERSION.md` — the line Coulson already rewrites every bump (Step 5 changes `**Current:** X.Y.Z`). Deploy state, if tracked here at all, belongs adjacent to that line so it is impossible to bump the version without confronting it.
+
+A per-version footer fails because it is *additive* — each bump appends a new one and leaves the old ones in place, so the file accumulates N footers of which N−1 are false. The Current block and the truth file are *overwritten* each bump, so they cannot drift. Coulson rejects any release diff that introduces an "await operator deploy" or "Production binary still" footer; route that information to the Current block instead.
+
+## Regenerating Generated CLAUDE.md Stack Blocks (field report #342 F-2)
+
+When a generated `CLAUDE.md` (or any generated doc) embeds a project stack/inventory block — framework, language, test count, package versions — do NOT leave a promissory placeholder marker (`<!-- stack block: fill me in -->`, `[STACK_TBD]`, etc.) that depends on a human remembering to update it. Placeholder markers rot the same way the footer in F-4 does: they survive review, ship, and then read as authoritative once the brackets are forgotten.
+
+**Pattern:** If the project keeps a machine-readable truth source — `docs/_truth.yml`, `package.json`, a manifest — a regeneration helper rewrites a **clearly-delimited generated block** in place from that source, so the block is reproducible and drift is impossible (re-run the helper, diff, commit). Wrap the block in explicit sentinels so the rewrite is surgical and the hand-written prose around it is never clobbered:
+
+```
+<!-- BEGIN GENERATED: stack (do not edit by hand — run scripts/regen-claude-md.sh) -->
+- **Framework:** Next.js 15.4
+- **Language:** TypeScript 5.6 (strict)
+- **Tests:** 1209 passing
+<!-- END GENERATED: stack -->
+```
+
+A working `scripts/regen-claude-md.sh` may ship alongside this discipline (reading `docs/_truth.yml` / `package.json` and rewriting only the text between the sentinels, leaving everything else byte-identical). If that script is absent, this section documents the intended pattern: the *generated* block is derived, never authored by hand, and never a placeholder. On every MINOR/MAJOR bump Coulson regenerates the block (or flags it for regeneration) rather than trusting that someone updated the prose by hand.

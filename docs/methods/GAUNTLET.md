@@ -95,6 +95,21 @@ This catches what static analysis misses: IPv6 binding, native module ABI compat
 
 **Semantic verification rule:** Verify semantic correctness of arguments, not just type correctness. Ask: is this the RIGHT value, not just a valid type? A function call that compiles and passes type-checking can still be fundamentally wrong if the wrong variable is passed. Check that each argument carries the intended meaning, not just a compatible shape. (Field report #258: aggregate spend parameter received a config object — type-compatible but semantically meaningless, causing NaN comparisons that silently fell through.)
 
+**Step 4.5 — Adversarial Verification (vote-based REFUTE pass) (field report #346 #2):** Crossfire (above) attacks the codebase to discover NEW bugs. This sub-step is the opposite vector — it refutes the EXISTING findings already on the board. Run it on every **Critical** and **High** finding before it reaches the fix batch:
+
+1. For each Critical/High finding, spawn **≥2 skeptic agents** (drawn from different universes per the low-confidence escalation rule). Each skeptic is prompted to **REFUTE** the finding, not to confirm it: *"Here is a claimed defect. Read the actual code at the cited file:line and prove it is NOT a real issue. Default to REFUTED unless the code itself confirms the defect."*
+2. Each skeptic returns a vote: **CONFIRM** (the code at the cited location demonstrably exhibits the defect) or **REFUTE** (the defect cannot be reproduced from the cited code).
+3. **Keep a finding only if it receives ≥1 CONFIRM.** A finding that every skeptic refutes is dropped (logged as a refuted first-pass false positive, not deleted silently).
+4. **Re-rate severity from the votes**, not from the original author's assertion: a Critical that earns only one weak CONFIRM and one REFUTE drops to High or Medium; a finding that all skeptics CONFIRM with reproductions holds its severity.
+
+Why default-to-refuted: across instrumented Gauntlets, **~38% of first-pass Criticals were false positives** — author confidence and adversarial-attack momentum inflate severity. An attacker prompted to find bugs will manufacture them; a skeptic prompted to refute them filters them. The two passes are complementary: Crossfire (attack for new bugs) → Adversarial Verification (refute existing findings).
+
+**Verify the FIX, not just the finding (field report #348 #4 / #350 #4):** The refute pass must also challenge the **PROPOSED FIX**, not only the finding it addresses. For each fix the batch intends to apply, the skeptic asks: *does this fix introduce a NEW failure mode the original code did not have?* Specifically hunt for **wedge, unbounded retry, infinite loop, orphaned record, double-send** regressions. The risk is acute whenever a fix adds a **coordination primitive — a sentinel, a lock, a retry-state row, a fence/claim marker — without also adding a liveness signal** (a bounded timeout that is actually reachable, a heartbeat, a dead-man release). A coordination primitive with no reachable release path does not fix a bug; it converts a transient failure into a permanent wedge.
+
+> **M5 mint-fence incident (field report #348 #4):** a fix added a stale-reclaim fence to recover stuck mint jobs after **120s**. But the reclaim window sat *inside* a BullMQ retry budget of only **~3s** — the 120s liveness threshold was structurally unreachable before the job exhausted its retries, so drafts that hit the fence wedged permanently in `FAILED` instead of being reclaimed. The fix's own coordination primitive (the fence) had no reachable liveness signal. The finding was real; the *fix* created a new Critical.
+
+> **Cross-system checkpoint is non-optional (field report #350 #4):** in a multi-mission Gauntlet, the cross-system checkpoint caught a **fix-induced Critical that a per-mission review's own fix had created** — the per-mission review verified its fix in isolation and passed it; only the whole-system pass saw the new failure mode the fix introduced. This is direct evidence that verifying a fix against the single mission that motivated it is insufficient. The Gauntlet-level refute-the-fix checkpoint stays in the protocol regardless of how green the per-mission reviews were.
+
 **Round 5 — The Council (convergence):**
 - Spock (Star Trek) — code quality after fixes
 - Ahsoka (Star Wars) — access control integrity
@@ -163,6 +178,22 @@ Fix batches happen between rounds:
 **Pass 2 false-positive severity:** When Pass 2 identifies a potential false-positive in a security pattern added during Pass 1, classify as **Must Fix**, not Medium. A false positive in a security scanner is functionally a regression — it degrades working features. Do not defer with "monitor in production" unless a monitoring mechanism actually exists and is configured. (Field report #121)
 
 **Production-parity exit criterion:** Before any Gauntlet round can be marked PASS, verify that the test execution backend matches the project's declared production backend. If `PROJECT_VERSION.md` (or equivalent) declares PostgreSQL but `tests/conftest.py` autouse fixture pins SQLite (or vice versa), the Gauntlet **FAILS** regardless of green test counts. Tests pinned to the wrong backend silently mask the integrations that actually run in prod (RLS, asyncpg pools, advisory locks, LISTEN/NOTIFY, FOR UPDATE SKIP LOCKED, transaction semantics). Field report #315 M3: this slipped past 4 dual-backend Gauntlets on Union Station between v6.2.1 cutover and v7.6 — every Gauntlet was structurally blind to the runtime risk it was supposed to be reviewing. Concrete check at end of each round: `grep -nE "_backend\s*=\s*['\"]" tests/conftest.py` and reconcile against `cat PROJECT_VERSION.md | grep -i 'database\|backend'`. Mismatch = FAIL the round.
+
+**Production-config boot exit criterion (Victory/launch-readiness Gauntlet) (field report #350 #1):** The #315 production-parity criterion above only reconciles the *test database backend*. It does NOT cover sandbox storage, sandbox email, sandbox extractor, or any other adapter that runs in a fake/sandbox mode under test but must resolve to a real implementation in production. For a Victory or launch-readiness Gauntlet, before any round can be marked PASS, run config validation in a **`APP_ENV=production` posture and ASSERT the app actually boots** under it. This catches, before launch:
+
+- **Missing real adapters that throw** — a production adapter (`S3Storage`, `SESMailer`, a real extractor) whose constructor or first call raises because a required key/endpoint was never provisioned. Under sandbox the fake adapter swallows this; under `APP_ENV=production` it surfaces at boot.
+- **Sandbox-in-prod** — config that silently falls back to the sandbox adapter when a production credential is absent, shipping fake storage/email/extraction to real users.
+- **No prod-boot guard** — the absence of any startup assertion that production mode resolved zero sandbox adapters.
+
+Concrete check: `APP_ENV=production <boot command> --check-config` (or the smallest invocation that triggers full adapter resolution) must exit 0 *and* log zero sandbox-adapter selections. A boot that throws, or that boots only by falling back to a sandbox adapter, **FAILS** the round.
+
+**Sandbox-blind-spot dimension (field report #350 #2):** A 100%-green **sandbox** test suite is *necessary but not sufficient*. Add a first-class round dimension that explicitly enumerates: **"what does the green sandbox suite NOT exercise *because* it runs in sandbox?"** Sandbox mode does not just substitute fake data — it changes which code paths execute. Concretely hunt for:
+
+- **Selectors / accessors that throw only on real adapters** — a `get_url()`, `presign()`, or `extract()` that returns a canned value in sandbox but raises on the real implementation (missing region, unsigned URL, unsupported content type). The sandbox path never reaches the throwing branch.
+- **Auto / silent paths suppressed by sandbox confidence pinning** — when sandbox pins a confidence score or classification to a constant, every downstream branch gated on that score is forced down one path. The auto-approve, auto-retry, or human-fallback branches that real (variable) confidence would trigger are never exercised by the green suite.
+- **Coverage that is structurally unreachable in sandbox** — branches behind real rate limits, real pagination, real webhook signatures, real timeouts.
+
+Output of this dimension is an explicit list: *"green sandbox suite does NOT cover: [path], [path], …"* — each entry is either covered by a production-posture test (see the boot criterion above) or logged as a known launch-risk gap. "All sandbox tests pass" is never, by itself, grounds to mark a launch-readiness round PASS.
 
 ## Finding Format
 
@@ -322,6 +353,8 @@ Each agent reports a confidence score (0-100) on their findings. The score refle
 **How to report:** Every finding includes a confidence field: `[ID] [SEVERITY] [CONFIDENCE: XX] [FILE] [DESCRIPTION]`
 
 **Why this matters:** In the v8.0 Gauntlet, several "findings" were false positives that wasted fix time. Confidence scoring lets agents express uncertainty instead of presenting everything as definitive. Low-confidence findings get a second opinion before reaching the user.
+
+**PRINCIPLE — Critical findings are unconditionally verified (field report #345 DEAL-003):** Confidence is an advisory signal for routing *Medium and below*. It is NEVER a fast-track that lets a **Critical**-severity finding skip adversarial verification. The 90-100 "skip re-verification" optimization above applies to High/Medium/Low only — a Critical at confidence 97 is routed to the adversarial refute pass exactly the same as a Critical at confidence 40. Severity dominates confidence: when the two conflict, the higher severity wins the routing decision. Do not enshrine a runtime `needs_verify` boolean (or any per-finding "already verified, skip" flag) into the finding schema as a way to opt a Critical out of verification — Critical-routes-to-verification is a structural property of the protocol, not a field an agent (or a fix author) can toggle. The cost of one false-negative Critical reaching production dwarfs the cost of re-verifying a true-positive one.
 
 ## Sub-agent Failure Fallback
 

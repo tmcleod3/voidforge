@@ -283,6 +283,8 @@ User confirms, redirects, or overrides. On confirm → Step 4.
 
 **Post-infrastructure enforcement gate:** For infrastructure campaigns (deploy targets, CI/CD, monitoring, staging environments): after the infrastructure is provisioned, run `/architect --plan` to verify workflow enforcement gates exist — not just infrastructure existence. Infrastructure without process gates is incomplete.
 
+**Silver Surfer gate fires at the REVIEW phase, not the solo build.** Within a mission, the gate (ADR-051 PreToolUse hook on the Agent tool) engages when Fury deploys the review/audit roster as sub-agents — NOT during the orchestrator's solo build of the mission's code. Solo-build-before-review is intentional, not a skipped gate: parallel agents editing the same tightly-coupled engine files (game loop, state machine, shared service) would clobber each other's edits and produce merge garbage. So the orchestrator builds the changeset solo, THEN the Surfer-gated review roster reads it. If you find yourself mid-build asking "did a gate get skipped?", the answer is no — the gate has not fired yet because the review phase has not started. (Field report #348 #3: mid-build confusion over an un-fired gate that fires correctly at the review phase.)
+
 **Dispatch model (ADR-044):** Per-mission `/assemble` runs SHOULD dispatch phases to sub-agents per `SUB_AGENTS.md` "Parallel Agent Standard." Agents are launched as named subagent types defined in `.claude/agents/` with description-driven dispatch — Opus scans `git diff --stat` and matches changed files against agent descriptions to auto-select specialists. The campaign orchestrator (main thread) manages the mission sequence, inter-mission gates, and campaign state — it does NOT perform inline code analysis. Pass findings summaries between missions, not raw code. See `docs/AGENT_CLASSIFICATION.md` for the full agent manifest (see docs/AGENT_CLASSIFICATION.md). (Field report #270)
 
 ### Campaign-Mode Pipeline
@@ -440,11 +442,26 @@ Even in `--fast` mode, each mission gets at least **1 review round** (not 3, but
 
 **UI→server route tracing (within review):** When a mission writes both UI code and server code, the review must trace every `fetch()` call in the UI to a registered server route. For each `fetch('/api/...')` in `.js`/`.ts` UI files, verify the path exists as an `addRoute()` call in the server. Missing routes produce silent 404s that are invisible in development. (Field report #50: UI button called `/api/server/restart` but no endpoint was created.)
 
+**Review the integrated changeset, not only the new files.** The per-mission review gate must read the full diff from the prior mission's HEAD (`git diff <prev-mission-sha>..HEAD`), not just the files this mission created. Reviewing only the new files misses pre-existing cross-cutting defects that the integration surfaces: a missing config entry the new code now depends on, a Dockerfile `COPY` that never included the directory this mission populated, a doc-vs-reality drift where the new wiring contradicts a README/PRD claim, a build/import that only breaks once the new module is referenced. The new files can each be clean in isolation while the integrated system is broken at the seams. The diff is the unit of review, not the file list. (Field report #346 #4.)
+
 ### One Mission, One Commit Anti-Pattern
 
 **Each mission gets its own commit.** Do NOT batch multiple missions into a single commit. The per-mission commit serves as evidence: the diff for Mission 3 should contain only Mission 3's deliverables. If the diff contains work from Missions 3-11 combined, the review is meaningless — you can't verify what changed for which mission.
 
 If a mission is small enough to merge with an adjacent one, that's fine — but explicitly acknowledge it: "Missions 3-4 combined (both methodology-only, same target file)." Never silently batch.
+
+### Execution-Time Cluster Sub-Split
+
+Plan-time cluster recognition (Step 1 #9, field report #326) splits a cluster-natured mission into sub-missions BEFORE the campaign starts, when Dax can see 4+ named deliverables on the board. But some clusters only reveal their seam at EXECUTION time: a mission spans a **foundation + N consumers** (a new schema/migration the rest of the mission builds on, a shared client/adapter, a base config, a core engine module) and the consumers cannot be safely reviewed until the foundation is real. Or a `RISK` item surfaces mid-mission demanding the foundation land and be verified BEFORE its consumers are wired.
+
+When that happens, split at execution time along the **foundation/consumers seam** — even though the mission was a single board entry:
+
+1. **Sub-mission A (foundation):** build the foundation alone. Its own review gate. Its own commit (`M-XX.a — <foundation>`).
+2. **Sub-mission B..N (consumers):** build the consumers against the now-verified foundation. Each gets its own review gate and its own commit (`M-XX.b`, `M-XX.c`, ...).
+
+Each sub-mission is a real mission for gate purposes: 1-round review minimum, per-mission commit (One Mission, One Commit still holds), and its slice recorded in campaign-state.md. The foundation's review can catch a contract defect (a column the consumers will read but the migration didn't add, an adapter method the consumers call but the foundation didn't expose) BEFORE the consumers are written against a broken base — instead of the Gauntlet catching it three missions later.
+
+**This complements, not duplicates, plan-time recognition (#326):** plan-time splits a cluster on the board before execution; execution-time sub-split triggers when a foundation/consumers seam (often a `RISK` item) emerges *during* a mission that looked atomic at plan time. If you notice the seam at plan time, split there; if it only surfaces under the build, split here. (Field report #346 #3.)
 
 ### Per-Mission Verification Agents
 
@@ -602,12 +619,22 @@ All PRD requirements are COMPLETE or explicitly BLOCKED:
 7. **PRD sync check:** Before declaring victory, compare PRD numeric claims (agent counts, feature counts, route counts, component counts) against the actual codebase for this campaign's domain. Stale PRD claims erode trust and compound across campaigns. (Field report #119)
 7a. **Tenant isolation completeness (conditional):** If the campaign touched auth, multi-tenant, or user-scoped data, grep ALL tables for `org_id` (or equivalent ownership column). Every table must be classified as either "tenant-scoped" (has org_id) or "global by design" (with documented justification). Tables without org_id and without justification are IDOR risks. This catches incomplete tenant migrations that survive per-phase sweeps — the per-phase check (BUILD_PROTOCOL Phase 4) only covers tables modified in that phase. (Field reports #229, #231)
 8. **Entity selector completeness** — for every user-facing selector (dropdown, combobox, autocomplete) that selects from a database-backed list: verify the selector can handle entities that don't exist yet. If a user can only pick from existing DB records, the feature is incomplete — the selector needs a creation flow or an external lookup fallback. Common examples: city selector (needs geocoding fallback), category picker (needs "Other" or custom entry), user selector (needs invite flow). (Field report #263: city selector only searched existing DB cities — users couldn't set homebase to any city not already in the database.)
+8b. **Doc-Currency Refresh mission (Coulson + Wong) — mandatory pre-SEAL sweep.** Before the final sign-off seals the version, run a dedicated cross-doc currency sweep. The Step 0 freshness check and the Step 6 #9 `build-state.md` update each cover ONE file at ONE moment; across rapid sealed versions the load-bearing docs rot collectively because no single mission owns their joint currency. This mission gives that sweep an owner. **Coulson** (release authority) drives version-line accuracy; **Wong** (lessons/changelog/PRD refresh) drives prose currency. Sweep and reconcile against the current `git log -1` + `package.json`/`pyproject.toml` version:
+   - **`CLAUDE.md`** — Project block, version references, command/agent counts, any "as of vX.Y.Z" claims
+   - **`MEMORY.md`** (auto-memory index, if present) — stale "next:" pointers, completed-work entries that still read as pending
+   - **`README.md`** — install/usage snippets, badge versions, feature lists that drifted from reality
+   - **`PROJECT_VERSION.md` Current line** (or `VERSION.md` "Current:" line) — must equal the version about to be sealed
+   - **`/logs/build-state.md`** — version, test counts, deployment state
+   - **`/logs/campaign-state.md`** — Prophecy Board statuses, final mission status
+   For each file, fix drift in place — never seal known drift. If a doc is already current, note "current at <SHA>" and move on (idempotent). **Opt-out: `--no-doc-refresh`** skips this mission for fast methodology-only or hotfix campaigns where the docs provably did not move; log the skip in campaign-state.md with a one-line reason. This complements (does not replace) the existing state-freshness checks. (Field report #342 F-1: load-bearing docs rotted across rapid sealed versions because the per-file freshness checks had no cross-doc owner.)
 9. **Victory Checklist** — ALL must be true before sign-off:
    - [ ] Gauntlet Council signed off (6/6 or all domains pass)
    - [ ] All BLOCKED items acknowledged by user
    - [ ] PRD claims verified against codebase
    - [ ] `/debrief --submit` filed (issue number recorded)
    - [ ] Campaign-state.md updated with final status
+   - [ ] Doc-Currency Refresh completed (or `--no-doc-refresh` skip logged with reason)
+   - [ ] **Production-config boot assertion passed** — a green sandbox suite is necessary but NOT sufficient. Boot the app under its real production config (production env vars / `NODE_ENV=production`, real adapter selection, production build artifact) and assert it reaches a ready state without a config/credential fault. Sandbox adapters can pass every test while the production path fails on a missing env var, a real-vs-sandbox adapter mismatch, or a build-only import error. Do not declare victory on sandbox-green alone. (Field report #350 #3: sandbox suite was fully green but the production-config boot path was never asserted before sign-off.)
 
 ### The Reckoning (Optional Pre-Launch Audit)
 

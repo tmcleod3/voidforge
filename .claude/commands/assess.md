@@ -18,6 +18,16 @@ Evaluate an existing codebase before a rebuild, migration, or VoidForge onboardi
 
 ## The Sequence
 
+### Step 0 — Pre-Build Detection + Blueprint Mode
+
+Before running the code-oriented sequence, detect what kind of corpus you're assessing. Inventory the repo: count source files vs planning artifacts (`/docs/PRD.md`, `docs/adr/*.md` or `ADR-*.md`, design notes, schema sketches). If the corpus is **PRD/ADR-only** — a planning corpus with little or no implemented code — do NOT deflect to `/build`. A plan is exactly the thing assessment exists to pressure-test before a line of code is written (field report #345 DEAL-002). Run Blueprint Mode instead:
+
+1. **PRD/ADR audit** — `subagent_type: Troi` reads the PRD prose section-by-section for internal contradictions, unstated assumptions, and unverifiable claims; `subagent_type: Dax` diffs the PRD's stated requirements against the ADRs to surface decisions that contradict or fail to cover the requirements. Together they answer: is this plan coherent and complete enough to build from?
+2. **Architecture pre-flight** — `subagent_type: Picard` reviews the proposed architecture *as designed* (schema shape, service boundaries, integration points, scaling assumptions, security posture) and flags decisions that will be expensive to reverse once code exists. This is `/architect` applied to intent rather than implementation.
+3. **Build-readiness verdict** — emit one of: **"Ready to build"** (plan is coherent, architecture is sound — hand off to `/campaign` or `/build`), **"Plan needs revision first"** (PRD/ADR gaps or contradictions block a clean build — list them), or **"Architecture needs a decision first"** (an unresolved design fork must be settled before building). Record the verdict in the Step 4 report under the Recommendation line.
+
+If the corpus contains real implementation code, skip Blueprint Mode and proceed to Step 1 — the standard code-assessment sequence.
+
 ### Step 1 — Picard's Architecture Scan
 Run `/architect` — full bridge crew analysis. This maps the system: schema, integrations, security posture, service boundaries, tech debt.
 
@@ -30,6 +40,8 @@ Run `/gauntlet --assess` — Rounds 1-2 only (Discovery + First Strike). No fix 
 - **Stubs returning success:** Methods that return True/ok without side effects (RC-2 pattern)
 - **Auth-free defaults:** HTTP endpoints with no authentication middleware (RC-3 pattern)
 - **Dead code:** Services wired but never called, preferences stored but never read
+
+**Standing rule — CRITICAL findings are unconditionally routed to adversarial verification (field report #345 DEAL-003):** `/assess` is review-only and produces no fix batches, but its findings still drive a rebuild plan — so a false-negative Critical is just as costly here as in `/gauntlet`. Mirror the GAUNTLET.md principle: confidence is an advisory signal for routing *Medium and below only*. It is NEVER a fast-track that lets a **Critical**-severity finding skip adversarial verification, regardless of how high its confidence score or any advisory flag (`--light`, `--fast`, `--solo`) suggests. Severity dominates confidence: a Critical at confidence 97 is routed to the adversarial refute pass exactly the same as a Critical at confidence 40. Critical-routes-to-verification is a structural property of assessment, not a per-finding flag an agent can toggle off.
 
 ### Step 3 — PRD Gap Analysis
 If a PRD exists:
@@ -79,7 +91,7 @@ If findings are methodology-relevant (patterns that VoidForge should catch but d
 - When the PRD assumes existing code works but you haven't verified
 
 ## When NOT to Use
-- On a fresh project (nothing to assess — just run `/build`)
+- On a truly empty project with no PRD, ADRs, or planning corpus (nothing to assess — start with `/prd`, then `/build`). **A PRD-only or ADR-only project is NOT empty** — it has a planning corpus to assess, so use Blueprint Mode (Step 0 below) rather than deflecting to `/build` (field report #345 DEAL-002).
 - On methodology-only changes (no runtime code)
 - After a build (use `/gauntlet` instead — it includes fix batches)
 

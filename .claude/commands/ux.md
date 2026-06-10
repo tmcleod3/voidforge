@@ -1,5 +1,7 @@
 # /ux — Galadriel's UX/UI Pass
 
+> **Scope (field report #342 F-3):** `/ux` is UI/UX-focused — interface, interaction, visual, a11y, and design-system review. For documentation/content audits (READMEs, guides, API docs, prose accuracy), use the `/audit-docs` command, not `/ux`.
+
 > **Silver Surfer Gate (ADR-048, ADR-051) — full protocol in CLAUDE.md.** Launch the Silver Surfer before any other agents, then deploy every agent in its returned roster. Read the `heralding:` field from `.claude/agents/silver-surfer-herald.md` and announce it before launching.
 
 **Agent tool parameters:**
@@ -26,6 +28,19 @@ Detect: framework, styling system, component library, routing, state management.
 Document in phase log: "How to run", key routes, where components/styles/copy live.
 
 **Screenshot mandate (MANDATORY):** If the app is runnable, start the server, take screenshots of EVERY page via Playwright or browser, and READ them via the Read tool. Without screenshots, the review is code-reading — not visual verification. Take at desktop (1440x900), plus 375px and 768px for responsive proof-of-life.
+
+## Step 0.5 — World-Scan / Reference Grounding (MANDATORY) (field report #347 #1)
+Before any creative direction is finalized, web-capable agents fan out and ground the review in the current state of the craft. This is a **required input to every downstream generation agent** — visual, design-system, and enhancement work in Steps 2, 5, and 6 must cite the dossier produced here.
+
+1. **Fan out to award galleries.** Web-capable agents (WebSearch/WebFetch) survey current best-in-class work: **Awwwards**, **FWA**, **CSSDA**, **Godly**, and **Typewolf**. Pull what is winning *now*, not generic patterns.
+2. **Scan the live competitor set.** Pull the actual competitor sites named in the PRD (or inferred from the domain). Visit them; do not theorize about them.
+3. **Extract named references.** For each source, capture concrete, named artifacts — not vibes:
+   - Named sites/projects (with URLs) that exemplify the target quality bar.
+   - Named typefaces (e.g. "GT Sectra", "Söhne", "Editorial New") and pairings.
+   - Named interactions/motifs (e.g. "scroll-linked reveal", "cursor-tracking hover", "split-flap counter").
+4. **Produce a reference dossier.** Write `reference-dossier.md` to the phase log directory with: the named sites/typefaces/interactions above, a short "target quality bar" statement, and an "anti-reference" note (what to avoid / what reads as generic). Downstream agents receive this dossier as required context.
+
+If no web tools are available, log the gap explicitly in the phase log and proceed with PRD-derived references only — but flag that reference grounding is degraded.
 
 ## Step 1 — Product Surface Map
 List every screen/route, primary user journeys, key shared components, and the state taxonomy (loading/empty/error/success/partial/unauthorized). Write to phase log.
@@ -86,6 +101,23 @@ Categories: UX, Visual, A11y, Copy, Performance, Edge Case
 
 ## Step 5 — Enhancement Specs (before coding)
 For each fix: problem statement, proposed solution, acceptance criteria, a11y requirements (**Samwise** `subagent_type: Samwise` signs off), copy (**Bilbo** `subagent_type: Bilbo` signs off). **Faramir** `subagent_type: Faramir` checks whether polish effort targets the right screens — high-traffic core flows, not low-traffic edge pages.
+
+## Step 5.5 — Prototype to Feel (before finalizing creative direction) (field report #351 #1)
+Creative direction is not finalized from a spec doc — it is finalized from something you can *feel*. Before committing the signature moment to the full codebase:
+
+1. **Build an interactive prototype of the signature moment.** The one interaction or screen that defines the experience (the hero reveal, the core flow's key transition, the empty-state-to-delight moment). It must be interactive — clickable, animated, real timing — not a static mock.
+2. **Deploy it to a review URL.** Push the prototype to a shareable URL (preview deploy, ephemeral environment, or a local tunnel) so the moment can be experienced on real devices, not just described.
+3. **Evaluate by feel, then decide.** Walk the prototype. Does the signature moment land? Only finalize creative direction once the deployed prototype confirms it.
+
+**Creative/scope forks — ask, don't guess (field report #351 #5).** When the prototype or spec surfaces a genuine creative or scope fork (two legitimately different directions, not a clear right answer), use **AskUserQuestion** to present 2-3 mutually-exclusive options with a one-line preview of each (the tradeoff, the feel, the cost). Do not silently guess a direction, and do not present a single option as if it were the only one. Reserve this for real forks — not routine polish decisions.
+
+**De-AI checklist gate (before sign-off) (field report #351 #1).** Before Step 9 sign-off, run the work through a de-AI gate — does it read as bespoke craft or as generic AI default? Reject and revise any screen that fails:
+- Generic system-font stack where the dossier (Step 0.5) called for named typefaces.
+- Default purple/indigo gradient, evenly-spaced centered hero, or "card grid of three features" with no point of view.
+- Lorem-flavored copy, hedge words, and emoji-as-decoration instead of brand voice.
+- Uniform 8px-everything spacing with no rhythm, no asymmetry, no intentional tension.
+- Missing the named interactions/motifs from the reference dossier — the signature moment feels absent.
+Tie each rejection back to a concrete reference from the Step 0.5 dossier. A screen passes the gate only when it could not be mistaken for an untouched template.
 
 ## Step 6 — Implement (small batches)
 One batch = one flow or component cluster (max ~200 lines changed). **Boromir** `subagent_type: Boromir` checks: is the polish overengineered? Too many animations? Does complexity hurt performance? **Glorfindel** `subagent_type: Glorfindel` handles the hardest rendering (canvas, WebGL, SVG -- conditional, only if the project has visual complexity). After each batch:

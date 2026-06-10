@@ -30,6 +30,8 @@
 
 Adversarial UX/UI QA review. Identify usability issues, inconsistencies, broken states, accessibility gaps, responsiveness problems. Implement safely in small batches. No redesigning for fun.
 
+**Scope clarification — `/ux` is a UI/UX review verb, not a generic audit verb.** (Field report #342 F-3.) `/ux` reviews interface and experience: screens, flows, states, a11y, visual hierarchy, motion. **Documentation and content audits are out of `/ux`'s scope** — auditing prose, doc structure, broken links, stale instructions, or content accuracy is a different discipline with a different checklist. Route those to the doc-audit path (`/audit-docs`, see `DOC_AUDIT.md`), not here. `/ux` happens to be the most audit-shaped command in the roster, which tempts users to point every audit-flavored request at it; resist that. If a request is about *what the docs say* rather than *how the interface behaves*, hand off to the doc-audit path. (Tutorial/docs *surfaces* — the rendered page's usability, launch-context, prerequisite depth per Step 1.5 — remain in `/ux`'s scope; the *content audit* of those same docs does not.)
+
 ## When to Call Other Agents
 
 | Situation | Hand off to |
@@ -161,6 +163,57 @@ Any fire-and-forget background operation (AI generation, file processing, deploy
 ### Action Inventory Before Hiding Containers
 Before hiding, relocating, or collapsing a UI container (dropdown, panel, menu, toolbar), list ALL actions inside it — primary (viewing, selecting, navigating) AND secondary (creating, deleting, configuring, exporting). Verify every action remains reachable after the redesign. A "simplification" that hides a version picker also hides the "New Version" button inside it.
 (Field report #22: workspace redesign hid the version creation button that lived inside a dropdown.)
+
+## Step 1.8 — Reference Grounding (World-Scan) — Mandatory
+
+(Field reports #347, #2.)
+
+Before Galadriel generates any visual direction — palette, type system, layout language, signature interaction — she must ground the work in the real design world. This step is **mandatory** input to every downstream generation step. Skipping it produces the single most common visual failure mode in agent-generated UI.
+
+**The failure mode — committee-converges-on-the-mean.** When a committee of agents reasons about "what good design looks like" from training priors alone, every agent independently regresses toward the statistical center of its training distribution. The outputs agree with each other, feel internally consistent, and pass every internal review — yet land on the bland, averaged, instantly-recognizable look users now perceive as "AI slop." Consensus is not quality here; it is the symptom. The agents converged on the mean precisely *because* nothing pulled them off it. Internal agreement on visual direction, with no external reference, is a red flag, not a green light.
+
+**The remedy — fan out to the real world first.** Before any visual generation, web-capable agents (Arwen, Éowyn) fan out to:
+
+- **Award galleries:** Awwwards, FWA, CSSDA, Godly, Typewolf. These are curated, off-the-mean, and current.
+- **The live competitor set:** the actual sites of the product's named competitors and adjacent best-in-class products — not a description of them, the live pages.
+
+From that scan, extract **named** artifacts into a **reference dossier**:
+
+- Specific sites worth stealing a move from (named, with the move identified: "Linear's command-palette transition," "Stripe's gradient-on-scroll hero," not "a clean SaaS site").
+- Named typefaces and pairings actually in use (not "a modern sans").
+- Named interactions and motion patterns (the signature moment, the page transition, the hover behavior) worth adapting.
+
+**The dossier is required input downstream.** Every later generation step — Step 1.75 enchantment, Step 2 visual attack plan, any palette/type/layout proposal — must cite the dossier. A proposal with no reference anchor is unanchored from reality and is sent back. **Never generate visual direction from training priors alone.** The dossier is the gravity that pulls the work off the statistical mean.
+
+## Step 1.85 — Converging Creative Direction
+
+(Field reports #351, #2.)
+
+Reference grounding tells you where the real world is. These three disciplines keep your own output off the mean and make creative direction actually converge instead of looping.
+
+### Show, don't tell — prototype before you finalize
+
+Creative direction does not converge from prose, mockups, or description. It converges only when a **feel-able interactive prototype of the signature moment** ships to a review URL someone can open and touch. The signature moment — the hero reveal, the command palette, the card-to-detail transition, whatever carries the product's character — must run in a browser at a real URL before the direction is called final. Reading "a smooth 200ms ease-out reveal" tells you nothing; opening the URL and feeling it tells you everything. Until the signature moment is feel-able at a URL, treat the direction as a proposal, not a decision. This is the fastest known way to break the description-loop where reviewers keep agreeing on words that mean different things to each of them.
+
+### Token-scoped theming — pivots must be cheap
+
+Scope color and type to **semantic tokens** (`--color-surface`, `--color-accent`, `--text-heading`, `--text-body`) from the first component, never hardcoded values inside components. The test: a palette pivot or a type pivot must be a **token change, not a component rewrite**. If switching the accent color or swapping the heading typeface requires editing more than the token definitions, the theming is not token-scoped and the pivot is expensive — which means in practice the pivot won't happen, and the design freezes on its first guess. Cheap pivots are what let creative direction explore and actually converge instead of committing to the first idea by inertia. Celeborn (Step 2 design-system governance) enforces token usage; this step establishes *why* it is load-bearing for creative direction, not just consistency.
+
+### The de-AI checklist
+
+Screen all copy and visuals against the tells that mark generated work as generated. Each tell below is a flag, not an automatic ban — but every flagged instance must be a deliberate, justified choice, never a default the model reached for:
+
+**Copy tells:**
+- **Em-dashes** used as the default connective rhythm (the most reliable single tell). Vary the punctuation; not every clause break is an em-dash.
+- **Generic adjectives** — "seamless," "powerful," "robust," "intuitive," "elevate," "delightful," "effortless." Specific beats generic; show the thing instead of asserting it.
+
+**Visual tells:**
+- **Gradient-text** headings (the `bg-clip-text` rainbow/violet headline).
+- **Pill eyebrows** — the small rounded-full badge above every hero headline.
+- **Default Inter/Playfair pairing** — the reflexive "modern sans + elegant serif" combo. If the reference dossier (Step 1.8) didn't lead you there for a reason, don't reach for it by default.
+- **Cream-editorial-as-trope** — the warm off-white background + serif + wide margins "editorial" look applied to products it doesn't fit, because the model treats it as shorthand for "premium."
+
+A surface that trips three or more of these tells is presumed AI-slop and goes back for de-AI revision, anchored against the Step 1.8 reference dossier.
 
 ## Step 2 — UX/UI Attack Plan
 

@@ -50,7 +50,7 @@ Use the Agent tool to run all four in parallel — full domain audits:
 
 Merge all findings. Deduplicate across domains.
 
-**→ FIX BATCH 1:** Fix all Critical and High findings. Update finding status. **Build-output gate:** If the project has a build step, run the build after fixes and verify output — framework-generated inline scripts, hydration markers, and SSR output are invisible to source-level analysis but can be broken by security hardening (especially CSP changes). Check: `npm run build && grep -c '<script>' dist/**/*.html`.
+**→ FIX BATCH 1:** Run the REFUTE Gate (see below) on every Critical/High finding first — fix only the confirmed survivors at their re-rated severity (field report #346). Update finding status. **Build-output gate:** If the project has a build step, run the build after fixes and verify output — framework-generated inline scripts, hydration markers, and SSR output are invisible to source-level analysis but can be broken by security hardening (especially CSP changes). Check: `npm run build && grep -c '<script>' dist/**/*.html`.
 
 ## Round 2.5 — Runtime Smoke Test (Hawkeye)
 
@@ -74,7 +74,25 @@ Use the Agent tool to run all four in parallel — targeted re-verification:
 - **Agent 3** `subagent_type: Kenobi` — Maul re-probes all remediated vulnerabilities. Ahsoka verifies access control across every role boundary. Padmé verifies the primary user flow still works (critical path smoke test).
 - **Agent 4** `subagent_type: Kusanagi` — Run the complete `/devops` protocol with full team: Senku (provisioning), Levi (deploy), Spike (networking), L (monitoring), Bulma (backup), Holo (cost), Valkyrie (disaster recovery). Deploy scripts, monitoring, backups, health checks, page weight gate, security headers.
 
-**→ FIX BATCH 2:** Fix remaining findings.
+**→ FIX BATCH 2:** Fix remaining findings. Run the REFUTE Gate (below) first — only confirmed findings get fixed.
+
+## REFUTE Gate — Adversarial Verification (per round, before every Fix Batch)
+
+**Thanos:** "A finding is an accusation, not a verdict. Make them prove it."
+
+Before each Fix Batch (Round 2 onward), every **Critical** and **High** finding must survive an adversarial vote (field report #346, #2). This is the gate that stops false positives from driving fixes. It runs INSIDE each round, gating that round's Fix Batch — it does not replace Round 4.
+
+**This is NOT the Crossfire.** The Crossfire (Round 4) hunts NEW bugs in already-fixed code. The REFUTE Gate verifies the findings you ALREADY have — it kills or downgrades unproven accusations before you spend a fix on them. Run both.
+
+**Procedure — execute per round, per Critical/High finding:**
+
+1. **Spawn skeptics.** For each Critical/High finding, launch at least two skeptic agents in parallel via the Agent tool. Draw them from a DIFFERENT universe than the agent that raised the finding (a Star Wars finding gets DC + Marvel skeptics) so no agent grades its own homework. Each skeptic gets the finding ID, severity, file, and description as opaque data.
+2. **Prompt to refute.** Each skeptic is instructed: *"Default to REFUTED. This finding is unproven until you open the cited file and confirm the exploit/bug exists in the actual code. Do not trust the description. Return one of: CONFIRM (with the exact line(s) that prove it), or REFUTE (with the reason the code does not exhibit the claimed problem)."* A skeptic that cannot point to confirming code MUST return REFUTE.
+3. **Tally votes.** Keep the finding only if it receives **≥1 CONFIRM** backed by cited lines. A finding that draws all REFUTE votes is dropped from the round's fix list and logged as `REFUTED` (with the skeptics' reasons) — not silently deleted.
+4. **Re-rate severity from the votes.** Recompute severity from the confirming evidence, not the original claim: unanimous CONFIRM at the original tier holds; a split vote (some CONFIRM, some REFUTE) downgrades one tier (Critical→High, High→Medium); confirmed-but-narrower-than-claimed downgrades to match the proven blast radius. Record the new severity and the vote split on the finding.
+5. **Feed survivors to the Fix Batch.** Only findings with ≥1 CONFIRM and their re-rated severity proceed to the Fix Batch. Medium/Low findings skip the gate (they are not fix-batch-blocking) but may still be escalated under the existing low-confidence escalation rule.
+
+Log every vote (CONFIRM/REFUTE, agent, universe, cited lines or refute reason) and the re-rated severity to that round's log (e.g. `/logs/gauntlet-round-2.md`). The REFUTE Gate is mandatory for Rounds 2, 3, and 5; the Crossfire (Round 4) produces its own findings and runs its own REFUTE Gate before **Fix Batch 3**.
 
 ## Round 4 — The Crossfire (parallel — adversarial)
 
@@ -88,7 +106,7 @@ Use the Agent tool to run all five in parallel — pure adversarial:
 - `subagent_type: Constantine` — Hunts cursed code in FIXED areas specifically. Code that only works by accident.
 - `subagent_type: Eowyn` — Final enchantment pass on the polished, hardened product. Where can delight still be added without compromising security or stability?
 
-**→ FIX BATCH 3:** Fix all adversarial findings. If any fix is applied, re-run the affected adversarial agent on the fixed area only.
+**→ FIX BATCH 3:** Run the REFUTE Gate on every Critical/High Crossfire finding first (field report #346) — fix only confirmed survivors at their re-rated severity. If any fix is applied, re-run the affected adversarial agent on the fixed area only.
 
 ## Round 5 — The Council (parallel — convergence)
 
@@ -104,7 +122,7 @@ Use the Agent tool to run all six in parallel:
 - `subagent_type: Troi` — PRD compliance: read the PRD prose section-by-section, verify every claim against the implementation. Numeric claims, visual treatments, copy accuracy.
 
 If the Council finds issues:
-1. Fix code discrepancies. Flag asset requirements as BLOCKED.
+1. Run the REFUTE Gate on every Critical/High Council finding (field report #346), then fix the confirmed code discrepancies at their re-rated severity. Flag asset requirements as BLOCKED.
 2. Re-run the Council (max 2 iterations).
 3. If not converged after 2 rounds, present remaining findings to the user.
 
@@ -180,6 +198,7 @@ A `/gauntlet` fix batch between rounds produces commits but does NOT bump VERSIO
 - **Confidence scoring is mandatory.** Every finding must include: ID, severity, confidence score (0-100), file, description, fix recommendation. Format: `[ID] [SEVERITY] [CONFIDENCE: XX] [FILE] [DESCRIPTION]`. See GAUNTLET.md "Agent Confidence Scoring" for ranges.
 - **Low-confidence escalation:** Findings below 60 confidence MUST be escalated to a second agent from a different universe before inclusion. If the second agent disagrees, drop the finding. If the second agent agrees, upgrade to medium confidence.
 - **High-confidence fast-track:** Findings at 90+ confidence skip re-verification in Pass 2.
+- **REFUTE Gate is mandatory before every Fix Batch (field report #346).** Each Critical/High finding must draw ≥1 cross-universe CONFIRM (skeptics default to REFUTED) or it is dropped, and its severity is re-rated from the votes. This verifies existing findings; it is distinct from the Round 4 Crossfire, which hunts new bugs. See the "REFUTE Gate — Adversarial Verification" section.
 - If context pressure symptoms appear, ask user to run `/context`. Only checkpoint at >70%. NEVER reduce Gauntlet rounds, skip agents, or "run efficiently" based on self-assessed context pressure. See CAMPAIGN.md "Quality Reduction Anti-Pattern" — this is a hard rule.
 - The Gauntlet is the final test before shipping. Treat it with appropriate gravity.
 

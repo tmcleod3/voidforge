@@ -53,7 +53,8 @@ Fury calls ALL of them. That's the point.
 8. `--skip-arch` and `--skip-build` allow re-running reviews on existing code.
 9. `--resume` picks up from the last completed phase.
 10. Only suggest a fresh session if `/context` shows actual usage above 85%. Do not preemptively checkpoint or reduce quality for context reasons.
-11. **All phases dispatch to sub-agents per ADR-036.** The main thread orchestrates — it plans, launches, triages, and decides. It does NOT read source files, analyze code inline, or generate findings from raw code. See `SUB_AGENTS.md` "Parallel Agent Standard" for brief format, deliverables, and concurrency rules. (Field report #270: full 11-phase /assemble ran through 15+ sub-agents with context at 15-25%, vs 80%+ inline.)
+11. Phase 13.5 (Doc-Currency Refresh) runs before sealing unless `--no-doc-refresh` is set; the skip is logged. `--doc-audit` is a docs-only one-shot mode that runs none of Phases 1-13 (field report #342 F-1, F-5).
+12. **All phases dispatch to sub-agents per ADR-036.** The main thread orchestrates — it plans, launches, triages, and decides. It does NOT read source files, analyze code inline, or generate findings from raw code. See `SUB_AGENTS.md` "Parallel Agent Standard" for brief format, deliverables, and concurrency rules. (Field report #270: full 11-phase /assemble ran through 15+ sub-agents with context at 15-25%, vs 80%+ inline.)
 
 ## The Pipeline
 
@@ -72,6 +73,7 @@ Fury calls ALL of them. That's the point.
 | 11 | /test | 1 | Suite green, coverage acceptable |
 | 12 | Crossfire | 1 | All 4 adversarial agents sign off |
 | 13 | Council | 1-3 | All 5 cross-domain agents sign off (incl. Troi PRD compliance) |
+| 13.5 | Doc-Currency Refresh | 1 | Project docs sweep is clean before sealing (skip with `--no-doc-refresh`) |
 
 ### Phase 6.5 — Seldon's AI Review (conditional)
 
@@ -125,9 +127,36 @@ Verify no circular calls between store actions and API methods. Specifically che
 
 When a feature is added to one surface (API, dashboard, CLI, marketing site), verify all other surfaces displaying the same entities are updated. A new field added to the API response but missing from the dashboard table, or a new tier added to the pricing page but missing from the settings panel, creates an inconsistent product. After each pipeline phase that adds or modifies a feature, grep for the entity name across all surfaces: API routes, React/Vue components, CLI output formatters, marketing page copy, email templates, admin panels. (Triage fix from field report batch #149-#153.)
 
+### Phase 13.5 — Doc-Currency Refresh (pre-SEAL)
+
+After the Council signs off, but BEFORE Fury seals the run and makes the Deploy Offer, sweep the project's source-of-truth docs for drift introduced over the course of the pipeline. A full `/assemble` touches architecture, features, version, and build state — by the time the Council finishes, the docs that describe the project frequently no longer match it. This mirrors the Doc-Currency Refresh mission in `CAMPAIGN.md`: same checklist, applied once at the end of the pipeline instead of once per mission. (Field report #342 F-1: `/assemble` shipped a Council-clean build whose `CLAUDE.md` Project block and `PROJECT_VERSION` line still described the pre-build scaffold.)
+
+Sweep each of these for drift against the current state of the code, and fix what's stale:
+
+1. **`CLAUDE.md`** — Project block (name, one-liner, domain, repo), stack, and any phase/feature claims that the pipeline changed.
+2. **`MEMORY.md`** (auto-memory index, if present) — entries that now point at retired or renamed work.
+3. **`README.md`** — install/run/feature sections that the build moved past.
+4. **`PROJECT_VERSION.md`** (or equivalent) — the **Current** line must name the version this run produced, not the one it started from.
+5. **`/logs/build-state.md`** — the recorded "current state" must reflect the completed pipeline, not a stale prior session (the Phase 9 deployment-verification trap, generalized to all of build-state).
+6. **`/logs/campaign-state.md`** (if this `/assemble` ran inside a campaign) — the mission this run closed must be marked done so `/campaign` doesn't re-pick it.
+
+This phase is **additive verification, not a rewrite** — only touch lines that are demonstrably stale. If every doc is already current, record "Doc-Currency Refresh: clean" in `assemble-state.md` and proceed. Dispatch the sweep to a sub-agent per ADR-036; the main thread triages the diff.
+
+**`--no-doc-refresh`** skips Phase 13.5 entirely (documented opt-out, for runs where docs are maintained out-of-band). The skip is logged to `assemble-state.md` so a later run knows the docs were never swept. (Field report #342 F-1.)
+
 ### Post-Pipeline: Deploy Offer
 
-After Phase 13 (Council sign-off), if a deployment target is configured (`.vercel/project.json`, `fly.toml`, `railway.toml`, or PRD deploy section), Fury offers: "Council has signed off. Deploy to production?" This closes the loop instead of leaving deployment as an implicit user action. In campaign blitz mode, auto-deploy if the deploy method is known. (Field report #37: user had to prompt three times before agent deployed to Vercel.)
+After Phase 13.5 (Doc-Currency Refresh, or its skip), if a deployment target is configured (`.vercel/project.json`, `fly.toml`, `railway.toml`, or PRD deploy section), Fury offers: "Council has signed off. Deploy to production?" This closes the loop instead of leaving deployment as an implicit user action. In campaign blitz mode, auto-deploy if the deploy method is known. (Field report #37: user had to prompt three times before agent deployed to Vercel.)
+
+## `--doc-audit` — One-Shot Documentation Audit
+
+`/assemble --doc-audit` runs a **docs-only** pass: it dispatches a Silver-Surfer-led doc-audit roster and runs **no code review, no build, no security/QA phases** — none of Phases 1-13. The entire pipeline is replaced by a single sweep whose only job is to catch documentation drift across the whole corpus, then report. Use it when you suspect the docs have fallen behind the code but don't want to pay for a full Initiative run. (Field report #342 F-5.)
+
+This is deliberately **broader** than `/git` Step 5.5. Step 5.5 only checks the 13 known method-doc ↔ command-file pairs (e.g. `ASSEMBLER.md` ↔ `assemble.md`) after a release touches a method doc — it is a paired-file sync check, not a corpus audit. `--doc-audit` instead lets the Surfer muster a roster sized to the actual surface area: `docs/`, `*.md` at the repo root, per-directory `CLAUDE.md` files, ADR records, pattern headers, and the slash-command/agent inventory — anywhere prose can disagree with reality.
+
+**Canonical path.** `--doc-audit` is a convenience entry point into the canonical doc-audit mechanism, not a second implementation of it. The doc-audit roster, scoring, and report format are defined by the **`/audit-docs`** command and **`DOC_AUDIT.md`** — `/assemble --doc-audit` dispatches that same Surfer-led audit and surfaces its report. When in doubt about what the audit covers or how findings are graded, `DOC_AUDIT.md` is the source of truth; this section only documents the `/assemble` doorway to it. (Field report #342 F-5.)
+
+`--doc-audit` is incompatible with the build/review flags (`--skip-arch`, `--skip-build`, `--fast`, `--resume`) since it runs none of those phases; pair it with `--focus "topic"` to bias the Surfer's roster toward a corner of the corpus.
 
 ## Deliverables
 

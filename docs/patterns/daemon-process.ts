@@ -325,6 +325,95 @@ function createLogger(logPath: string): { log: (msg: string) => void; close: () 
   };
 }
 
+// ── .env Parsing (literal, $-safe) ────────────────────
+// field report #344 F1: never source secrets via `export $(cat .env)` /
+// `eval "$(cat .env)"`. The shell performs variable expansion and word
+// splitting on the RHS, so a `$`-bearing secret — bcrypt hashes
+// ($2b$...), JWTs, Postgres URLs with `$` in the password, anything with
+// `$VAR`/`${...}`/backticks — gets mangled or silently truncated. Parse
+// literally instead: read each line, split on the FIRST `=` only, and keep
+// the value byte-for-byte (no expansion, no eval). For shells, the
+// equivalent is `while IFS='=' read -r k v; do export "$k=$v"; done < .env`
+// — note IFS='=' and `read -r` (raw, no backslash processing), which never
+// re-expands the value.
+//
+// Prefer a runtime-native loader where available — it sidesteps the shell
+// entirely:
+//   - Node 20.6+: `node --env-file=.env daemon.js` (literal parse, no shell).
+//   - systemd:    `EnvironmentFile=/etc/voidforge/heartbeat.env` (also literal;
+//                 unit-file `Environment=` lines do NOT undergo shell expansion).
+// Use this helper only when you must parse `.env` in-process.
+
+function parseDotenv(contents: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rawLine of contents.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    // Skip blanks and comments. A leading `export ` prefix is tolerated.
+    const trimmed = line.trimStart();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    const body = trimmed.startsWith('export ') ? trimmed.slice(7) : trimmed;
+
+    // Split on the FIRST `=` only — values may legitimately contain `=`.
+    const eq = body.indexOf('=');
+    if (eq < 0) continue; // not a KEY=VALUE line — ignore, don't guess
+    const key = body.slice(0, eq).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue; // invalid env name
+
+    let value = body.slice(eq + 1);
+    // Strip a single layer of matching surrounding quotes. Inside quotes the
+    // value is taken LITERALLY — no `$` expansion, no eval — which is the
+    // whole point: `PASS='p@$$w0rd'` keeps its `$$` intact.
+    if (value.length >= 2 &&
+        ((value[0] === '"' && value[value.length - 1] === '"') ||
+         (value[0] === "'" && value[value.length - 1] === "'"))) {
+      value = value.slice(1, -1);
+    } else {
+      // Unquoted: trim trailing inline whitespace only (POSIX-ish), never
+      // touch interior `$` characters.
+      value = value.trimEnd();
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+// ── systemd hardening stanza (Node daemons) ───────────
+// field report #344 F3: when running this daemon under systemd, harden the
+// unit — but DO NOT set `MemoryDenyWriteExecute=true` for a Node/V8 process.
+// V8's JIT allocates pages that are written and then executed (it manages its
+// own W^X internally); MDWE forbids any write+exec mapping, so the daemon
+// takes a SIGTRAP and dies at boot, usually before it logs a single line. The
+// safe, high-value sandbox flags below give most of MDWE's benefit without the
+// JIT collision:
+//
+//   [Unit]
+//   Description=VoidForge Heartbeat daemon
+//   After=network-online.target
+//   Wants=network-online.target
+//
+//   [Service]
+//   Type=simple
+//   ExecStart=/usr/bin/node /opt/voidforge/daemon.js
+//   EnvironmentFile=/etc/voidforge/heartbeat.env   # literal parse — see #344 F1
+//   Restart=on-failure
+//   RestartSec=5
+//
+//   # Hardening — keep these:
+//   NoNewPrivileges=true        # no setuid/setgid privilege escalation
+//   ProtectSystem=full          # /usr, /boot, /etc mounted read-only
+//   ProtectHome=true            # /home, /root, /run/user hidden
+//   PrivateTmp=true             # private /tmp + /var/tmp namespace
+//   # MemoryDenyWriteExecute=true  # <-- OMITTED ON PURPOSE: breaks V8 JIT
+//                                  #     (SIGTRAP at boot). Re-enable ONLY for
+//                                  #     Go/Rust/static daemons with no JIT.
+//
+//   [Install]
+//   WantedBy=multi-user.target
+//
+// Go, Rust, and other AOT-compiled daemons emit no executable pages at
+// runtime, so for THEM you can and should keep `MemoryDenyWriteExecute=true`.
+// The omission above is V8-specific, not a general weakening.
+
 export {
   writePidFile, checkStalePid, removePidFile,
   generateSessionToken, validateToken,
@@ -333,6 +422,7 @@ export {
   setupSignalHandlers,
   JobScheduler,
   createLogger,
+  parseDotenv,
   PID_FILE, SOCKET_PATH, TOKEN_FILE, STATE_FILE, LOG_FILE,
 };
 export type { DaemonState, HeartbeatState, ScheduledJob };

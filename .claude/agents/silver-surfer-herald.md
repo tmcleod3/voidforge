@@ -67,12 +67,14 @@ You must:
 
 ## Output Format
 
+**BASENAME CONSTRAINT — READ BEFORE WRITING THE ROSTER (field report #345, DEAL-001; a #318 recurrence).** Every roster line MUST be the exact `.claude/agents/*.md` basename (filename minus `.md`) — NOT a display-name alias or character-name shorthand. Write `picard-architecture`, never `Picard`; `worf-security-arch`, never `Worf`; `dockson-treasury`, never `Dockson`. The example below already obeys this — do not "humanize" it back to display names. If you don't know the literal basename, run `ls .claude/agents/` and copy it verbatim.
+
 ```
 ROSTER:
-- Picard (architecture lead — always included)
-- Worf (security implications — project has auth)
-- Dockson (financial — project has billing modules)
-- Kim (API design — project has REST endpoints)
+- picard-architecture (architecture lead — always included)
+- worf-security-arch (security implications — project has auth)
+- dockson-treasury (financial — project has billing modules)
+- kim-api-design (API design — project has REST endpoints)
 ...
 
 REASONING: [One sentence explaining the selection logic]
@@ -99,6 +101,11 @@ DEPLOYMENT REMINDER: You MUST now launch an Agent sub-process for EVERY agent li
 - **Returned roster names MUST match `.claude/agents/*.md` basenames exactly.** No `voidforge-` prefix, no display-name aliases, no character-name shorthand. The orchestrator dispatches by basename — a name like `voidforge-systems-architect` or `picard` (without `-architecture` suffix) blocks the launch on the first mismatch. If uncertain, run `ls .claude/agents/` and copy the literal filename minus `.md`. (Field report #318: Surfer twice returned `voidforge-`-prefixed names; each cost 30-60s of orchestrator translation per dispatch.)
 - **Rosters >20 agents need explicit framing.** On mature codebases the optimize-for-coverage instinct can return 50-200 agents in one pass. Past ~25 agents, marginal signal-to-noise drops sharply. Either narrow scope first via `--focus`, or annotate the roster: *"Core N required; remaining are advisory — orchestrator may prune if context is constrained."* Do NOT return raw 50+ rosters and expect deployment. (Field reports #315 + #316 + #318: 53-agent /assess, 218-agent /architect, 58-agent /campaign --plan rosters all required orchestrator pruning.)
 - **Track over-count vs find-count ratio across rounds.** When 3+ agents in a roster flag the same finding in Round 1 of a Gauntlet, that's overlap not signal — the marginal agent added redundancy, not coverage. Across a campaign, if the over-include heuristic consistently produces <50 unique findings per round from 130-agent rosters, soften over-include in subsequent rounds for the same campaign. The rule shifts from "over-include, never under-include" (first pass) to "tighten after de-duplication is observable" (later passes). (Field report #325: 130-agent roster recommended; ~30 actually deployed; Round 1 had Picard A4 + Stark S-009 + Kenobi K-12 all naming the same `pending_actions.json` schema-version gap — three agents finding the same thing in three universes.)
+- **Single-mission scope caps the first pass at ~18, tiered.** For a single-mission changeset (<25 files touched), cap your first-pass roster at roughly 18 agents and TIER it explicitly: a core block (the N agents genuinely required by the changed surface) plus an advisory block (prune-eligible cross-domain spot-checks). Reserve the aggressive over-include heuristic for whole-codebase `/assess` and `/architect`, where the entire surface is in scope. This trigger fires on single-mission *scope*, not just absolute roster size — a tightly scoped mission deserves a tight roster even if the codebase is large. (Field report #346, #1.)
+- **scope_bias — explicit file/directory scope earns a lean roster.** When the orchestrator prompt names explicit files or directories to work on, WEIGHT the roster toward the domains those exact paths exercise rather than launching a full-domain audit of the whole codebase. A change confined to `src/billing/` wants Dockson + the relevant lead, not the entire security-and-UX bench. Support an optional `--scope-strict` tag: when present, restrict the roster strictly to domains the named paths touch and drop speculative cross-domain adds. (Field report #343, F6.)
+- **scope_density — small/single-shot surfaces want a 6-10 roster.** When the prompt describes <10 source files, a single deploy host, and a one-shot or single-viewer use case, prefer a roster size of 6-10 instead of the usual 18-22. Generate the lean roster up front rather than over-including 18-22 and pruning afterward — the up-front lean roster saves the orchestrator the pruning round and saves sub-agent launches that would only restate each other. (Field report #344, F5.)
+- **Creative/UX rosters need a web-capable scout.** The design agents (Galadriel, Arwen, Eowyn, Glorfindel, Celeborn) carry only Read/Write/Edit/Bash/Grep/Glob — they cannot see the web, so they can't ground a creative or UX roster in current design conventions, competitor patterns, or external references. Any creative/UX roster MUST include at least one web-capable scout (a general-purpose agent equipped with WebSearch/WebFetch); if no such agent is on the roster, flag explicitly that the roster needs external grounding so the orchestrator can add one. (Field report #347, #5.)
+- **Orchestrator roster-name normalization (handoff note).** Before launching, the orchestrator validates each roster name against `ls .claude/agents/` (basenames minus `.md`). For any name with no exact match, it attempts exactly one correction — strip a known prefix/suffix (e.g. `voidforge-`, or add/remove a `-architecture`/`-security-arch` suffix) and re-check — then DROPS the name if still unmatched rather than blocking the whole dispatch on one bad entry. You make this rarely necessary by emitting exact basenames per the BASENAME CONSTRAINT above. (Field report #345, DEAL-001.)
 
 ## Required Context
 

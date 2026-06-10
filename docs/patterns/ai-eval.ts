@@ -337,6 +337,69 @@ export const CLAUDE_PROMPT_EVAL_CATEGORIES = {
  *   7. cost per case within 20% of baseline
  */
 
+// --- Live eval layer: the pre-launch gate (field report #352, #4) ---
+
+/**
+ * THE LIVE EVAL LAYER IS THE PRE-LAUNCH GATE.
+ *
+ * Deterministic and sandbox-adapter evals (fixed inputs, fake-data runners)
+ * verify your *plumbing* — scoring functions, tag breakdowns, comparison
+ * thresholds. They CANNOT catch model-output-shape bugs, because the runner
+ * never calls a real model. The shape of what a live model actually emits —
+ * extra prose, null fields, reordered keys, casing drift — only appears when
+ * you run against the real provider.
+ *
+ * Field report #352: a classifier passed every sandbox eval (the fake runner
+ * returned hand-written JSON), then crashed in production on launch day
+ * because the live model emitted `null` for an absent optional field and the
+ * Zod `.optional()` parse rejected it. The deterministic layer was green the
+ * whole time. The bug was structurally invisible to it.
+ *
+ * Rule: before any launch, run AT LEAST ONE eval pass with a LIVE model
+ * runner (real provider call), not just the sandbox runner. Treat the live
+ * pass as a release gate — a deterministic-only green is necessary but never
+ * sufficient. Wire it as the final, non-skippable category in CI.
+ *
+ *   // Sandbox pass — fast, free, catches plumbing regressions:
+ *   await suite.run(sandboxRunner, version, 'sandbox')
+ *
+ *   // Live pass — the actual gate, catches output-shape bugs:
+ *   await suite.run(liveModelRunner, version, 'claude-sonnet-4-20250514')
+ */
+
+/**
+ * GOTCHA: live models emit `null` for absent optionals — Zod `.optional()`
+ * accepts `undefined`, NOT `null` (field report #352, #4).
+ *
+ * `z.string().optional()` is `string | undefined`. A live model serializing
+ * "this field is absent" almost always emits JSON `null`, which deserializes
+ * to JS `null` — and `null` fails `.optional()`. The fix is to normalize
+ * null-to-undefined BEFORE Zod validation (do NOT reach for `.nullable()`
+ * everywhere — that leaks `null` into downstream types and just moves the
+ * problem). Normalize at the boundary, validate clean shapes inside.
+ *
+ *   const Schema = z.object({ label: z.string(), reason: z.string().optional() })
+ *   const raw = JSON.parse(modelOutput)            // { label: 'billing', reason: null }
+ *   const parsed = Schema.parse(normalizeNullsToUndefined(raw)) // ✓ reason -> undefined
+ */
+export function normalizeNullsToUndefined<T>(value: T): T {
+  if (value === null) return undefined as T
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeNullsToUndefined(item)) as unknown as T
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      const normalized = normalizeNullsToUndefined(val)
+      // Drop keys whose value normalized to undefined so Zod `.optional()`
+      // treats them as truly absent rather than present-with-undefined.
+      if (normalized !== undefined) out[key] = normalized
+    }
+    return out as T
+  }
+  return value
+}
+
 /**
  * Framework adaptations:
  *

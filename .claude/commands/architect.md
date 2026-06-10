@@ -40,6 +40,15 @@ Before any deep analysis, scan the PRD frontmatter for structural contradictions
 Produce: system identity, component inventory, data flow diagram (ASCII), dependency graph.
 Write to `/logs/` (phase-00 if during orient, or a dedicated architecture log).
 
+## Step 0.5 — World-Scan / Reference Grounding (when design/brand is in scope) (field report #347 #4)
+Whenever this architecture pass produces visual direction, brand framing, or design-system foundations — greenfield initial direction, or any ADR with visual/brand implications — apply the World-Scan / Reference Grounding phase **before** producing that direction. Do not generate visual/brand direction from training priors. See `ux.md` Step 0.5 and `/docs/methods/PRODUCT_DESIGN_FRONTEND.md` for the full protocol.
+
+- **Fan out to real current sources.** Web-capable agents (WebSearch/WebFetch) survey current award galleries (**Awwwards**, **FWA**, **CSSDA**, **Godly**, **Typewolf**) and the **live competitor set** named in the PRD (or inferred from the domain). Visit the competitors; do not theorize about them.
+- **Cite specific mechanics, not vibes.** Capture named sites/projects (with URLs), named typefaces and pairings, and named interactions/motifs that exemplify the target quality bar — and an anti-reference note for what reads as generic.
+- **Feed the dossier downstream.** Record the references in the architecture log (or a `reference-dossier.md` in the phase log dir) so every downstream direction-setting decision cites grounded, current references rather than generated-from-priors defaults.
+
+If no web tools are available, log the gap explicitly and proceed with PRD-derived references only — but flag that reference grounding is degraded. If this pass produces no visual/brand direction, skip this step.
+
 ## Step 1 — Parallel Analysis
 Use the Agent tool to run these in parallel — they are independent analysis tasks:
 

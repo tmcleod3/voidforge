@@ -178,7 +178,18 @@ if [ -f "$ROSTER_FILE" ]; then
 fi
 
 # -------- Rule 4: No roster, no bypass, not the Surfer -> block --------
+# Agents-not-registered chicken-and-egg (field report #343 F1b): if the Silver
+# Surfer ITSELF fails to launch with an "agent type not found" error, the agent
+# definitions exist on disk but are not loaded into this Claude Code session.
+# That signal does not reach a PreToolUse hook (it fires BEFORE the Agent tool
+# runs), so the gate cannot detect it and must NOT fail open — restarting to
+# register the agents is the fix. The block message below carries that guidance.
 _block "Silver Surfer roster not recorded for this session (TTL ${ROSTER_TTL_SECONDS}s — rosters expire and must be re-recorded on long runs).
+
+If the Surfer ITSELF fails to launch with an 'agent type not found' / not-registered
+error, the agent definitions exist on disk but are not loaded into this Claude Code
+session: RESTART Claude Code to register them, then retry (field report #343). The gate
+cannot detect this from a PreToolUse position; restarting is the fix, not bypassing.
 
 Required sequence (orchestrator):
   1. Launch the Silver Surfer sub-agent (subagent_type: 'Silver Surfer')

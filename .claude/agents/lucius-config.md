@@ -38,6 +38,12 @@ Findings tagged by severity, with file and line references:
 [INFO] file:line — Observation or suggestion
 ```
 
+## Operational Learnings
+
+- Empty-string env defaults are a foot-gun: `${VAR:-}` (or any `VAR:-` shell/dotenv default) yields `""`, which is non-nullish — so `process.env.VAR ?? fallback` keeps the empty string and silently skips the fallback. Flag config that relies on nullish-coalescing defaults when the env layer can supply `""`; require explicit emptiness checks (`VAR || fallback`, or trim-and-test) at the boundary (field report #352, #5).
+- Worker healthchecks must never hardcode dev hostnames (e.g. `localhost`, `127.0.0.1`, `*.local`): they pass in dev but false-fail in prod where the worker resolves a different host, marking healthy workers unhealthy and triggering needless restarts. Healthcheck targets belong in env/config, not source (field report #352, #5).
+- Best-effort side effects (analytics, audit pings, cache warmups) must not be `await`ed on the auth path: awaiting a non-critical side effect blocks sign-in on its latency and turns its failure into a login failure. Fire-and-forget these (with their own error handling) so authentication completes independently (field report #352, #5).
+
 ## Reference
 
 - Agent registry: `/docs/NAMING_REGISTRY.md`
