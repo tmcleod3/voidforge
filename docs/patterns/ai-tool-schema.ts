@@ -202,7 +202,7 @@ function zodToJsonSchema(schema: ZodType): Record<string, unknown> {
 //
 // // Pass to Anthropic agent loop (see ai-orchestrator.ts):
 // const response = await client.messages.create({
-//   model: 'claude-sonnet-4-20250514',
+//   model: 'claude-sonnet-4-6',
 //   tools: registry.toAnthropicFormat(),
 //   messages: [{ role: 'user', content: 'What is the weather in Tokyo?' }],
 // })

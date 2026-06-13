@@ -276,6 +276,8 @@ Each file is a standalone subagent definition that Claude Code's native subagent
 
 Leads inherit the main session's model (Opus). Specialists run on Sonnet for cost efficiency without sacrificing analysis quality. Scouts run on Haiku for fast, cheap reconnaissance.
 
+**Effort tiering (per-agent spend lever).** Claude Code exposes an `effort:` level (`low`/`medium`/`high`/`xhigh`/`max`) that controls reasoning depth *independently* of the model tier. Apply by role: **Leads → `xhigh`** (the recommended start for agentic work on Opus 4.8); **Specialists → `medium`** (read-and-report review rarely needs full `high` spend across ~200 agents); **Scouts → OMIT** — **Haiku 4.5 does not support the effort parameter and errors if it is passed.** Haiku also has a **200K context ceiling (not 1M)**: the Surfer pre-scan and scout prompts must fit within it — read agent frontmatter (name/description/tags), not full bodies, on large rosters. Verify the runtime honors agent-frontmatter `effort:` before a fleet edit; the tier *policy* stands regardless. (Platform research 2026-06; the ADR-054 amendment + the 264-file fleet edit are tracked as a campaign mission.)
+
 ### Tool Restrictions
 
 | Profile | Tools | Agents |
@@ -485,7 +487,7 @@ Field report #324 (Union Station v7.8 R2): three agents (Discovery + Stark + Ken
 
 ### Concurrency Rules (ADR-059)
 
-- **Fan out the full roster in parallel for read-only analysis.** Opus 4.7's 1M context window handles 20+ concurrent findings tables without thrashing. Field report #270 confirmed 15+ parallel agents at 15-25% context usage.
+- **Fan out the full roster in parallel for read-only analysis.** Opus 4.8's 1M context window handles 20+ concurrent findings tables without thrashing. Field report #270 confirmed 15+ parallel agents at 15-25% context usage.
 - **No two concurrent agents may write to the same file** — partition by domain/concern, or serialize writes.
 - **Fix/build agents:** batch into waves only when writes overlap. Independent files = parallel.
 - **Wait for ALL parallel agents before synthesizing** (field report #300).

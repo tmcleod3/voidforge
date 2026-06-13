@@ -210,6 +210,8 @@ Default is now maximum quality: autonomous execution + full agent roster + all r
 | `--interactive` | Pause for human confirmation at mission briefs and between phases | `/campaign`, `/assemble`, `/build` |
 | `--solo` | Lead agent only, no sub-agents | All commands |
 
+**Effort mapping (Claude Code effort levels).** The opt-out ladder maps onto platform effort levels: **default** → `xhigh` on the Opus lead + `medium` on specialists; **`--fast`** → `medium` lead + `low` specialists (and/or fewer rounds); **`--solo`** → lead only at standard effort. **Haiku-tier scouts take NO effort parameter — Haiku 4.5 errors on it.** `effort` is a per-agent spend lever independent of model tier (see `SUB_AGENTS.md` Model Tiering). Caveat: the literal keyword `ultracode` auto-launches dynamic workflows on current Claude Code — keep it out of unescaped `$ARGUMENTS`/`--focus` text.
+
 **Retired flags (accepted silently as no-ops for backward compat):** `--blitz`, `--muster`, `--infinity`
 
 See `/docs/methods/MUSTER.md` for the full Muster Protocol.

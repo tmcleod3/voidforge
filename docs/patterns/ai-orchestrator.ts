@@ -59,7 +59,7 @@ export async function executeWithRetry<T>(
 export async function summarize(client: Anthropic, text: string): Promise<Summary> {
   const response = await executeWithRetry(() =>
     client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 512,
       messages: [{ role: 'user', content: `Summarize as JSON: ${text}` }],
       // System prompt enforces output shape
@@ -110,7 +110,7 @@ export async function runAgentLoop(
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await executeWithRetry(() =>
       client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         messages,
         tools: tools as Anthropic.Tool[],
@@ -298,7 +298,7 @@ async function verifyCredential(provider: string, apiKey: string): Promise<boole
       const probe = new Anthropic({ apiKey })
       // Minimal call — small max_tokens to burn near-zero quota
       await probe.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1,
         messages: [{ role: 'user', content: 'ping' }],
       })
@@ -338,4 +338,4 @@ function recordUsage(
 }
 
 // Usage:
-//   recordUsage(sink, org.id, 'anthropic', 'claude-sonnet-4-20250514', 320, 150, 2)
+//   recordUsage(sink, org.id, 'anthropic', 'claude-sonnet-4-6', 320, 150, 2)

@@ -5,7 +5,7 @@ Proposed — 2026-04-20
 
 ## Context
 
-Claude Code ships native slash-command skills that overlap with VoidForge's command namespace. As of Opus 4.7 (January 2026 knowledge cutoff) these natives include:
+Claude Code ships native slash-command skills that overlap with VoidForge's command namespace. As of Opus 4.8 (January 2026 knowledge cutoff) these natives include:
 
 - `/review` — Anthropic's built-in PR review skill.
 - `/security-review` — Anthropic's built-in security review skill.

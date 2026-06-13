@@ -1,6 +1,6 @@
 {
   "name": "voidforge-build-methodology",
-  "version": "23.14.0",
+  "version": "23.15.0",
   "description": "VoidForge methodology — agents, commands, methods, patterns.",
   "license": "MIT",
   "engines": {

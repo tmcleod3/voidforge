@@ -18,7 +18,7 @@ Additional rebalance targets (v23.9.0):
 - `black-canary-monitoring` → Haiku (threshold comparison)
 - `bilbo-microcopy` → Haiku (short-string auditing)
 
-**No Opus promotions** without documented quality failures on Sonnet. Leads use `model: inherit` which resolves to the orchestrator's model (Opus 4.7 when the orchestrator is Opus).
+**No Opus promotions** without documented quality failures on Sonnet. Leads use `model: inherit` which resolves to the orchestrator's model (Opus 4.8 when the orchestrator is Opus).
 
 **Legitimate `inherit` semantics confirmed** (per Fern's compliance scan): Claude Code honors `inherit` by propagating the parent context's model. Twenty lead agents correctly use it.
 

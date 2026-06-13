@@ -145,7 +145,7 @@ Cleaner than a filesystem sentinel for orchestrator self-enforcement, but invisi
 A blocking hook that crashes halts all Agent tool calls for the session. Unrecoverable without killing the process. Unacceptable for a methodology tool.
 
 ### Rejected: native `/agents` integration
-Opus 4.7's native `/agents` management does not expose a gate-insertion API. The surface we can control is hooks; we use it.
+Opus 4.8's native `/agents` management does not expose a gate-insertion API. The surface we can control is hooks; we use it.
 
 ## Related ADRs
 

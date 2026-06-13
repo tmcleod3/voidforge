@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.15.0] - 2026-06-13
+
+### Platform alignment — gate↔Workflow (ADR-064) + model-ID/effort/concurrency currency
+
+Output of `/architect --plan` (a 12-agent platform-evolution review of VoidForge against the mid-2026 Claude Code platform) → `/build` items **(b)** then **(a)**.
+
+### Added
+
+- **ADR-064 — Silver Surfer Gate ↔ Dynamic Workflow interop.** Empirically confirmed the `PreToolUse` gate (`check.sh:99`, matcher `"Agent"` only) is **structurally blind to Workflow-tool-spawned agents**: across this session ~60+ workflow agents produced exactly **2** gate events (`Surfer self-launch`, `ROSTER_RECEIVED`), and a controlled `gate-probe` workflow left the count unchanged (BEFORE=2 / AFTER=2). Decision: extend the matcher to `Agent|Workflow` and gate the workflow *launch* on a recorded roster. **Implementation is a campaign mission** (it touches the gate + its test suite); the ADR records the decision + the reproducible test.
+
+### Fixed
+
+- **Live runtime model-ID bug** — `packages/voidforge/wizard/lib/anthropic.ts` `resolveBestModel()` fell back to **`claude-sonnet-4-7`, a model that does not exist**, on the exact API-unreachable path the fallback exists for (→ 404 when reliability matters most). Corrected to `claude-sonnet-4-6` at both fallback sites, fixed the test that *asserted the bug* (now 6/6 green), and updated `PRD.md` / `FAILURE_MODES.md` / `AI_INTELLIGENCE.md`. (#359-adjacent; surfaced by Seldon + Troi.)
+- **Stale model IDs in reference patterns** — `claude-sonnet-4-20250514` → `claude-sonnet-4-6` across 6 `docs/patterns/*.ts` (every `init` copies these); `Opus 4.7` → `Opus 4.8` across `SUB_AGENTS.md` + ADR-050/051/054/059. (Historical CHANGELOG mentions of `4-7` left intact.)
+
+### Changed
+
+- **Effort-tiering policy** added to `SUB_AGENTS.md` Model Tiering (leads `xhigh` / specialists `medium` / **scouts omit — Haiku 4.5 errors on `effort` and caps at 200K context**) and mapped onto the flag taxonomy in `CLAUDE.md` (default→xhigh/medium, `--fast`→medium/low, `ultracode`-keyword caveat). The 264-file frontmatter fleet edit + the ADR-054 amendment are deferred to the campaign (pending runtime verification that agent-frontmatter `effort:` is honored).
+- **ADR-059 amended** with the real platform concurrency ceiling (**~16 concurrent / ~1,000 per run** — the "20+/30+ parallel" framing was context-headroom, not actual parallelism; batch unbounded fan-outs) and promoted Proposed→Accepted. **`GAUNTLET.md`** "Each round launches agents in waves of 3" (which contradicted ADR-059) corrected to full-roster-with-batching.
+
+### Pipeline
+
+Dogfooded the v23.13.1 pre-tag `npm test` gate and the v23.14.0 publish-gate alignment. Dep range `^23.14.0` → `^23.15.0` (ADR-062). Operator-directed follow-on this session: `/architect --plan` ADR-065 (platform version floor) + ADR-066 (native-capability collision tracker) + amend ADR-051/054 → `/campaign --plan` → `/campaign` build all non-stop.
+
+---
+
 ## [23.14.0] - 2026-06-12
 
 ### Field Report Triage — 2 reports closed (#362, #363)

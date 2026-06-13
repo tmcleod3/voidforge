@@ -18,7 +18,7 @@
 - When the project has significant attack surface (auth, payments, user data, WebSocket, file uploads)
 - Before a public launch or investor demo
 
-**Dispatch model:** All Gauntlet rounds MUST dispatch to sub-agents per `SUB_AGENTS.md` "Parallel Agent Standard." Agents are launched as named subagent types defined in `.claude/agents/` with model tiering (Opus leads, Sonnet specialists, Haiku scouts) and tool restrictions. The main thread manages rounds, triages findings between rounds, and applies fixes — it does NOT read source files or analyze code inline. Each round launches agents in waves of 3 (max concurrent). Findings pass between rounds as summary tables, not raw code. See `docs/AGENT_CLASSIFICATION.md` for the full agent manifest (see docs/AGENT_CLASSIFICATION.md). (Field report #270)
+**Dispatch model:** All Gauntlet rounds MUST dispatch to sub-agents per `SUB_AGENTS.md` "Parallel Agent Standard." Agents are launched as named subagent types defined in `.claude/agents/` with model tiering (Opus leads, Sonnet specialists, Haiku scouts) and tool restrictions. The main thread manages rounds, triages findings between rounds, and applies fixes — it does NOT read source files or analyze code inline. Fan out the full roster in parallel for read-only analysis (ADR-059) — the runtime queues beyond ~16 concurrent, so batch large rounds rather than assume true N-wide parallelism (and stay under the ~1,000-agent/run ceiling; never one-agent-per-file unbounded). Findings pass between rounds as summary tables, not raw code. See `docs/AGENT_CLASSIFICATION.md` for the full agent manifest (see docs/AGENT_CLASSIFICATION.md). (Field report #270)
 
 **When NOT to use /gauntlet:**
 - During active development (use `/assemble` instead — it includes building)

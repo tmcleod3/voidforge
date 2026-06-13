@@ -241,8 +241,8 @@ export function compareVersions(
 //     { id: 'tech-1', input: 'App crashes on login', expected: '{"label":"technical"}', tags: ['technical'] },
 //   ])
 //
-// const baseResult = await suite.run(classifyV1, '2024.01.01', 'claude-sonnet-4-20250514')
-// const candidateResult = await suite.run(classifyV2, '2024.01.15', 'claude-sonnet-4-20250514')
+// const baseResult = await suite.run(classifyV1, '2024.01.01', 'claude-sonnet-4-6')
+// const candidateResult = await suite.run(classifyV2, '2024.01.15', 'claude-sonnet-4-6')
 // const comparison = compareVersions(baseResult, candidateResult)
 //
 // if (comparison.verdict === 'fail') {
@@ -364,7 +364,7 @@ export const CLAUDE_PROMPT_EVAL_CATEGORIES = {
  *   await suite.run(sandboxRunner, version, 'sandbox')
  *
  *   // Live pass — the actual gate, catches output-shape bugs:
- *   await suite.run(liveModelRunner, version, 'claude-sonnet-4-20250514')
+ *   await suite.run(liveModelRunner, version, 'claude-sonnet-4-6')
  */
 
 /**

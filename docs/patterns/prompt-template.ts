@@ -144,7 +144,7 @@ export class PromptRegistry {
 //     { name: 'categories', description: 'Comma-separated category list', required: true },
 //     { name: 'ticket_body', description: 'The ticket text to classify', required: true, maxLength: 5000 },
 //   ],
-//   model: 'claude-sonnet-4-20250514',
+//   model: 'claude-sonnet-4-6',
 //   maxTokens: 256,
 // })
 //
