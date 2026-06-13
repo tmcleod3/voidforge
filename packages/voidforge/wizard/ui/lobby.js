@@ -228,6 +228,7 @@
 
     if (fetchFailed && projects.length === 0) {
       emptyState.style.display = 'none';
+      grid.removeAttribute('role'); // holds an alert, not listitems — drop role="list" (a11y: aria-required-children)
       const errorDiv = document.createElement('div');
       errorDiv.className = 'error-state';
       errorDiv.setAttribute('role', 'alert');
@@ -244,8 +245,10 @@
       });
     } else if (projects.length === 0) {
       emptyState.style.display = '';
+      grid.removeAttribute('role'); // holds the empty-state message, not listitems — drop role="list" (a11y)
     } else {
       emptyState.style.display = 'none';
+      grid.setAttribute('role', 'list'); // valid list: the cards appended below are role="listitem"
       for (const project of projects) {
         grid.appendChild(renderCard(project));
       }

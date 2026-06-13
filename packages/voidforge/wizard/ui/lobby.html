@@ -148,7 +148,9 @@
       </div>
     </header>
 
-    <main class="project-grid" id="project-grid" role="list">
+    <!-- role="list" is applied by lobby.js ONLY when project cards (role="listitem") are present.
+         A list containing the empty-state/error message (or zero items) fails axe aria-required-children. -->
+    <main class="project-grid" id="project-grid">
       <div class="empty-state" id="empty-state">
         <h2>The Lobby is quiet... for now</h2>
         <p>Every great forge starts with its first project.</p>
