@@ -35,8 +35,47 @@ jobs:
       - name: Run tests (root — includes pretest agent-ref + gate validators)
         run: npm test
 
+  e2e:
+    # Publish-gate alignment (field report #363 F4 / v23.14.0): the tag-push
+    # publish gate must depend on the FULL validation suite — E2E + a11y — not
+    # unit tests alone, or an a11y/e2e regression ships past a green unit gate
+    # (the aria-required-children incident that motivated the rule). This
+    # mirrors validate-branches.yml's e2e-tests job, which runs only on branch
+    # pushes/PRs (not tags), so without this the e2e/a11y suite never gated publish.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        # Same npm bug #4828 workaround as the test job.
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run E2E tests (Playwright + axe-core a11y)
+        run: npm run test:e2e
+
   publish-voidforge:
-    needs: [test, publish-methodology]
+    needs: [test, e2e, publish-methodology]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -89,7 +128,7 @@ jobs:
         timeout-minutes: 2
 
   publish-methodology:
-    needs: test
+    needs: [test, e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
