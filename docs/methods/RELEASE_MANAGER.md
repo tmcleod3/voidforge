@@ -124,6 +124,8 @@ After every commit, Barton verifies:
 - [ ] For monorepo CLI/methodology pairs: the CLI's `voidforge-build-methodology` dep range is `^<current-version>`, never `"*"` (ADR-062 — pin tightening shipped in v23.11.3 to close the silent-cross-major drift)
 - [ ] All CI checks are green on the release commit, OR a chronically-red check has a recorded disposition (see DEVOPS_ENGINEER.md "Chronically-Red Check Policy") — a check red across ≥2 releases must be fixed, converted to informational, or removed, never tolerated silently (field report #363 F4)
 - [ ] The tag-push publish workflow declares a dependency on the FULL validation suite (E2E + a11y), not only unit tests — via `needs:` or a same-SHA `workflow_run`. A publish gate that excludes E2E/a11y can ship a critical regression a green unit gate never sees (field report #363 F4)
+- [ ] **Platform floor unchanged since last release?** If a release newly depends on a Claude Code feature with a higher floor, flag it **breaking** and add a `⚠ raises Claude Code floor` CHANGELOG banner; confirm every newly-referenced platform feature is GA or explicitly Full-tier/opt-in (ADR-065, `docs/COMPATIBILITY.md`)
+- [ ] **Native-capability collision re-audit:** any new native bundled skill colliding with a VoidForge command has a recorded disposition, and every `.claude/commands/*.md` has a row in `docs/NATIVE_CAPABILITIES.md` (ADR-066)
 
 ## CLAUDE.md Command Table Integrity Check
 

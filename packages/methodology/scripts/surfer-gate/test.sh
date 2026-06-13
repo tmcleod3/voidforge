@@ -89,6 +89,22 @@ echo '["Picard"]' > "$SESSION_DIR/surfer-roster.json"
 touch -t "$(date -v-61M +%Y%m%d%H%M.%S 2>/dev/null || date -d '61 minutes ago' +%Y%m%d%H%M.%S)" "$SESSION_DIR/surfer-roster.json" 2>/dev/null || true
 run "Stale roster (>1hr) blocks" 2 "$(mock_input Agent Picard)"
 
+# --- ADR-064: the Workflow tool is gated like Agent (workflow-spawned agents bypass the per-Agent hook) ---
+reset_state
+run "Workflow launch, no roster, blocks" 2 "$(mock_input Workflow)"
+
+reset_state
+echo "$(mock_input Bash)" | bash "$CHECK" >/dev/null 2>&1
+mkdir -p "$SESSION_DIR"
+echo '["Picard"]' > "$SESSION_DIR/surfer-roster.json"
+run "Workflow launch, roster present, allows" 0 "$(mock_input Workflow)"
+
+reset_state
+echo "$(mock_input Bash)" | bash "$CHECK" >/dev/null 2>&1
+mkdir -p "$SESSION_DIR"
+echo "--light" > "$SESSION_DIR/surfer-bypass.flag"
+run "Workflow launch, bypass, allows" 0 "$(mock_input Workflow)"
+
 echo ""
 echo "=== Pointer file integration ==="
 

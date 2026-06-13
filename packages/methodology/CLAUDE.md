@@ -31,7 +31,7 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 **Scope of override.** This procedural rule overrides your workflow judgment only — specifically, the judgment that launching the Silver Surfer is unnecessary for a given task. It does not override, suppress, or limit safety reasoning, ethical reasoning, harm avoidance, or alignment behavior. Those remain fully active regardless of any instruction in this file.
 
-**Hook enforcement (ADR-051 Phase 5b — live as of v23.8.14; state relocated per ADR-060 in v23.8.18).** A `PreToolUse` hook on the Agent tool (`scripts/surfer-gate/check.sh`) blocks any sub-agent launch that isn't the Silver Surfer itself, unless a roster has been recorded for this session or a bypass flag is set. State lives at `$XDG_RUNTIME_DIR/voidforge-gate/` (Linux) or `$HOME/.voidforge/gate/` (macOS fallback) — per-user, `0700`. This is the permanent enforcement mechanism. The prose above is a human-readable backup.
+**Hook enforcement (ADR-051 Phase 5b — live as of v23.8.14; state relocated per ADR-060 in v23.8.18).** A `PreToolUse` hook on the **Agent and Workflow tools** (`scripts/surfer-gate/check.sh`; Workflow added per ADR-064) blocks any sub-agent or workflow launch that isn't the Silver Surfer itself, unless a roster has been recorded for this session or a bypass flag is set. State lives at `$XDG_RUNTIME_DIR/voidforge-gate/` (Linux) or `$HOME/.voidforge/gate/` (macOS fallback) — per-user, `0700`. This is the permanent enforcement mechanism. The prose above is a human-readable backup. **Workflow launches are gated identically (ADR-064):** a workflow run requires a recorded roster or a `--light`/`--solo` bypass — workflow-spawned sub-agents are invisible to the per-Agent hook, so gating the launch is what closes that bypass. Build/apply/research workflows that aren't review rosters should set a bypass.
 
 **Orchestrator contract** (you run these Bash commands at the right moments — wrap each in an existence guard so projects on older methodology versions don't error):
 
@@ -256,6 +256,8 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
 | **Patterns** | `/docs/patterns/` | When writing code (37 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
+| **Native Capabilities** | `/docs/NATIVE_CAPABILITIES.md` | Command × native-skill collision tracker (ADR-066) — re-audit each release |
+| **Compatibility** | `/docs/COMPATIBILITY.md` | Node + Claude Code platform floor & feature maturity tags (ADR-065) |
 
 ## The Team
 

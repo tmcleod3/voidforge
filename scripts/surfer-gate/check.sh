@@ -95,10 +95,17 @@ if [ -n "$CWD" ]; then
     fi
 fi
 
-# -------- Only gate Agent tool calls --------
-if [ "$TOOL_NAME" != "Agent" ]; then
-    exit 0
-fi
+# -------- Only gate Agent and Workflow tool calls (ADR-064) --------
+# The Workflow tool fans out its own sub-agents through a runtime path the
+# "Agent" matcher never sees, so gating only Agent let workflow-orchestrated
+# reviews bypass the roster requirement entirely (empirically confirmed — ADR-064).
+# Gate the Workflow LAUNCH on a recorded roster; its internal agent() calls are
+# the contents of an already-authorized roster. A Workflow tool_input carries no
+# subagent_type, so the Surfer-self-launch rule simply won't match for it.
+case "$TOOL_NAME" in
+    Agent|Workflow) ;;
+    *) exit 0 ;;
+esac
 
 # -------- Session state paths --------
 SESSION_DIR="$(surfer_gate_session_dir "$SESSION_ID")"

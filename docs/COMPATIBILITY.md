@@ -1,7 +1,26 @@
-# VoidForge — Node.js Compatibility
+# VoidForge — Compatibility
 
 **Version:** 15.2.1
-**Engines:** `>=20.11.0 <25.0.0`
+**Node Engines:** `>=20.11.0 <25.0.0`
+
+## Claude Code Platform Floor (ADR-065)
+
+VoidForge runs *inside* Claude Code and depends on platform features — a floor separate from the Node.js one below.
+
+| Feature | Used for | Maturity | Min Claude Code |
+|---------|----------|----------|-----------------|
+| `PreToolUse` hooks | Silver Surfer gate (ADR-051/060/064) | GA | **baseline (load-bearing)** |
+| Subagents / Agent tool | all multi-agent commands (ADR-044) | GA | **baseline (load-bearing)** |
+| `Workflow` tool | gate matcher (ADR-064); optional command re-platforming | GA | v2.1.154+ — *only if* a command is workflow-orchestrated |
+| `effort` levels | per-agent spend tuning (ADR-054 — policy only, not yet enforced) | GA | verify before fleet adoption |
+
+**Baseline floor:** the load-bearing features (hooks + subagents) require a Claude Code version where both are GA, recorded as the informational, non-enforced `claudeCodeFloor` field in `packages/methodology/package.json`. **Operator-confirm the exact baseline version** — it is set conservatively pending confirmation (AGENT_INVENTED per `/architect` Step 4.5).
+
+**Semver rule (ADR-065):** raising the platform floor is a **breaking change** — bump MAJOR, or flag the MINOR with a `⚠ raises Claude Code floor` CHANGELOG banner. A beta/preview platform feature must never become load-bearing in a GA scaffold-tier release; keep it Full-tier / opt-in until GA.
+
+---
+
+## Node.js
 
 ## Tested Versions
 

@@ -1,7 +1,7 @@
 # ADR-050: Native Claude Code Command Coexistence
 
 ## Status
-Proposed — 2026-04-20
+Accepted — 2026-04-20. **The deferred "Native Capabilities Tracker" follow-up is now realized as `docs/NATIVE_CAPABILITIES.md` (ADR-066, 2026-06-13)**, which audits all commands against the native set and records `/qa`/`/test`/`/git` dispositions.
 
 ## Context
 

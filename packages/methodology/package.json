@@ -1,11 +1,13 @@
 {
   "name": "voidforge-build-methodology",
-  "version": "23.15.0",
+  "version": "23.16.0",
   "description": "VoidForge methodology — agents, commands, methods, patterns.",
   "license": "MIT",
   "engines": {
     "node": ">=20.11.0 <25.0.0"
   },
+  "claudeCodeFloor": ">=2.1.0",
+  "_claudeCodeFloorNote": "Informational, not npm-enforced. Min Claude Code for load-bearing features (PreToolUse hooks + subagents). Conservative baseline — confirm exact version. Per-feature floors + maturity tags: docs/COMPATIBILITY.md (ADR-065).",
   "files": [
     "CLAUDE.md",
     ".claude/",

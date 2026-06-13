@@ -1,7 +1,7 @@
 # ADR-051: Structural Gate Enforcement (PreToolUse Hook)
 
 ## Status
-Accepted — 2026-04-20 (Phase 5a validated; Phase 5b live in v23.8.14)
+Accepted — 2026-04-20 (Phase 5a validated; Phase 5b live in v23.8.14). **Amended 2026-06-13: the hook is Agent-tool-scoped and does NOT fire for Workflow-tool-spawned agents — see ADR-064 for the closure.**
 
 ## Empirical Findings (Phase 5a Validation)
 
@@ -14,6 +14,10 @@ Live-tested against Claude Code 4.7 on 2026-04-20:
 - **Stdin JSON fields available:** `session_id` (UUID), `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`, `tool_name`, `tool_input` (object — contains `subagent_type` for Agent calls), `tool_use_id`.
 - **Python3 is available** in the hook env on macOS; use it for JSON parsing with graceful fallback.
 - Hook scripts using `exit 0` defensively do not block subsequent tool calls even if they hit errors mid-script (no `set -e`).
+
+### Known limitation — Workflow-tool exemption (added 2026-06-13)
+
+Phase 5a was validated against direct **Agent**-tool calls only. The mid-2026 **Dynamic Workflow** tool spawns its sub-agents through a separate runtime path that the `matcher: "Agent"` hook does **not** intercept. Empirically confirmed (session `f3c6d9db`, 2026-06-13): a session that ran **60+ Workflow-spawned agents** produced exactly **2** gate events (`Surfer self-launch`, `ROSTER_RECEIVED`); a controlled one-agent Workflow probe left the count unchanged (BEFORE=2 / AFTER=2). **Therefore the gate currently covers Agent-tool launches only; any command orchestrated via the Workflow tool is ungated.** **ADR-064** closes this (extend the matcher to `Agent|Workflow` and gate the workflow launch on a recorded roster). Until ADR-064's implementation ships, "permanent enforcement mechanism" holds for the Agent-tool path only — do not re-platform a gated command onto the Workflow tool before ADR-064 lands.
 
 ## Context
 

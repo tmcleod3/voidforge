@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.16.0] - 2026-06-13
+
+### Platform-alignment campaign — ADR-064/065/066 implemented (+ ADR-050/051/054 amended)
+
+Built the ADR set designed in the `/architect --plan` review (→ `/campaign`). Dependency-ordered: the gate↔Workflow fix is the P0 precondition for any future Workflow re-platforming.
+
+### Added
+
+- **`docs/NATIVE_CAPABILITIES.md` (ADR-066)** — the native-capability collision tracker ADR-050 deferred and never created. Audits every `.claude/commands/*.md` against the mid-2026 native skill set with a recorded disposition each: `/engage`/`/sentinel` (rename+alias, done in ADR-050), `/qa` + `/test` (**coexist + document** — project-local CLI resolution wins; web/IDE users invoke the gated flow explicitly; rename deferred as too disruptive), `/git` (**keep** — native `/commit` is narrower than Coulson's release management), all others **keep**. Re-audit gate added to the release checklist.
+- **ADR-064 / ADR-065 / ADR-066** decision records; `docs/COMPATIBILITY.md` Claude Code platform-floor + per-feature maturity table (ADR-065).
+
+### Changed
+
+- **Silver Surfer gate now covers the Workflow tool (ADR-064).** `.claude/settings.json` matcher `"Agent"` → `"Agent|Workflow"`; `scripts/surfer-gate/check.sh` gates a Workflow launch on a recorded roster (Workflow `tool_input` has no `subagent_type`, so the Surfer-self rule simply doesn't match it). `scripts/surfer-gate/test.sh` gains 3 Workflow cases (no-roster→block, roster→allow, bypass→allow) — suite **23/23**; mirrored to `packages/methodology/scripts/surfer-gate/`. **Behavior change:** a Workflow run now requires a recorded roster or a `--light`/`--solo` bypass — closes the empirically-proven bypass (this session: 60+ workflow agents → 0 gate events). CLAUDE.md gate section updated.
+- **`packages/methodology/package.json`** — informational `claudeCodeFloor` field (ADR-065; not npm-enforced; conservative baseline pending operator confirmation).
+- **Amended ADRs:** ADR-051 (documents the Agent-tool-scoping limitation + ADR-064 closure), ADR-054 (effort tiers + Haiku 4.5 200K/no-`effort` constraints), ADR-050 (status → Accepted; tracker realized).
+
+### Deferred
+
+- **ADR-054 effort fleet edit** (264-agent frontmatter `effort:`) — the *policy* shipped in v23.15.0 (SUB_AGENTS.md + flag mapping); the fleet edit waits on runtime verification that agent-frontmatter `effort:` is honored (ADR-054 precondition), to avoid breaking agent loading with an unverified key.
+- **`/gauntlet` / `/assemble` Workflow re-platforming** — the opportunity ADR-064 *unblocks*, but a larger build than this ADR set; flagged for a future campaign.
+
+### Pipeline
+
+Dogfooded pre-tag `npm test` + the publish-gate alignment. The gate fix is itself dogfooded — the Fixture-Bindability test (`Workflow launch, no roster → exit 2`) returned `exit 0` before the change and `exit 2` after. Dep range `^23.15.0` → `^23.16.0` (ADR-062).
+
+---
+
 ## [23.15.0] - 2026-06-13
 
 ### Platform alignment — gate↔Workflow (ADR-064) + model-ID/effort/concurrency currency
