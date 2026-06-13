@@ -3,6 +3,7 @@ name: Chani
 description: "Remote control: Telegram bridge setup, cross-environment messaging, authentication, session bridging"
 heralding: "The desert wind carries a message. Chani opens the channel between worlds."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

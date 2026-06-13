@@ -3,6 +3,7 @@ name: Kelsier
 description: "Growth strategy: SEO, paid ads, content marketing, A/B testing, analytics, conversion optimization, campaign orchestration"
 heralding: "The Survivor rises from the Pits. Your market will never look the same."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

@@ -3,6 +3,7 @@ name: Jessica
 description: "Command authority auditor — Bene Gesserit Voice technique for authorization and access control"
 heralding: "Jessica speaks with the Voice. Your authorization controls will obey."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

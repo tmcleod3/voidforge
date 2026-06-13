@@ -3,6 +3,7 @@ name: Olivier
 description: "Infrastructure hardening — security baselines, CIS benchmarks, attack surface reduction, fortress defense"
 heralding: "The Ice Queen of Briggs inspects the walls. Your infrastructure hardening will be fortress-grade."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

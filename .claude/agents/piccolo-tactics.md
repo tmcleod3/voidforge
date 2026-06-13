@@ -3,6 +3,7 @@ name: Piccolo
 description: "Architecture planning — infrastructure topology, service dependencies, strategic design decisions"
 heralding: "Piccolo meditates on strategy. Your infrastructure topology has been carefully considered."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

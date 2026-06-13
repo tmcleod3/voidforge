@@ -3,6 +3,7 @@ name: Leto
 description: "System protection auditor — sacrifice-driven defense of critical infrastructure"
 heralding: "Duke Leto shields the House. Your critical infrastructure has a protector."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

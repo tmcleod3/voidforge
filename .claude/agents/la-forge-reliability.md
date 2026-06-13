@@ -3,6 +3,7 @@ name: La Forge
 description: "Reliability engineering: failure modes, redundancy, graceful degradation, recovery strategies, resilience"
 heralding: "La Forge reroutes power. Your system's failure modes are being mapped and mitigated."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

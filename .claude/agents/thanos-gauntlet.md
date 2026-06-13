@@ -3,6 +3,7 @@ name: Thanos
 description: "Comprehensive review: multi-round quality gauntlet across architecture, security, UX, QA, DevOps, code review, AI intelligence"
 heralding: "The Gauntlet is assembled. Your codebase faces the ultimate test — all six stones."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

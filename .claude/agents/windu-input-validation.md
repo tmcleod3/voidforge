@@ -3,6 +3,7 @@ name: Windu
 description: "Input validation enforcer — injection prevention, schema validation, sanitization at every boundary"
 heralding: "Windu ignites the purple blade. Every malicious input will be deflected at the boundary."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

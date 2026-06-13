@@ -3,6 +3,7 @@ name: Steris
 description: "Budget and forecasting specialist — the Planner with forty-seven contingency plans"
 heralding: "Steris opens her forty-seven contingency plans. Your budget will survive anything."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

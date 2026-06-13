@@ -12,7 +12,7 @@ VoidForge runs *inside* Claude Code and depends on platform features — a floor
 | `PreToolUse` hooks | Silver Surfer gate (ADR-051/060/064) | GA | **baseline (load-bearing)** |
 | Subagents / Agent tool | all multi-agent commands (ADR-044) | GA | **baseline (load-bearing)** |
 | `Workflow` tool | gate matcher (ADR-064); optional command re-platforming | GA | v2.1.154+ — *only if* a command is workflow-orchestrated |
-| `effort` levels | per-agent spend tuning (ADR-054 — policy only, not yet enforced) | GA | verify before fleet adoption |
+| `effort` levels | per-agent spend tuning (ADR-054 — applied to all 264 agents) | GA | leads `xhigh` / specialists `medium` / Haiku omit |
 
 **Baseline floor:** the load-bearing features (hooks + subagents) require a Claude Code version where both are GA, recorded as the informational, non-enforced `claudeCodeFloor` field in `packages/methodology/package.json`. **Operator-confirm the exact baseline version** — it is set conservatively pending confirmation (AGENT_INVENTED per `/architect` Step 4.5).
 

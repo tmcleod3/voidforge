@@ -3,6 +3,7 @@ name: Batman
 description: "QA and bug hunting: test coverage, regression analysis, edge cases, error handling, race conditions"
 heralding: "The Dark Knight descends on your codebase. No bug escapes the night."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

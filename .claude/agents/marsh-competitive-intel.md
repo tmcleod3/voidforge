@@ -3,6 +3,7 @@ name: Marsh
 description: "Competitive intelligence — the Inquisitor who watches, learns, and reports on competitors"
 heralding: "The Inquisitor watches from the shadows. Your competitors have already been studied."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

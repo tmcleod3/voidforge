@@ -3,6 +3,7 @@ name: Chewie
 description: "Dependency auditor — vulnerable packages, outdated dependencies, supply chain security"
 heralding: "The Wookiee roars. Your dependency tree is about to be shaken for vulnerabilities."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

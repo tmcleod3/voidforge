@@ -3,6 +3,7 @@ name: Nausicaa
 description: "Resource management — green computing, sustainable infrastructure, resource lifecycle, waste reduction"
 heralding: "Nausicaa reads the wind. Your resources will be managed sustainably."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

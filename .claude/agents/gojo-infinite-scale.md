@@ -3,6 +3,7 @@ name: Gojo
 description: "Infinite scale — load balancing, traffic distribution, connection management, limitless throughput"
 heralding: "Infinity activates. Gojo handles scale that would crush anything else."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

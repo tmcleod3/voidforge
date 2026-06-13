@@ -3,6 +3,7 @@ name: Parker
 description: "Module connection specialist — dependency mapping, cross-module linking, import analysis"
 heralding: "Spider-sense tingling. Parker maps every connection in your dependency web."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

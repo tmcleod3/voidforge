@@ -3,6 +3,7 @@ name: Hera
 description: "Security navigator — maps complex system architectures, finds paths through security layers"
 heralding: "Hera takes the pilot seat. The path through your security layers has been charted."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

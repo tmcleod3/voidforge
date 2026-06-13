@@ -3,6 +3,7 @@ name: Aquaman
 description: "Deep dive testing specialist — submerges into complexity, thorough investigation of dense code"
 heralding: "Aquaman dives into the deep. The densest complexity in your code will be explored."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

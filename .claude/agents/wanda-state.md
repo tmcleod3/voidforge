@@ -3,6 +3,7 @@ name: Wanda
 description: "State management specialist — complex transforms, data flow, state machines, reactive patterns"
 heralding: "Reality bends. Wanda reshapes complex state into something that makes sense."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

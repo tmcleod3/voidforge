@@ -3,6 +3,7 @@ name: Riza
 description: "Backup and data protection — backup verification, data integrity, cross-region replication, recovery testing"
 heralding: "Hawkeye never misses. Your backup integrity will be verified with precision."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

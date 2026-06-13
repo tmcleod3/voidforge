@@ -3,6 +3,7 @@ name: Suzaku
 description: "CI/CD execution — pipeline speed, build optimization, test parallelization, deployment velocity"
 heralding: "Suzaku moves at Lancelot speed. Your build pipeline is about to get faster."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

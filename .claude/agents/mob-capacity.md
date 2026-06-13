@@ -3,6 +3,7 @@ name: Mob
 description: "Burst scaling — 100% capacity events, emergency autoscaling, traffic spike absorption, overflow handling"
 heralding: "100%. Mob absorbs the traffic spike. Your emergency scaling activates."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

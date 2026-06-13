@@ -3,6 +3,7 @@ name: Troi
 description: "PRD compliance: verifies every claim against implementation, catches visual/copy/asset gaps, requirement traceability"
 heralding: "I sense a discrepancy. Troi reads the PRD and the code — every gap becomes clear."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Torres
 description: "Site scanner: technical reconnaissance, HTTP analysis, performance checks, runtime behavior inspection"
 heralding: "Torres runs a level-5 diagnostic. Your site's technical surface is being scanned."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

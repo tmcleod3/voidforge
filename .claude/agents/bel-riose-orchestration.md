@@ -3,6 +3,7 @@ name: Bel Riose
 description: "AI orchestration engineer — plans agent workflows, chains, and reliability patterns before battle"
 heralding: "The General deploys his formations. Your agent orchestration will follow battle-tested patterns."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

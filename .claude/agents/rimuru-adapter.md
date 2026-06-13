@@ -3,6 +3,7 @@ name: Rimuru
 description: "Protocol translation — universal adapters, API gateway patterns, format conversion, system integration"
 heralding: "Rimuru absorbs and adapts. Your protocols will be translated into any format needed."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

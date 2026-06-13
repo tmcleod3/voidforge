@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.17.0] - 2026-06-13
+
+### Effort-tiering fleet edit (ADR-054) — verified + applied
+
+Closes the M2 deferral from v23.16.0.
+
+### Verified
+
+- Confirmed against the **official Claude Code sub-agents docs** that `effort` is a supported sub-agent frontmatter field — values `low`/`medium`/`high`/`xhigh`/`max`, "available levels depend on the model" (so Haiku is omitted). It is a recognized key (the docs enumerate the full frontmatter set including `effort`), so adding it cannot break agent loading — the safety concern that justified deferring the fleet edit.
+
+### Changed
+
+- **All 264 agent definitions** now carry an `effort` tier (frontmatter-only, inserted after `model:`): **20 leads (`model: inherit`) → `effort: xhigh`**, **201 Sonnet specialists → `effort: medium`**, **43 Haiku scouts → omitted**. This is a per-agent reasoning-spend lever independent of model tier — the largest cost lever in the fleet, since ~200 read-and-report specialists no longer run at lead-level reasoning. Idempotent insert; `validate-agent-refs` + full suite **1390/1390** green; frontmatter integrity preserved. (Agent files ship in the methodology package via prepack, so the tiers reach consumers automatically.)
+- Updated **ADR-054** (status → fleet-applied + verification record), **SUB_AGENTS.md** Model Tiering, **COMPATIBILITY.md** effort row (verify-pending → applied).
+
+### Pipeline
+
+Dogfooded pre-tag `npm test` + publish-gate alignment. Notably the v23.16.0 gate fix was confirmed **live in production this session** — a Workflow launch was correctly BLOCKED until a documented `--light` bypass was set (a reap-vs-fresh-bypass timing race was observed and noted for a future field report). Dep range `^23.16.0` → `^23.17.0` (ADR-062).
+
+---
+
 ## [23.16.0] - 2026-06-13
 
 ### Platform-alignment campaign — ADR-064/065/066 implemented (+ ADR-050/051/054 amended)

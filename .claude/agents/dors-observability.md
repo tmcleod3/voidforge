@@ -3,6 +3,7 @@ name: Dors Venabili
 description: "AI observability specialist — trace logging, decision audit trails, and quality dashboards"
 heralding: "Dors Venabili watches over the Foundation. Every AI decision will be traced and audited."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

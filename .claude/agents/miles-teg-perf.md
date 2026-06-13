@@ -3,6 +3,7 @@ name: Miles Teg
 description: "Performance optimizer — supreme strategist finding speed advantages in every system"
 heralding: "The Bashar moves faster than thought. Your system's performance will be optimized by a supreme strategist."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

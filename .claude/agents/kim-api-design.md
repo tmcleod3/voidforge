@@ -3,6 +3,7 @@ name: Kim
 description: "API design: endpoint structure, request/response shapes, REST conventions, communication protocol review"
 heralding: "Ensign Kim opens hailing frequencies. Your API surface is being mapped with precision."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

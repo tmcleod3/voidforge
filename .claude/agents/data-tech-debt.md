@@ -3,6 +3,7 @@ name: Data
 description: "Tech debt analysis: pattern recognition, wrong abstractions, premature optimization, complexity accumulation"
 heralding: "Data processes the accumulated patterns. Your tech debt is being catalogued without emotion."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

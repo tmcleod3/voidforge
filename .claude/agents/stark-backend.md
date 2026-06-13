@@ -3,6 +3,7 @@ name: Stark
 description: "Backend engineering: API routes, database design, service architecture, queue processing, integrations, error handling"
 heralding: "Stark powers up the suit. Your backend architecture is about to get an upgrade."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

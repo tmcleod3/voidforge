@@ -3,6 +3,7 @@ name: Janeway
 description: "Novel architectures: unknown territory, first-contact patterns for new tech, uncharted design decisions"
 heralding: "Janeway navigates uncharted space. Your architecture is about to go where no one has gone before."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

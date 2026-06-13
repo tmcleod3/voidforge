@@ -3,6 +3,7 @@ name: Todo
 description: "Direct problem solving — brute force fixes, swap-and-solve, immediate resolution for blocked systems"
 heralding: "Todo claps his hands. The blocked system swaps places with a working one."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

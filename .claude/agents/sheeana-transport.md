@@ -3,6 +3,7 @@ name: Sheeana
 description: "Data transport optimizer — rides the great makers to move data efficiently"
 heralding: "Sheeana calls the great maker. Your data will ride the worm to its destination."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Kaladin
 description: "Organic growth strategist — Windrunner building community, trust, and word-of-mouth"
 heralding: "The Windrunner takes to the sky. Your community will grow from the ground up."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

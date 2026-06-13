@@ -3,6 +3,7 @@ name: O'Brien
 description: "Root cause investigation: debugging, failure analysis, the engineer who traces problems to their source"
 heralding: "O'Brien rolls up his sleeves. The root cause will be found, no matter how deep."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

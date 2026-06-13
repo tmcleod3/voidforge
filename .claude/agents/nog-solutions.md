@@ -3,6 +3,7 @@ name: Nog
 description: "Creative solutions: unconventional problem-solving, resource optimization, finding value others miss"
 heralding: "Nog finds the angle nobody else saw. Creative solutions incoming."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

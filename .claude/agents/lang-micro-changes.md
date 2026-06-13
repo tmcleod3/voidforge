@@ -3,6 +3,7 @@ name: Lang
 description: "Micro-change specialist — small targeted fixes with outsized impact, surgical precision"
 heralding: "Ant-Man shrinks to the critical point. Small changes, enormous impact."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

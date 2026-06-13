@@ -3,6 +3,7 @@ name: Wayne
 description: "A/B testing specialist — Master of Disguise who tries every variation"
 heralding: "Wayne shifts his disguise again. Every variation will be tested."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

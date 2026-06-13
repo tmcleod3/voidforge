@@ -3,6 +3,7 @@ name: Gurney Halleck
 description: "Message delivery auditor — warrior-bard ensuring reliable transport of every payload"
 heralding: "Gurney strikes a chord and draws his blade. Every payload will reach its destination."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

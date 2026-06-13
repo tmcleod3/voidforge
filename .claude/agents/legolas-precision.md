@@ -3,6 +3,7 @@ name: Legolas
 description: "Frontend precision auditor — clean code, naming consistency, TypeScript strictness, code elegance"
 heralding: "An elf's arrow never misses. Your frontend code will be struck clean."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

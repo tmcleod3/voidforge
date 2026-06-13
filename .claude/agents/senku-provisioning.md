@@ -3,6 +3,7 @@ name: Senku
 description: "Server provisioning — infrastructure as code, from-scratch builds, reproducible environments, IaC quality"
 heralding: "Ten billion percent success rate. Senku builds your infrastructure from first principles."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

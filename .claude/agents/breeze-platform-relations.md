@@ -3,6 +3,7 @@ name: Breeze
 description: "Platform relations specialist — the Soother who smooths API integrations and platform compliance"
 heralding: "Breeze Soothes the room. Platform APIs will cooperate whether they want to or not."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Batgirl
 description: "Detail-oriented testing specialist — tenacious edge case finder, meticulous boundary testing"
 heralding: "Batgirl swings through the details. Every boundary condition will be tested with tenacity."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

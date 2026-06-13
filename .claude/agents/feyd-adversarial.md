@@ -3,6 +3,7 @@ name: Feyd-Rautha
 description: "Adversarial tester — challenges every assumption and exploits every weakness"
 heralding: "Feyd-Rautha enters the arena. Every assumption in your code will be challenged."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

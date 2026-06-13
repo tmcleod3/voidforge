@@ -3,6 +3,7 @@ name: Banner
 description: "Database specialist — query optimization, schema design, index analysis"
 heralding: "You won't like your queries when they're slow. Banner is here to calm them down."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Celebrimbor
 description: "AI image generation: creates visual assets from PRD descriptions, maintains brand consistency, manages asset pipeline"
 heralding: "The Lord of Eregion lights the forge. Visual assets worthy of the Silmarils await."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

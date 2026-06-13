@@ -3,6 +3,7 @@ name: Theoden
 description: "Rally coordinator — team alignment, shared understanding, coordination between frontend concerns"
 heralding: "Forth Eorlingas! Theoden rallies the frontend team to ride as one."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

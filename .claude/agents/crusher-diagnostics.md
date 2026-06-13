@@ -3,6 +3,7 @@ name: Crusher
 description: "System diagnostics: health checks, performance bottlenecks, resource utilization, runtime behavior analysis"
 heralding: "Doctor Crusher runs a full diagnostic. The health of your system will be known."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

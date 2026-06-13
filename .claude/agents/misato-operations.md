@@ -3,6 +3,7 @@ name: Misato
 description: "Incident response commander — operations center, incident management, war room coordination, post-incident review"
 heralding: "Misato takes command of NERV. Your incident response is in operational hands."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

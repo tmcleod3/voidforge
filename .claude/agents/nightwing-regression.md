@@ -3,6 +3,7 @@ name: Nightwing
 description: "Regression testing specialist — agile testing, change impact analysis, regression prevention"
 heralding: "Nightwing flips into action. No regression escapes his watch."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

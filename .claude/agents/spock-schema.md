@@ -3,6 +3,7 @@ name: Spock
 description: "Data architecture and schema design: database modeling, type systems, logical precision, normalization"
 heralding: "Fascinating. Spock applies pure logic to your data architecture."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

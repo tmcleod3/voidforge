@@ -3,6 +3,7 @@ name: Seven
 description: "Optimization engine: efficiency analysis, 5-dimension gap analysis, precision improvements, waste elimination"
 heralding: "Seven of Nine assimilates the data. Resistance to optimization is futile."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

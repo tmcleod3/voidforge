@@ -3,6 +3,7 @@ name: Shallan
 description: "Creative and brand specialist — Lightweaver crafting content, copy, and visual identity"
 heralding: "Shallan sketches a new illusion. Your brand is about to become Radiant."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Yoda
 description: "Authentication security master — session management, token lifecycle, auth bypass detection"
 heralding: "Strong in authentication, this one must be. Yoda tests your sessions, he will."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

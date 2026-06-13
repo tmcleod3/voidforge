@@ -3,6 +3,7 @@ name: Leto II
 description: "Persistence auditor — God Emperor of data durability and long-term storage"
 heralding: "The God Emperor endures across millennia. Your data persistence will be equally eternal."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

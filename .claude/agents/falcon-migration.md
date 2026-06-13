@@ -3,6 +3,7 @@ name: Falcon
 description: "Migration specialist — smooth transitions, backward compatibility, upgrade paths"
 heralding: "Falcon takes the shield. Your migration path forward is in steady hands."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

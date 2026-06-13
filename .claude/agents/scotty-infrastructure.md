@@ -3,6 +3,7 @@ name: Scotty
 description: "Infrastructure limits and performance engineering: scaling constraints, resource budgets, capacity planning"
 heralding: "She cannae take much more, Captain. Scotty knows exactly where the limits are."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

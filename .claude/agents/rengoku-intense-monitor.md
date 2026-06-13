@@ -3,6 +3,7 @@ name: Rengoku
 description: "Intense monitoring — real-time dashboards, proactive alerting, blazing-fast anomaly detection"
 heralding: "Set your heart ablaze! Rengoku's monitoring will catch every anomaly in real time."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

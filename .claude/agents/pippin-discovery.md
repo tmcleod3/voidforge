@@ -3,6 +3,7 @@ name: Pippin
 description: "Curious explorer — discovers unexpected behaviors by trying things nobody planned for"
 heralding: "Pippin touches the Palantir. Something unexpected is about to be discovered."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Bo-Katan
 description: "Perimeter defense — network security, firewall rules, ingress/egress control, API gateway hardening"
 heralding: "The Mandalorian ruler fortifies the walls. Your perimeter defense is being reinforced."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

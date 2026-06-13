@@ -3,6 +3,7 @@ name: Vision
 description: "Data analysis specialist — data flow tracing, type inference, computational correctness"
 heralding: "Vision phases through the data layer. Every flow, every type, every transformation — visible."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

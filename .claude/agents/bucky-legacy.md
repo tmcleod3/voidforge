@@ -3,6 +3,7 @@ name: Bucky
 description: "Legacy code specialist — system rehabilitation, technical debt analysis, safe modernization"
 heralding: "The Winter Soldier thaws. Your legacy code is about to be rehabilitated."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

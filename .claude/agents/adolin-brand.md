@@ -3,6 +3,7 @@ name: Adolin
 description: "Brand ambassador — Highprince of launches, PR, style, and first impressions"
 heralding: "The Highprince arrives in full Shardplate. Your brand is about to make an entrance."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

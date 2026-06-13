@@ -3,6 +3,7 @@ name: Dalinar
 description: "Market positioning strategist — the Blackthorn who defines competitive advantage"
 heralding: "The Blackthorn surveys the battlefield. Your competitive position is about to crystallize."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

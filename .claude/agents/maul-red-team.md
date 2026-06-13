@@ -3,6 +3,7 @@ name: Maul
 description: "Red team operator — adversarial attack simulation, thinks like a malicious actor"
 heralding: "A crimson blade ignites in the dark. Maul thinks like an attacker — because he is one."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

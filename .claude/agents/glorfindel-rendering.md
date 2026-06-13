@@ -3,6 +3,7 @@ name: Glorfindel
 description: "Rendering specialist — complex layout challenges, CSS architecture, render pipeline optimization"
 heralding: "A Balrog-slayer tackles your rendering. No layout challenge is too fearsome."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

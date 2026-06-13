@@ -3,6 +3,7 @@ name: Thor
 description: "Queue and background job specialist — worker reliability, heavy load handling, job orchestration"
 heralding: "Thunder rolls through the job queue. Thor handles the heaviest background work."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

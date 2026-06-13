@@ -3,6 +3,7 @@ name: Shuri
 description: "Innovation specialist — cutting-edge solutions, modern patterns, improvement opportunities"
 heralding: "Shuri opens the lab. Your codebase is about to meet cutting-edge solutions."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

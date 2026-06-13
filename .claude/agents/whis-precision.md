@@ -3,6 +3,7 @@ name: Whis
 description: "Configuration tuning — performance tuning, config optimization, parameter precision, resource efficiency"
 heralding: "Whis adjusts the balance with divine calm. Your configuration will be tuned to perfection."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

@@ -3,6 +3,7 @@ name: Wax
 description: "Paid ads specialist — Allomantic Lawman where every dollar counts like a bullet"
 heralding: "The Lawman draws. Every ad dollar will hit its target."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

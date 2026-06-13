@@ -3,6 +3,7 @@ name: Flash
 description: "Rapid testing specialist — fast issue discovery, quick iteration, speed-oriented review"
 heralding: "A red blur crosses the codebase. Flash finds issues faster than you can blink."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

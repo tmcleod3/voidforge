@@ -3,6 +3,7 @@ name: Elrond
 description: "UX strategist — long-term design thinking, information architecture, user journey coherence"
 heralding: "The Lord of Rivendell has called a council. Your user experience will be debated wisely."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

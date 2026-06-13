@@ -3,6 +3,7 @@ name: Tuvok
 description: "Campaign intelligence: autonomous analysis, strategic recommendations, site scanning, growth signal detection"
 heralding: "Tuvok initiates a deep scan. Logic maps the terrain that instinct cannot."
 model: inherit
+effort: xhigh
 tools:
   - Read
   - Write

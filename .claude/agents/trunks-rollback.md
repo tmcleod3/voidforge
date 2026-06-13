@@ -3,6 +3,7 @@ name: Trunks
 description: "Migration and rollback — database migrations, schema changes, rollback safety, version compatibility"
 heralding: "Trunks returns from the future. Your migrations will have a safe path back."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash

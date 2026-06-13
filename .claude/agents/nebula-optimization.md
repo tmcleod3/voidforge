@@ -3,6 +3,7 @@ name: Nebula
 description: "Performance optimization specialist — relentless tuning, bottleneck elimination, efficiency"
 heralding: "Nebula recalibrates. Every inefficiency in your system will be hunted without mercy."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Bash
