@@ -27,8 +27,8 @@ export const meta = {                       // MUST be a pure literal — no var
 const roster = typeof args === 'string' ? JSON.parse(args) : args   // see Gotcha 1
 phase('Find')
 const found = (await parallel(roster.map(a => () =>
-  agent(prompt(a), { label: `${a.name} · find:${a.key}`, phase: 'Find', schema: FINDINGS, agentType: a.id })
-))).filter(Boolean)
+  agent(prompt(a), { label: `${a.name} · find:${a.key}`, phase: 'Find', schema: FINDINGS, agentType: a.name })
+))).filter(Boolean)   // agentType resolves by the agent's `name:` display field — see Gotcha 6
 const claims = dedupe(found.flatMap(f => f.findings))   // plain JS reduce — no agent
 phase('Verify')
 const verdicts = await parallel(claims.map(c => () =>
@@ -51,6 +51,8 @@ return { confirmed: claims.filter((c,i) => verdicts[i]?.survives) }
 3. **No `Date.now()` / `Math.random()` / argless `new Date()`** — they throw (they'd break resume). Pass timestamps via `args`; vary by index for "randomness."
 4. **Concurrency caps (ADR-059):** ~16 concurrent / ~1,000 total per run. `parallel([...])` accepts 100s of items but only ~16 run at once. **Batch** unbounded fan-outs (glob-then-partition, `SUB_AGENTS.md`); never one-agent-per-file on a large repo.
 5. **Cost lever:** route cheap stages with `agent(p, {model:'haiku'})` (scout pre-scans) and reserve the default model for synthesis — the way the Surfer already runs on Haiku.
+6. **`agentType` resolves by the agent's `name:` display field, NOT the filename** (e.g. `'Picard'`, not `'picard-architecture'`). A filename-style `agentType` fails to resolve and the `agent()` call returns `null` (silently filtered by `.filter(Boolean)`), so the agent simply never runs. If a roster carries both, pass `a.name`. Same rule as the Agent tool's `subagent_type`.
+7. **Validate before shipping:** a workflow script's top-level `await`/`return` make a bare `node --check` fail ("Illegal return statement") — that is expected (the runtime wraps the body in an async fn). Use `npm run validate:workflows` (wired into `pretest`), which reproduces the wrapper before checking, so a real syntax error is caught in CI rather than shipping to npm.
 
 ## Gate interop (ADR-064) — REQUIRED
 

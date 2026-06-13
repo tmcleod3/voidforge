@@ -22,7 +22,13 @@ export const meta = {
   ],
 }
 
-const input = typeof args === 'string' ? JSON.parse(args) : (args || {})
+// Guarded parse: a malformed/empty `args` string must not crash the run before phase 1.
+let input = {}
+try {
+  input = typeof args === 'string' ? (args.trim() ? JSON.parse(args) : {}) : (args || {})
+} catch (_e) {
+  input = {}
+}
 const diff = input.diff || 'the working-tree diff for this mission (git diff)'
 const roster = Array.isArray(input.roster) && input.roster.length
   ? input.roster
@@ -62,12 +68,23 @@ phase('Review')
 const reviews = (await parallel(roster.map((a) => () =>
   agent(
     `You are ${a.name}. Review ONLY ${diff} through the ${a.lens} lens (do not review unchanged code). Evidence-backed findings only — file:line + a quoted CHANGED line or a real repro. For any access/permission/contract finding, name the governing SSOT and reconcile the fix direction (field report #349).`,
-    { label: `${a.name} · review:${a.key}`, phase: 'Review', schema: FINDINGS, agentType: a.id },
+    { label: `${a.name} · review:${a.key}`, phase: 'Review', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
 
+const SEV_RANK = { CRITICAL: 5, HIGH: 4, MEDIUM: 3, LOW: 2, WARN: 1 }
 const seen = new Map()
-for (const r of reviews) for (const f of (r.findings || [])) { const k = key(f); if (!seen.has(k)) seen.set(k, f) }
+for (const r of reviews) for (const f of (r.findings || [])) {
+  const k = key(f)
+  if (!seen.has(k)) seen.set(k, { ...f, raisedBy: [r.agent] })
+  else {
+    const ex = seen.get(k)
+    ex.raisedBy.push(r.agent)
+    // Keep the highest severity any lens assigned + track who raised it (consensus
+    // visibility) — first-write-wins dropped both before.
+    if ((SEV_RANK[f.severity] || 0) > (SEV_RANK[ex.severity] || 0)) ex.severity = f.severity
+  }
+}
 const claims = [...seen.values()]
 log(`Review: ${reviews.length} lenses → ${claims.length} distinct claims over the diff.`)
 
@@ -83,7 +100,9 @@ const verdicts = await parallel(claims.map((c) => () =>
   )).then((votes) => { const v = votes.filter(Boolean); return { claim: c, confirmVotes: v.filter((x) => x.confirm).length } })
 ))
 const confirmed = verdicts.filter(Boolean).filter((v) => v.confirmVotes >= 2).map((v) => v.claim)
-log(`Verify: ${confirmed.length}/${claims.length} survived the 3-lens refute.`)
+const refuted = verdicts.filter(Boolean).filter((v) => v.confirmVotes < 2)
+  .map((v) => ({ title: v.claim.title, file: v.claim.file, confirmVotes: v.confirmVotes }))
+log(`Verify: ${confirmed.length}/${claims.length} survived the 3-lens refute (${refuted.length} refuted, logged in the report).`)
 
 // ── Crossfire: adversaries hunt NEW issues the review cleared ─────────────────
 phase('Crossfire')
@@ -94,7 +113,7 @@ const crossRaw = (await parallel([
 ].map((a) => () =>
   agent(
     `You are ${a.name}, crossfire adversary over ${diff}. The review already ran — find NEW issues it cleared (bypasses, edge/chaos cases). Evidence-backed only.`,
-    { label: `${a.name} · crossfire:${a.key}`, phase: 'Crossfire', schema: FINDINGS, agentType: a.id },
+    { label: `${a.name} · crossfire:${a.key}`, phase: 'Crossfire', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
 const crossNew = []
@@ -112,6 +131,7 @@ const all = [...confirmed, ...crossConfirmed]
 const sev = (s) => all.filter((f) => f.severity === s)
 return {
   diff,
-  counts: { claims: claims.length, confirmed: confirmed.length, crossfireConfirmed: crossConfirmed.length },
+  counts: { claims: claims.length, confirmed: confirmed.length, refuted: refuted.length, crossfireConfirmed: crossConfirmed.length },
   critical: sev('CRITICAL'), high: sev('HIGH'), medium: sev('MEDIUM'), low: [...sev('LOW'), ...sev('WARN')],
+  refutedLog: refuted, // dropped from the actionable buckets, but never silently — logged per SUB_AGENTS.md
 }

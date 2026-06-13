@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.19.0] - 2026-06-13
+
+### Gauntlet acceptance test → 14 fixes
+
+The ADR-067 workflow re-platform validated by running `gauntlet.workflow.js` live on the v23.13–v23.18 platform code (a 10-agent Surfer roster fanned to 347 agents → 99 distinct claims → 66 confirmed + 24 crossfire, **0 Critical**). The acceptance test passed *and* surfaced real bugs; the 3-lens-confirmed High/Medium findings are fixed here. (An earlier run crashed the machine ~44 min in at peak load; the relaunch completed cleanly — the workflow is resumable via `resumeFromRunId`.)
+
+### Fixed — Silver Surfer gate (security/correctness)
+
+- **`_paths.sh` reap could delete the entire `sessions/` tree.** `find "$SESSIONS_DIR" -maxdepth 1 -type d -mmin +60` matches the search root itself; without `-mindepth 1` a stale `sessions/` root mtime made the sweep `rm -rf` every live session's roster + bypass flag. Added `-mindepth 1`.
+- **Reap-vs-fresh-roster/bypass race (the one VERSION.md flagged for a field report).** The TTL refresh touched the roster *file* but the reaper keys on the session *directory* mtime (touching a child never bumps the parent). `check.sh` now touches `$SESSION_DIR` on every roster/bypass ALLOW, `bypass.sh` touches it on write, and the reap threshold (+120m) is held strictly above the roster TTL (3600s) — an active session is never reaped while still valid.
+- **Gate silently broke on Alpine/minimal Linux:** `_paths.sh` hashed paths with `shasum` only (Perl, absent there). Added a `sha256sum` fallback via a shared `surfer_gate_repo_hash` helper.
+- **`bypass.sh` run before the first hook fire was a silent no-op** (the documented orchestrator order). It now records a repo-scoped *pending* bypass that `check.sh` promotes to the session flag on the first fire.
+
+### Fixed — Dynamic Workflow scripts
+
+- **Strike phase double-ran the roster** when ≤5 agents (the default/`--light` core-leads set): `strikeRoster` fell back to the full roster, re-running discovery agents under a "find what discovery missed" prompt. Now empty when there are no specialists.
+- **Crossfire `survives:true` + `finalSeverity:'REFUTED'` verdicts silently vanished** — kept as "confirmed" yet matched no council severity bucket. Now excluded and logged in `crossfireRefutedLog`, honoring the never-silently-dropped invariant.
+- **Dedup kept the first raiser's severity**, discarding a later agent's higher rating. Now keeps the max severity and tracks `raisedBy` (gauntlet + assemble-review). assemble-review also gains a `refutedLog`.
+- **Unguarded `JSON.parse(args)`** could crash the whole run before phase 1; now falls back to defaults. Undefined-`domain` roster items no longer render literal `undefined` in prompts.
+
+### Fixed — distribution & CI
+
+- **`npx voidforge-build init` now copies `.claude/workflows/`** (+ `AGENT_CLASSIFICATION.md`). gauntlet.md/assemble.md referenced workflow scripts that the CLI init path never shipped — v23.18.0 only patched the prepack/dist paths, not `project-init.ts`.
+- **`npx voidforge-build update` now propagates `.claude/workflows` + `scripts/surfer-gate`** — both were absent from the updater's diff list, so existing projects never received workflow or gate fixes.
+- **`publish.yml`:** `recover-partial` derives the version from `package.json`, not `github.ref_name` (a branch name on `workflow_dispatch`, which mis-targeted `npm deprecate`); the Playwright cache key keys on the committed manifests instead of the deleted-and-regenerated lockfile (was a permanent cache miss).
+
+### Added / Changed
+
+- **`scripts/validate-workflows.sh`** (+ `npm run validate:workflows`, wired into `pretest`): a real syntax gate for `.workflow.js` scripts. Their top-level `await`/`return` make a bare `node --check` fail ("Illegal return statement"), so the v23.18.0 "passes node --check" claim was inaccurate; the validator reproduces the runtime's async wrapper before checking, catching syntax errors before they ship.
+- **`WORKFLOWS.md`** example corrected (`agentType: a.id` → `a.name`) + two new gotchas (agentType resolves by the `name:` display field; how to validate workflow scripts). Stale pre-ADR-060 `/tmp/voidforge-*` paths fixed in the gate `README.md` and `CLAUDE.md`.
+
+### Validation
+
+Gate suite **23 → 27** (added reap-root-preservation + pending-bypass cases). Full suite **1390 → 1392** (added init-copies-workflows + updater-tracks-workflows/gate regression tests). typecheck clean. Deferred as field-report candidates: concurrent same-repo pointer collision, `workflow_dispatch` branch guard. Dep `^23.18.0` → `^23.19.0` (ADR-062).
+
 ## [23.18.0] - 2026-06-13
 
 ### Workflow re-platform of `/gauntlet` + `/assemble` (ADR-067)

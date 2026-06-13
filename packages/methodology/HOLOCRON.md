@@ -22,6 +22,23 @@
 
 ## 1. Ignition
 
+### Before any slash command: launch Claude Code
+
+VoidForge's slash commands (`/build`, `/campaign`, `/qa`, etc.) run **inside Claude Code**, not in your terminal. If you've never used Claude Code before:
+
+1. Install: `npm install -g @anthropic-ai/claude-code` (or follow [Claude Code's install guide](https://claude.com/claude-code))
+2. Open a terminal in your project directory and run `claude`
+3. Once Claude Code is running, type a slash command at its prompt — e.g., `/campaign`
+
+The rest of this guide assumes you're already inside Claude Code. (Field report #260 — new users repeatedly tried slash commands at their shell prompt and saw "command not found.")
+
+**If `npm install -g` fails with EACCES on `/usr/local`** (the global npm prefix), use a user-space prefix instead of `sudo`:
+```bash
+npm config set prefix ~/.npm-global
+export PATH="$HOME/.npm-global/bin:$PATH"   # add to ~/.zshrc or ~/.bashrc
+```
+Then retry the install. (Field report #333 — sudo-installing globals is fragile and varies by Node distribution.)
+
 ### What VoidForge Is
 
 VoidForge is a **methodology framework** for building full-stack applications with Claude Code. It's not a code template — it's a *process* template. Drop in a Product Requirements Document, and a named team of AI agents across 9 fictional universes builds your application through a 13-phase protocol.

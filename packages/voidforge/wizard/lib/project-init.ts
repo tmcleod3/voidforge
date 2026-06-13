@@ -128,6 +128,16 @@ async function copyMethodology(
     count += await copyDir(agentsSrc, join(projectDir, '.claude', 'agents'));
   }
 
+  // Dynamic Workflow scripts (ADR-067 — gauntlet/assemble review skeletons).
+  // gauntlet.md / assemble.md reference `.claude/workflows/*.workflow.js`; without this
+  // a fresh `npx voidforge-build init` ships the command docs but NOT the scripts they
+  // invoke. prepack.sh + copy-assets.sh ship them to the npm package and dist/, but this
+  // CLI init copy path (methodologyRoot = the installed package) was missed in v23.18.0.
+  const workflowsSrc = join(methodologyRoot, '.claude', 'workflows');
+  if (existsSync(workflowsSrc)) {
+    count += await copyDir(workflowsSrc, join(projectDir, '.claude', 'workflows'));
+  }
+
   // Methods
   const methodsSrc = join(methodologyRoot, 'docs', 'methods');
   if (existsSync(methodsSrc)) {
@@ -147,6 +157,16 @@ async function copyMethodology(
   if (existsSync(registrySrc)) {
     await mkdir(join(projectDir, 'docs'), { recursive: true });
     await cp(registrySrc, join(projectDir, 'docs', 'NAMING_REGISTRY.md'));
+    count++;
+  }
+
+  // Agent classification — single source of truth for agent counts (v23.7.0). Command
+  // docs derive their counts from it; prepack ships it to the npm package, but this init
+  // path omitted it, so init'd projects couldn't resolve the count SSOT.
+  const classificationSrc = join(methodologyRoot, 'docs', 'AGENT_CLASSIFICATION.md');
+  if (existsSync(classificationSrc)) {
+    await mkdir(join(projectDir, 'docs'), { recursive: true });
+    await cp(classificationSrc, join(projectDir, 'docs', 'AGENT_CLASSIFICATION.md'));
     count++;
   }
 

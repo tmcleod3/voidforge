@@ -73,6 +73,20 @@ describe('project-init', () => {
     expect(existsSync(join(projectDir, 'docs', 'methods', 'CAMPAIGN.md'))).toBe(true);
   });
 
+  it('copies Dynamic Workflow scripts and the agent-classification SSOT (ADR-067 / C1)', async () => {
+    await createProject({
+      name: 'Test',
+      directory: projectDir,
+      skipGit: true,
+    });
+
+    // gauntlet.md / assemble.md reference these — a fresh init must ship them, not just
+    // the command docs that invoke them (the v23.18.0 distribution gap).
+    expect(existsSync(join(projectDir, '.claude', 'workflows', 'gauntlet.workflow.js'))).toBe(true);
+    expect(existsSync(join(projectDir, '.claude', 'workflows', 'assemble-review.workflow.js'))).toBe(true);
+    expect(existsSync(join(projectDir, 'docs', 'AGENT_CLASSIFICATION.md'))).toBe(true);
+  });
+
   it('writes .voidforge marker file', async () => {
     const result = await createProject({
       name: 'Test',

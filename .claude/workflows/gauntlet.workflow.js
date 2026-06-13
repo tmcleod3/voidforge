@@ -28,7 +28,14 @@ export const meta = {
   ],
 }
 
-const input = typeof args === 'string' ? JSON.parse(args) : (args || {})
+// Guarded parse: a malformed or empty `args` string must NOT throw and abort the
+// entire run before phase 1 (field report) — fall back to defaults instead.
+let input = {}
+try {
+  input = typeof args === 'string' ? (args.trim() ? JSON.parse(args) : {}) : (args || {})
+} catch (_e) {
+  input = {}
+}
 const scope = input.scope || 'the working tree / full codebase per gauntlet.md'
 // Surfer-selected specialists (gate-recorded upstream). Fall back to the canonical
 // core leads if no roster was passed (e.g. --light).
@@ -77,30 +84,43 @@ const VERDICT = {
 const key = (f) => `${(f.file || '').toLowerCase()}::${(f.title || '').toLowerCase().slice(0, 60)}`
 
 // ── Round 1: Discovery + Round 2/3: Strike ────────────────────────────────────
+const dom = (a) => a.domain || a.key || 'their domain'  // avoid literal "undefined" in prompts
 phase('Discovery')
 const discovery = (await parallel(roster.slice(0, 5).map((a) => () =>
   agent(
-    `You are ${a.name} (${a.domain}). GAUNTLET discovery pass over ${scope}. Map your domain and report concrete, evidence-backed findings only — every finding needs a file:line and a quoted line or a real repro (no speculation). Rate severity honestly.`,
-    { label: `${a.name} · discovery:${a.key}`, phase: 'Discovery', schema: FINDINGS, agentType: a.id },
+    `You are ${a.name} (${dom(a)}). GAUNTLET discovery pass over ${scope}. Map your domain and report concrete, evidence-backed findings only — every finding needs a file:line and a quoted line or a real repro (no speculation). Rate severity honestly.`,
+    { label: `${a.name} · discovery:${a.key}`, phase: 'Discovery', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
 
 phase('Strike')
-const strikeRoster = roster.length > 5 ? roster.slice(5) : roster
+// Specialists only (index ≥5). When the roster is ≤5 (the default/--light core-leads
+// set) there are NO specialists, so strike is EMPTY — falling back to the full roster
+// here re-ran the identical discovery agents with a "find what discovery missed" prompt,
+// doubling cost for no new coverage (field report). parallel([]) is a harmless no-op.
+const strikeRoster = roster.length > 5 ? roster.slice(5) : []
+if (!strikeRoster.length) log('Strike: no specialists beyond the 5 core leads — skipping (no double-pass).')
 const strike = (await parallel(strikeRoster.map((a) => () =>
   agent(
-    `You are ${a.name} (${a.domain}). GAUNTLET strike pass over ${scope}. Deep, adversarial domain review — find what discovery missed. Evidence-backed findings only (file:line + quoted line/repro).`,
-    { label: `${a.name} · strike:${a.key}`, phase: 'Strike', schema: FINDINGS, agentType: a.id },
+    `You are ${a.name} (${dom(a)}). GAUNTLET strike pass over ${scope}. Deep, adversarial domain review — find what discovery missed. Evidence-backed findings only (file:line + quoted line/repro).`,
+    { label: `${a.name} · strike:${a.key}`, phase: 'Strike', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
 
 // ── Dedupe across all domains (plain JS — no agent) ───────────────────────────
+const SEV_RANK = { CRITICAL: 5, HIGH: 4, MEDIUM: 3, LOW: 2, WARN: 1 }
 const seen = new Map()
 for (const r of [...discovery, ...strike]) {
   for (const f of (r.findings || [])) {
     const k = key(f)
     if (!seen.has(k)) seen.set(k, { ...f, raisedBy: [r.agent] })
-    else seen.get(k).raisedBy.push(r.agent)
+    else {
+      const ex = seen.get(k)
+      ex.raisedBy.push(r.agent)
+      // Keep the HIGHEST severity any agent assigned. First-write-wins silently
+      // discarded a later agent's escalation (e.g. one rates MEDIUM, another HIGH).
+      if ((SEV_RANK[f.severity] || 0) > (SEV_RANK[ex.severity] || 0)) ex.severity = f.severity
+    }
   }
 }
 const claims = [...seen.values()]
@@ -137,7 +157,7 @@ const ADVERSARIES = [
 const crossfireRaw = (await parallel(ADVERSARIES.map((a) => () =>
   agent(
     `You are ${a.name}, a GAUNTLET crossfire adversary over ${scope}. The domain review already ran — hunt NEW issues it cleared (bypasses, chaos/edge cases, exploit chains). Evidence-backed only (file:line + repro).`,
-    { label: `${a.name} · crossfire:${a.key}`, phase: 'Crossfire', schema: FINDINGS, agentType: a.id },
+    { label: `${a.name} · crossfire:${a.key}`, phase: 'Crossfire', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
 // New crossfire claims (not already confirmed) get the same one-pass refute.
@@ -148,10 +168,23 @@ const crossVerified = await parallel(crossNew.map((c) => () =>
   agent(
     `Adversarially verify (default-to-refuted) this crossfire claim, reproducing through the real execution path: "${c.title}" [${c.severity}] at ${c.file}. Evidence: ${c.evidence}.`,
     { label: `verify:crossfire:${(c.file || '').slice(0, 24)}`, phase: 'Crossfire', schema: VERDICT },
-  ).then((v) => (v && v.survives ? { ...c, finalSeverity: v.finalSeverity } : null))
+  ).then((v) => ({ claim: c, verdict: v }))
 ))
-const crossfireConfirmed = crossVerified.filter(Boolean)
-log(`Crossfire: ${crossNew.length} new claims → ${crossfireConfirmed.length} confirmed.`)
+const crossfireConfirmed = []
+const crossfireRefuted = []
+for (const cv of crossVerified.filter(Boolean)) {
+  const v = cv.verdict
+  // The VERDICT schema lets a verdict be survives:true AND finalSeverity:'REFUTED'.
+  // Such a claim used to be kept as "confirmed" yet matched NO council severity bucket
+  // (bySeverity only checks CRITICAL/HIGH/MEDIUM/LOW/WARN) and silently vanished — breaking
+  // the "never silently dropped" invariant. Confirm ONLY a real severity; log the rest.
+  if (v && v.survives && v.finalSeverity && v.finalSeverity !== 'REFUTED') {
+    crossfireConfirmed.push({ ...cv.claim, finalSeverity: v.finalSeverity })
+  } else {
+    crossfireRefuted.push({ title: cv.claim.title, finalSeverity: (v && v.finalSeverity) || 'UNVERIFIED', why: (v && v.rationale) || 'verifier returned no verdict' })
+  }
+}
+log(`Crossfire: ${crossNew.length} new claims → ${crossfireConfirmed.length} confirmed, ${crossfireRefuted.length} refuted/unverified (logged, dropped).`)
 
 // ── Round 5: Council — synthesize survivors by severity (JS; lead applies fixes) ─
 phase('Council')
@@ -165,12 +198,14 @@ const report = {
     confirmed: confirmed.length,
     refuted: refuted.length,
     crossfireConfirmed: crossfireConfirmed.length,
+    crossfireRefuted: crossfireRefuted.length,
   },
   critical: bySeverity('CRITICAL'),
   high: bySeverity('HIGH'),
   medium: bySeverity('MEDIUM'),
   low: [...bySeverity('LOW'), ...bySeverity('WARN')],
   refutedLog: refuted, // dropped, but never silently — logged per SUB_AGENTS.md
+  crossfireRefutedLog: crossfireRefuted, // ditto for crossfire claims that failed the one-pass verify
 }
 log(`Council: ${report.critical.length} Critical · ${report.high.length} High · ${report.medium.length} Medium · ${report.low.length} Low/Warn. Lead applies fixes (workflow takes no mid-run input), then re-runs to re-verify.`)
 return report

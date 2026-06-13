@@ -61,7 +61,10 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          # Key on the COMMITTED manifests, not package-lock.json: the lockfile is deleted
+          # and regenerated above (npm bug #4828 workaround), so hashing it produced a new
+          # key every run — a permanent cache miss that re-downloaded Chromium each time.
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'packages/voidforge/package.json') }}
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
@@ -197,14 +200,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           CLI_RESULT: ${{ needs.publish-voidforge.result }}
-          VERSION: ${{ github.ref_name }}
         run: |
-          V=${VERSION#v}
-          MSG="v${V} partial publish — sibling package failed; do not install"
+          # Derive the version from the package.json that was actually published — robust
+          # for BOTH tag pushes AND workflow_dispatch. github.ref_name is the BRANCH name on
+          # a dispatch (e.g. "main"), not a semver tag, so the old `${VERSION#v}` produced a
+          # bogus deprecate target (npm deprecate "voidforge-build@main").
           if [ "$CLI_RESULT" = "success" ]; then
-            npm deprecate "voidforge-build@${V}" "$MSG"
+            V=$(jq -r .version packages/voidforge/package.json)
+            npm deprecate "voidforge-build@${V}" "v${V} partial publish — sibling package failed; do not install"
           else
-            npm deprecate "voidforge-build-methodology@${V}" "$MSG"
+            V=$(jq -r .version packages/methodology/package.json)
+            npm deprecate "voidforge-build-methodology@${V}" "v${V} partial publish — sibling package failed; do not install"
           fi
       - name: Fail the workflow
         run: exit 1

@@ -44,7 +44,21 @@ fi
 
 POINTER_FILE="$(surfer_gate_pointer_file "$REPO_PATH")"
 if [ -z "$POINTER_FILE" ] || [ ! -f "$POINTER_FILE" ]; then
-    # Hook not active — nothing to record. No-op.
+    # No session pointer yet. The orchestrator (per CLAUDE.md) runs bypass.sh BEFORE the
+    # first Agent/Workflow call, but check.sh only creates the pointer on that first fire,
+    # so there is no session to flag yet. Record a repo-scoped PENDING bypass that check.sh
+    # promotes to the real session flag on the first fire. Without this, `bypass.sh --light`
+    # run first was a silent no-op and the first launch still blocked (A5/field report).
+    PENDING_BYPASS="$(surfer_gate_pending_bypass_file "$REPO_PATH" 2>/dev/null || true)"
+    if [ -n "$PENDING_BYPASS" ]; then
+        if ( umask 077; printf '%s\n' "$FLAG" > "$PENDING_BYPASS" ) 2>/dev/null; then
+            echo "[bypass] no active session yet — recorded PENDING $FLAG (applies on next launch)"
+        else
+            echo "[bypass] hook not active and could not record pending bypass — no-op." >&2
+        fi
+    else
+        echo "[bypass] hook not active — no-op." >&2
+    fi
     exit 0
 fi
 
@@ -60,5 +74,9 @@ BYPASS_FILE="$SESSION_DIR/surfer-bypass.flag"
 
 mkdir -p "$SESSION_DIR" 2>/dev/null && chmod 0700 "$SESSION_DIR" 2>/dev/null || exit 0
 printf '%s\n' "$FLAG" > "$BYPASS_FILE" 2>/dev/null && chmod 0600 "$BYPASS_FILE" 2>/dev/null || exit 0
+# Bump the session DIR mtime: the reaper keys on dir mtime and writing the flag file
+# alone does not refresh it, so a freshly-bypassed-but-stale session dir could be reaped
+# out from under the very next launch (A2/the reap-vs-bypass race).
+touch "$SESSION_DIR" 2>/dev/null || true
 
 echo "[bypass] flag $FLAG recorded for session $SESSION_ID"

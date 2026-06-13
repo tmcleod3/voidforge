@@ -157,6 +157,26 @@ _block() {
     exit 2
 }
 
+# -------- Promote a repo-scoped pending bypass (set by bypass.sh pre-pointer) --------
+# The orchestrator runs bypass.sh BEFORE the first Agent/Workflow call (per CLAUDE.md),
+# but the session pointer is only created above on THIS first fire — so bypass.sh had no
+# session to flag and instead left a repo-scoped pending marker. Materialize it into the
+# real session bypass flag now (one-shot), then remove the marker. Without this, a
+# `--light`/`--solo` run blocked on its very first launch (the documented order no-op'd).
+if [ -n "$CWD" ] && [ ! -f "$BYPASS_FILE" ]; then
+    PENDING_BYPASS="$(surfer_gate_pending_bypass_file "$CWD" 2>/dev/null || true)"
+    if [ -n "$PENDING_BYPASS" ] && [ -f "$PENDING_BYPASS" ]; then
+        PB_VAL="$(cat "$PENDING_BYPASS" 2>/dev/null || echo --light)"
+        case "$PB_VAL" in
+            --light|--solo)
+                printf '%s\n' "$PB_VAL" > "$BYPASS_FILE" 2>/dev/null && chmod 0600 "$BYPASS_FILE" 2>/dev/null || true
+                _log "promoted pending bypass ($PB_VAL) for session $SESSION_ID"
+                ;;
+        esac
+        rm -f "$PENDING_BYPASS" 2>/dev/null || true
+    fi
+fi
+
 # -------- Rule 1: Silver Surfer self-launch always allowed --------
 case "$SUBAGENT_TYPE" in
     "Silver Surfer"|"silver-surfer-herald"|"silver surfer"|"SilverSurfer")
@@ -166,6 +186,9 @@ esac
 
 # -------- Rule 2: Bypass flag present (--light or --solo) --------
 if [ -f "$BYPASS_FILE" ]; then
+    # Refresh dir + flag mtime so a long-lived --light/--solo session is not reaped at
+    # the stale-session threshold (the reaper keys on $SESSION_DIR mtime — A2/field report).
+    touch "$BYPASS_FILE" "$SESSION_DIR" 2>/dev/null || true
     _allow "bypass active: $(cat "$BYPASS_FILE" 2>/dev/null || echo unknown)"
 fi
 
@@ -180,7 +203,11 @@ if [ -f "$ROSTER_FILE" ]; then
         # Refresh-on-activity (field report #360): touch the roster so an active
         # session slides the TTL window — a session that keeps launching agents
         # never expires, while a truly idle session still ages out.
-        touch "$ROSTER_FILE" 2>/dev/null || true
+        # Touch $SESSION_DIR too (not just the file): the reaper keys on DIRECTORY
+        # mtime, and touching a child file does NOT bump the parent dir's mtime — so
+        # without this an active session's dir could still be reaped (A2/the documented
+        # reap-vs-fresh-roster race).
+        touch "$ROSTER_FILE" "$SESSION_DIR" 2>/dev/null || true
         _allow "roster present (age=${ROSTER_AGE}s)"
     else
         _log "roster stale (age=${ROSTER_AGE}s) — removing"

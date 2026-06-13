@@ -257,6 +257,56 @@ else
 fi
 
 echo ""
+echo "=== A1: reaper preserves the sessions/ root + live sessions (-mindepth 1) ==="
+
+reset_state
+OLD_TS="$(date -v-121M +%Y%m%d%H%M.%S 2>/dev/null || date -d '121 minutes ago' +%Y%m%d%H%M.%S)"
+(
+    . "$SCAFFOLD/scripts/surfer-gate/_paths.sh"
+    FRESH="$SURFER_GATE_SESSIONS_DIR/live-session"
+    STALE="$SURFER_GATE_SESSIONS_DIR/old-session"
+    mkdir -p "$FRESH" "$STALE"
+    echo '["Picard"]' > "$FRESH/surfer-roster.json"
+    # Age the stale child AND the sessions/ root past the +120m threshold. Old code
+    # (no -mindepth 1) would match the root and rm -rf the whole tree, taking the
+    # live session with it; new code reaps only the stale child.
+    touch -t "$OLD_TS" "$STALE" "$SURFER_GATE_SESSIONS_DIR" 2>/dev/null || true
+    surfer_gate_reap_stale_sessions
+    [ -d "$SURFER_GATE_SESSIONS_DIR" ] && [ -d "$FRESH" ] && [ ! -d "$STALE" ]
+)
+if [ $? -eq 0 ]; then
+    echo "  PASS  [reaper removes stale child, preserves sessions/ root + live session]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [reaper deleted the root/live session, or failed to reap the stale child]"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "=== A5: pending bypass — bypass.sh before first hook fire is promoted on first launch ==="
+
+reset_state
+# No hook has fired yet (no pointer). bypass.sh must record a repo-scoped PENDING marker.
+(cd "$TEST_CWD" && CLAUDE_PROJECT_DIR="$TEST_CWD" bash "$BYPASS" --light >/dev/null 2>&1) || true
+if ( . "$SCAFFOLD/scripts/surfer-gate/_paths.sh"; PB="$(surfer_gate_pending_bypass_file "$TEST_CWD")"; [ -n "$PB" ] && [ -f "$PB" ] ); then
+    echo "  PASS  [bypass.sh records pending marker when no pointer exists]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [bypass.sh did not record a pending bypass pre-pointer]"
+    FAIL=$((FAIL + 1))
+fi
+# First Agent launch promotes the pending bypass → allowed (was a block before A5).
+run "Pending bypass promoted on first launch, allows" 0 "$(mock_input Agent Picard)"
+# The pending marker must be consumed (one-shot).
+if ( . "$SCAFFOLD/scripts/surfer-gate/_paths.sh"; PB="$(surfer_gate_pending_bypass_file "$TEST_CWD")"; [ -n "$PB" ] && [ ! -f "$PB" ] ); then
+    echo "  PASS  [pending bypass marker consumed after promotion]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [pending bypass marker not consumed after promotion]"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
 echo "=== Results ==="
 echo "Pass: $PASS"
 echo "Fail: $FAIL"

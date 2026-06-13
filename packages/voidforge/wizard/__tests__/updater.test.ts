@@ -44,6 +44,24 @@ describe('updater', () => {
       }
     });
 
+    it('tracks .claude/workflows and scripts/surfer-gate (C2)', async () => {
+      await createProject({ name: 'Tracks', directory: projectDir, skipGit: true });
+
+      // Both dirs ship via init; before C2 the updater's diff list omitted them, so
+      // `update` never propagated workflow/gate fixes to existing projects. Modifying a
+      // file in each must now register as a detected change.
+      const wfPath = join(projectDir, '.claude', 'workflows', 'gauntlet.workflow.js');
+      const gatePath = join(projectDir, 'scripts', 'surfer-gate', 'check.sh');
+      expect(existsSync(wfPath)).toBe(true);
+      expect(existsSync(gatePath)).toBe(true);
+      await writeFile(wfPath, '// drifted\n', 'utf-8');
+      await writeFile(gatePath, '# drifted\n', 'utf-8');
+
+      const plan = await diffMethodology(projectDir);
+      expect(plan.modified).toContain('.claude/workflows/gauntlet.workflow.js');
+      expect(plan.modified).toContain('scripts/surfer-gate/check.sh');
+    });
+
     it('detects removed files', async () => {
       await createProject({ name: 'Extra', directory: projectDir, skipGit: true });
 

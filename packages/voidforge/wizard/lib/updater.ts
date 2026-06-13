@@ -79,9 +79,16 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
   const dirs = [
     { src: '.claude/commands', dest: '.claude/commands' },
     { src: '.claude/agents', dest: '.claude/agents' },
+    // Dynamic Workflow scripts (ADR-067) and the Silver Surfer gate (ADR-051/060/064):
+    // both ship to new projects via init but were absent from the updater's diff list, so
+    // `npx voidforge-build update` never propagated them — existing projects were stranded
+    // on whatever gate/workflow scripts they were created with (e.g. a gate before this
+    // release's reap fix). Invocation is via `bash <script>` so exec bits are not required.
+    { src: '.claude/workflows', dest: '.claude/workflows' },
     { src: 'docs/methods', dest: 'docs/methods' },
     { src: 'docs/patterns', dest: 'docs/patterns' },
     { src: 'scripts/thumper', dest: 'scripts/thumper' },
+    { src: 'scripts/surfer-gate', dest: 'scripts/surfer-gate' },
   ];
 
   // Single files to compare
