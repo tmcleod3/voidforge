@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.13.1] - 2026-06-12
+
+### Publish-gate fix for v23.13.0 (stale surfer-gate test)
+
+v23.13.0 was committed, tagged, and pushed but **never published to npm** — the `Publish to npm` workflow's `test` stage failed before any publish job ran (npm stayed at 23.12.2; no partial release).
+
+Cause: the #360 roster-TTL change raised `ROSTER_TTL_SECONDS` 600 → 3600 in `scripts/surfer-gate/check.sh`, but the gate's own `test.sh` "Stale roster (>10min) blocks" case ages a roster **11 minutes** and asserts a block (exit 2). Under the new 1-hour TTL an 11-minute-old roster is still *fresh*, so the gate correctly returned exit 0 — and the test (asserting 2) failed, tripping the CI `pretest` gate.
+
+### Fixed
+
+- **`scripts/surfer-gate/test.sh`** (+ tracked `packages/methodology/` mirror) — age the stale-roster test fixture to **61 minutes** (past the new 3600s TTL) and relabel the case ">1hr". Gate suite back to 20/20; full workspace suite 1390/1390. No behavior change beyond v23.13.0.
+
+### Lesson
+
+A threshold/TTL change in a gate script must update that gate's adversarial test **in the same commit** — the stale-roster assertion is exactly the threshold-coupled test that #356-F4 (reproduce through the real path) and #358-F1 (composition gaps) warn about. Dep range `^23.13.0` → `^23.13.1` (ADR-062).
+
+---
+
 ## [23.13.0] - 2026-06-12
 
 ### Field Report Triage — 6 reports closed (#356–#361)

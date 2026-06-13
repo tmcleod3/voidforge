@@ -86,8 +86,8 @@ reset_state
 echo "$(mock_input Bash)" | bash "$CHECK" >/dev/null 2>&1
 mkdir -p "$SESSION_DIR"
 echo '["Picard"]' > "$SESSION_DIR/surfer-roster.json"
-touch -t "$(date -v-11M +%Y%m%d%H%M.%S 2>/dev/null || date -d '11 minutes ago' +%Y%m%d%H%M.%S)" "$SESSION_DIR/surfer-roster.json" 2>/dev/null || true
-run "Stale roster (>10min) blocks" 2 "$(mock_input Agent Picard)"
+touch -t "$(date -v-61M +%Y%m%d%H%M.%S 2>/dev/null || date -d '61 minutes ago' +%Y%m%d%H%M.%S)" "$SESSION_DIR/surfer-roster.json" 2>/dev/null || true
+run "Stale roster (>1hr) blocks" 2 "$(mock_input Agent Picard)"
 
 echo ""
 echo "=== Pointer file integration ==="
