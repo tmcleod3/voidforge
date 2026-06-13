@@ -15,6 +15,12 @@
  * - Deploy-strategy claims must be backed by a real mechanism: a comment that
  *   says "blue-green"/"zero-downtime" without an atomic swap (rename, container
  *   swap, or LB cutover) is a lie that ships a 502 window (#343 F7).
+ * - #361 git-remote credential check: an opt-in scan of .git/config for inline
+ *   credentials baked into a remote URL (https://user:token@host/...). .git/ is
+ *   OUTSIDE the deploy artifact, so the artifact walk never reaches it; this scan
+ *   runs independently against the repo root (process.cwd() or --git-root). It is
+ *   best-effort — a checkout with no local .git is fine — and only ever reports
+ *   the path + pattern id, never the matched credential.
  *
  * Usage:
  *   npx tsx docs/patterns/deploy-preflight.ts ./dist
@@ -26,7 +32,7 @@
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative, sep } from 'node:path';
-import { argv, env, exit } from 'node:process';
+import { argv, cwd, env, exit } from 'node:process';
 
 // ---------- forbidden filename patterns ----------
 const FORBIDDEN_NAME_PATTERNS: { id: string; test: (name: string, rel: string) => boolean }[] = [
@@ -50,6 +56,9 @@ const FORBIDDEN_CONTENT_PATTERNS: { id: string; re: RegExp }[] = [
   { id: 'cloudflare-token', re: /\b[0-9a-f]{40}\b/ },
   { id: 'github-pat', re: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/ },
   { id: 'private-key-block', re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/ },
+  // #361: inline credentials baked into a remote URL — https://user:token@host/...
+  // (also covers x-access-token:/oauth2: user fields). Used by the .git/config scan.
+  { id: 'git-remote-inline-credential', re: /https:\/\/[^/@\s]+:[^@\s]+@/ },
 ];
 
 const TEXT_EXTENSIONS = new Set([
@@ -59,7 +68,7 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 interface Hit {
-  kind: 'name' | 'content' | 'strategy';
+  kind: 'name' | 'content' | 'strategy' | 'git-config';
   path: string;
   patternId: string;
 }
@@ -205,6 +214,36 @@ function scanContent(fullPath: string): string | null {
   return null;
 }
 
+// ---------- #361 git-remote inline-credential scan ----------
+// .git/ is OUTSIDE the deploy artifact, so walk(target) never reaches it. This
+// runs independently against the repo root and inspects .git/config for a remote
+// URL with embedded credentials (https://user:token@host/...). Best-effort: a
+// checkout without a local .git is a clean no-op. NEVER returns or logs the
+// matched credential — only that a match occurred (path + pattern id upstream).
+const GIT_REMOTE_CREDENTIAL_RE = /https:\/\/[^/@\s]+:[^@\s]+@/;
+
+function scanGitConfig(gitRoot: string): boolean {
+  const configPath = join(gitRoot, '.git', 'config');
+  let stats;
+  try {
+    stats = statSync(configPath);
+  } catch {
+    return false; // no local .git/config — best-effort no-op
+  }
+  if (!stats.isFile()) return false;
+  if (stats.size > 2_000_000) return false;
+  let buf: string;
+  try {
+    buf = readFileSync(configPath, 'utf8');
+  } catch {
+    return false;
+  }
+  for (const line of buf.split('\n')) {
+    if (GIT_REMOTE_CREDENTIAL_RE.test(line)) return true;
+  }
+  return false;
+}
+
 function main(): void {
   const target = argv[2];
   if (!target) {
@@ -251,6 +290,18 @@ function main(): void {
     if (strategyHit) {
       hits.push({ kind: 'strategy', path: relPath, patternId: strategyHit });
     }
+  }
+
+  // #361 git-remote inline-credential check. .git/ lives outside the deploy
+  // artifact, so resolve the repo root from a --git-root flag (or process.cwd())
+  // rather than from `target`. Best-effort: a checkout with no local .git is a
+  // clean no-op so CI runs that deploy from a bare artifact don't break.
+  const gitRootFlagIdx = argv.indexOf('--git-root');
+  const gitRoot =
+    gitRootFlagIdx !== -1 && argv[gitRootFlagIdx + 1] ? argv[gitRootFlagIdx + 1] : cwd();
+  if (scanGitConfig(gitRoot)) {
+    // NEVER print the matched credential — only the path + pattern id.
+    hits.push({ kind: 'git-config', path: '.git/config', patternId: 'git-remote-inline-credential' });
   }
 
   const summary = {

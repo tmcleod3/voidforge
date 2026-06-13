@@ -78,6 +78,8 @@ These are independent, read-only scans. Run in parallel using the Agent tool:
 
 **No credentials in git-tracked docs:** Never copy credentials from server-local files into git-tracked documentation. Reference the file location instead: 'Credentials are stored at /etc/app/.htpasswd' — not the actual password hash.
 
+**Git remote / VCS credential scan:** Embedding a token in an HTTPS remote (`https://user:TOKEN@github.com/...`) is plaintext in `.git/config` and prints on every `git remote -v` (into logs, CI output, screen-shares, pasted bug reports) — a surface outside the code/env scope above. Scan it: run `git remote -v` and `grep -E 'https://[^/@]+:[^@]+@' .git/config` (also catch `x-access-token:` and `oauth2:` variants). Flag any match as CRITICAL — a live credential is exposed. Remediation: rotate the token immediately, then strip it from the remote — `git remote set-url origin git@github.com:<owner>/<repo>.git` (SSH) or switch to a credential helper (`git config --global credential.helper`), never an inline-token HTTPS URL. (Field report #361: a downstream session printed a live GitHub PAT on the very first `git remote -v` — the token sat in plaintext in `.git/config` and no existing check surfaced it.)
+
 ### Crypto Randomness
 
 Verify all random value generation uses `crypto.getRandomValues()` (browser) or `crypto.randomBytes()` (Node.js). Flag `Math.random()` in any code that generates tokens, codes, identifiers, or secrets. `Math.random()` is predictable — an attacker can reconstruct the seed and predict future values. This is the most common security mistake in JavaScript codebases. (Field report #32: referral codes used Math.random() — caught by Gauntlet, not by build.)
@@ -262,6 +264,15 @@ For any system that sends URLs to users (transactional emails, SMS, push notific
 - Test: send a transactional email in dev mode, inspect the link — does it point to localhost? If yes, the guard is missing
 
 This is the outbound mirror of SSRF prevention: SSRF stops external URLs from reaching internal services, outbound URL safety stops internal URLs from reaching external users. (Field report #44: verification email sent with `localhost:5005` URL — worked on same machine, broke from any other device.)
+
+### Mandatory Adversarial Review: Untrusted-Data -> User-Facing-Sink (field report #359)
+
+The adversarial security review is NOT author-discretionary for a change that introduces a NEW path from untrusted data to a user-facing sink. It is REQUIRED before deploy whenever a change adds any of:
+- An extracted, user-supplied, or third-party URL embedded in a calendar event body, email, SMS, push, chat receipt (Telegram/Slack/Discord), webhook payload, or any rendered link a recipient can click.
+- Untrusted text (model-extracted fields, scraped/OCR'd content, user free-text) flowing into one of those sinks.
+- A new field copied verbatim from an untrusted source (e.g. a screenshot, an inbound webhook, an LLM extraction) that bypasses an existing security invariant (https-only link validation, allowlist, sanitizer).
+
+Why mandatory: the change category most likely to carry a security regression is precisely the one authors are tempted to ship on 'it's low-risk.' Field report #359: a new untrusted `conference_url` (copied from a screenshot) bypassed the codebase's https-only `safeHttpsLink` invariant and would have reached the Calendar event body + Telegram/Slack/email receipts as a clickable open-redirect 'Join' link — caught only because the author chose to run the review. Make the choice mechanical, not discretionary. Maul + Windu run the open-redirect / link-injection / sink-egress checks (see Outbound URL Safety, Proxy Route SSRF, Response Header Injection) against the new path before the deploy gate clears.
 
 ### Enforcement-Layer Severity Rubric (field report #354 F2)
 

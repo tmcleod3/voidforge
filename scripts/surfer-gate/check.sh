@@ -109,7 +109,7 @@ ROSTER_FILE="$SESSION_DIR/surfer-roster.json"
 BYPASS_FILE="$SESSION_DIR/surfer-bypass.flag"
 LOG_FILE="$SESSION_DIR/gate.log"
 EVENTS_FILE="$SESSION_DIR/surfer-gate-events.jsonl"
-ROSTER_TTL_SECONDS=600  # 10 minutes
+ROSTER_TTL_SECONDS=3600  # 1 hour (raised from 600s per field report #360 — real per-mission impl between recon and verification routinely exceeds 10 min, forcing redundant Surfer re-scans)
 
 mkdir -p "$SESSION_DIR" 2>/dev/null && chmod 0700 "$SESSION_DIR" 2>/dev/null || exit 0
 
@@ -170,6 +170,10 @@ if [ -f "$ROSTER_FILE" ]; then
     ROSTER_MTIME="$(date -r "$ROSTER_FILE" +%s 2>/dev/null || echo 0)"
     ROSTER_AGE=$(( $(date +%s) - ROSTER_MTIME ))
     if [ "$ROSTER_AGE" -lt "$ROSTER_TTL_SECONDS" ]; then
+        # Refresh-on-activity (field report #360): touch the roster so an active
+        # session slides the TTL window — a session that keeps launching agents
+        # never expires, while a truly idle session still ages out.
+        touch "$ROSTER_FILE" 2>/dev/null || true
         _allow "roster present (age=${ROSTER_AGE}s)"
     else
         _log "roster stale (age=${ROSTER_AGE}s) — removing"

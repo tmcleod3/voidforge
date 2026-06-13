@@ -132,6 +132,7 @@ Read the PRD and diff against the codebase:
 4. Read YAML frontmatter for skip flags (`auth: no`, `payments: none`, etc.)
 5. **Classify every requirement by type:** Code (buildable), Asset (needs external generation — images, illustrations, OG cards), Copy (text accuracy), Infrastructure (DNS, env vars, dashboards)
 6. Diff: what the PRD describes vs. what's implemented — **structural AND semantic** (not just "does the route exist?" but "does the component render what the PRD describes?")
+6a. **Verify the premise before building (field report #360):** if a mission brief asserts a specific defect or its cause, confirm that IS the real problem in the code first — grep/read the named file and trace the actual failure path. A briefed "X is missing" may already exist (the real bug elsewhere); a briefed "friction" may be a CRITICAL dead-end. Re-scope to the verified root cause if the premise is wrong.
 7. Produce the ordered mission list — each mission is 1-3 PRD sections, scoped to be buildable in one `/assemble` run
 8. **Pike** (`subagent_type: Pike`) **challenges the ordering:** "Should we attempt a harder mission first while context is fresh?" Bold counterbalance to Dax's dependency-based ordering. If Pike's argument is stronger, reorder.
 9. **Separately list BLOCKED items** — asset/infrastructure requirements that code can't satisfy
@@ -216,7 +217,7 @@ After `/assemble` completes:
 
 All PRD requirements are COMPLETE or explicitly BLOCKED:
 
-1. **Run `/gauntlet` (full 5 rounds)** — mandatory final Gauntlet on the complete codebase. This is non-negotiable, even with `--fast`. The Gauntlet tests the combined system across all domains: architecture, code review, UX, security, QA, DevOps, adversarial crossfire, and council convergence. Individual `/assemble` runs review one mission at a time; the Gauntlet reviews everything together.
+1. **Run `/gauntlet` (full 5 rounds)** — mandatory final Gauntlet on the complete codebase. This is non-negotiable, even with `--fast`. The Gauntlet tests the combined system across all domains: architecture, code review, UX, security, QA, DevOps, adversarial crossfire, and council convergence. Individual `/assemble` runs review one mission at a time; the Gauntlet reviews everything together. The Victory Gauntlet MUST include the composition/wiring lens (see GAUNTLET.md 'Composition/wiring lens'): one agent reconciles every assembled entry point's actual arguments/config against the library's contract and the safe defaults. Per-mission reviews cannot catch cross-mission composition gaps — this lens is why the final Gauntlet is non-negotiable.
 2. **Fix all Critical and High findings** from the Gauntlet.
 3. **Troi** (`subagent_type: Troi`) **reads the PRD section-by-section** (runs as part of the Gauntlet Council round) — verifies every prose claim against the implementation. Not just "does the route exist?" but "does the component render what the PRD describes?" Checks numeric claims, visual treatments, copy accuracy, asset gaps.
 4. Fix code discrepancies. Flag asset requirements as BLOCKED.

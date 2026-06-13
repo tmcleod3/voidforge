@@ -137,6 +137,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `design-tokens.ts` — Semantic color/type tokens (one indirection layer) so a theme pivot is a token change, not a component-wide find-replace (field report #351, #343)
 - `nginx-vhost.conf` — Cloudflare-Flexible-safe vhost template: security headers, ACME http-01 passthrough, no redirect loop behind CF's flexible SSL (field report #351, #344)
 - `error-message-categorization.tsx` — Categorize errors at the UI boundary (network / auth / validation / server / unknown) before choosing copy, so users see actionable messages not raw internals (field report #351, #343)
+- `codemod-hygiene.md` — after a jscodeshift/recast codemod, strip incidental reformatting so the diff shows only the semantic change (field report #357)
 
 ## Slash Commands
 

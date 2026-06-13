@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.13.0] - 2026-06-12
+
+### Field Report Triage — 6 reports closed (#356–#361)
+
+`/debrief --inbox` triaged all six open field reports against the post-v23.12.2 tree via two-phase workflow orchestration — per-report investigators classified each proposed fix (accept / already-fixed / wontfix / needs-info) with file-quoted evidence, an adversarial pass independently re-verified every `already-fixed` verdict, then per-file appliers landed the accepted edits. 25 proposed fixes → **23 accepted, 1 already-fixed (verified), 1 wontfix**. Applied across 17 files + 1 new pattern. Five clusters:
+
+- **Deploy safety** — the empty-string-into-strict-Zod boot-crash trap (`${VAR:-}` → `""` defeats `z.string().url().optional()` because `.optional()` only admits `undefined`; fix is `z.preprocess('' → undefined)` ahead of the strict check), "render is not load" (`docker compose config` resolves env but never runs the app's config validator — verify config LOADS), canary-the-worker-first on config-affecting changes, pre-build disk preflight (prune cache + stale SHA tags, keep the rollback tag), and OAuth post-deploy IdP-side-vs-regression discrimination (don't reflexively roll back on an IdP-domain error — retry incognito). (#356, #357)
+- **Adversarial-verify rigor** — a CONFIRM backed by "I reproduced it" counts only when reproduced through the REAL execution path (the actual CLI/tool/runtime), not the underlying library in isolation (#356); the Victory Gauntlet MUST include a composition/wiring lens over the assembled entry paths (per-mission reviews are structurally blind to cross-mission composition), and a conditional "safe to ship gated-off but not to arm" verdict requires a ship-vs-enable ADR + prerequisites runbook before sign-off (#358).
+- **Mandatory verification** — prompt evals run INLINE via the secret-injected runner (`npm run eval:op`), not deferred to the operator (#359); the adversarial security review is REQUIRED (not author-discretionary) for any change adding an untrusted-data → user-facing-sink path (#359); live-fire every external credential against its provider before marking it done — env-var-set ≠ done (#360); and verify a mission brief's premise against the code before scoping the fix (#360).
+- **Secret surfaces** — git remote / `.git/config` inline-credential scan added to Kenobi/Leia Phase 1, the deploy-preflight pattern, and DEVOPS deploy-safety rules; a live PAT in an HTTPS remote URL was invisible to every prior secrets check. (#361)
+- **Test fidelity** — real-output seeded-mutant self-test (does-it-fix / does-no-harm) mandated for any LLM/external-output boundary; "if every test of an integration boundary uses a fixture you authored, you have not tested the boundary." (#358)
+
+### Added
+
+- **`docs/patterns/codemod-hygiene.md`** (52nd pattern) — after a jscodeshift/recast/`@next/codemod` run, strip incidental reformatting (recast re-prints touched nodes) so the diff shows only the semantic change. Registered in `docs/patterns/README.md` and the CLAUDE.md Code Patterns list. (#357)
+
+### Changed
+
+- **`docs/methods/DEVOPS_ENGINEER.md`** — Config Foot-Guns 4th trap (strict-validated optional env boot-crash + `z.preprocess` fix); "render is not load" compose sub-bullet (count Two→Three); Pre-Build Disk Preflight subsection; live-fire-per-credential and OAuth-IdP-side deploy-safety rules. (#356, #357, #360)
+- **`.claude/commands/deploy.md`** — Step 2 pre-deploy items: config-loads check (#356) + mandatory untrusted→sink review (#359); new Step 2.6 disk preflight (#357) and Step 2.7 prompt-eval gate (#359); canary-worker-first in Step 3, Step 3.5 pre-prod verification strategy (#357), Step 5 rollback IdP-side preamble (#357).
+- **`docs/methods/GAUNTLET.md`** — reproduce-through-real-execution-path verify rule (#356); composition/wiring lens + ship-vs-enable conditional-verdict requirement (#358).
+- **`docs/methods/CAMPAIGN.md` + `.claude/commands/campaign.md`** — premise-verification sub-step (#360); pre-prod-verification-when-no-staging branch + dependency-feasibility-first reference (#357); Victory Gauntlet composition-lens cross-reference (#358).
+- **`docs/methods/SECURITY_AUDITOR.md`** — Phase-1 git-remote credential scan (#361); mandatory untrusted-data→user-facing-sink adversarial-review trigger (#359).
+- **`docs/methods/QA_ENGINEER.md` + `docs/methods/TESTING.md`** — real-output seeded-mutant self-test for LLM/external-output boundaries (#358); seed-draft + `?draft=<id>` deep-link screenshot technique when the worker pipeline is down (#359).
+- **`docs/methods/AI_INTELLIGENCE.md`** — the LIVE eval is run by the agent in-session via the secret-injected `eval:op` runner, never deferred to the operator (LIVE-eval-gate subsection + Operating Rule 5) (#359); **`docs/methods/SYSTEMS_ARCHITECT.md`** — Dependency-Feasibility-First migration gate (#357).
+- **`docs/patterns/ai-prompt-safety.ts`** — lenient-schema + sanitize-at-trusted-boundary pattern for untrusted extraction fields (#359); **`docs/patterns/deploy-preflight.ts`** — opt-in `.git/config` inline-credential scan, never prints the matched secret (#361).
+- **Agents** — `lucius-config.md` (strict-validator-on-optional-env learning, #356) and `leia-secrets.md` (`.git/config` remote-URL secret learning, #361) Operational Learnings.
+- **`scripts/surfer-gate/check.sh` + `docs/adrs/ADR-060`** — roster TTL 600s → 3600s with mtime refresh-on-activity, so long real-code missions don't force redundant Surfer re-scans mid-mission. (#360)
+
+### Pipeline
+
+Cut via two background workflows (investigate→verify, then per-file apply) with a full `git diff` review gate before commit. **#358-F3** (find→verify ≥2/3 adversarial-lens pattern) verified already-shipped in v23.12.0 (`SUB_AGENTS.md`) — no change. **#360-F4** (don't pin a sunsetting external-API version without a health check) reporter-scoped to project LEARNINGS; its kernel is folded into the #360 live-fire-per-credential rule. Dep range `^23.12.2` → `^23.13.0` (ADR-062). Tracked generated copies re-synced: `packages/methodology/CLAUDE.md` (ADR-058 strip) and `packages/methodology/scripts/surfer-gate/check.sh`.
+
+---
+
 ## [23.12.2] - 2026-06-09
 
 ### `/git` monorepo release-discipline fix

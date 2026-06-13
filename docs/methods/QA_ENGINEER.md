@@ -261,6 +261,10 @@ Oracle scans for methods that return success without side effects — the most d
 
 Flag as **High severity**. In financial systems (trading, payments, billing), flag as **Critical**. (Field report #125: `ProtectionService._place_stop_loss()` returned `True` after logging but never called the exchange. `OrderService.cancel_order()` returned `True` without cancelling.)
 
+### Real-Output Self-Test for LLM / External-Output Systems (field report #358 #2)
+
+For any feature where the system consumes the output of an LLM or an external tool and then ACTS on it (applies an LLM-generated diff/edit, parses a model-authored JSON plan, executes a tool-returned command, validates a third-party payload), hand-authored fixtures are insufficient — they exercise only the shapes you imagined, which are exactly the shapes that already work. Mandate a **real-output self-test on seeded mutants**: seed a known defect (a real mutant), run the system end-to-end against the REAL external output (real LLM call, real tool response), and assert two properties — **does-it-fix** (the system resolves the seeded mutant) and **does-no-harm** (it does not corrupt unrelated state or pass when it should fail). **Heuristic: if every test of an integration boundary uses a fixture you authored, you have not tested the boundary — you have tested your own imagination of it.** Field report #358: M5–M9 unit tests fed the apply path hand-authored unified diffs that always `git apply`-ed cleanly; the first real-LLM self-test immediately surfaced that real Sonnet diffs do NOT apply (miscounted `@@` hunk headers, missing trailing newline → 'corrupt patch'). The fix was architectural (return exact `{old,new}` edits, generate the diff with `difflib`). Without a real-output self-test, this ships broken. Budget for flakiness: real-LLM tests hit rate limits — wrap each call in a bounded retry loop.
+
 ### Failure Attribution (multi-file test runs)
 
 A test failure observed during a multi-file suite run is **NOT attributed to your change** until BOTH of these hold:
@@ -344,6 +348,8 @@ After unit test review, Batman verifies critical user journeys work in a real br
 After running E2E tests, if the project has a running server, Batman launches the review browser (per `browser-review.ts` pattern) and performs targeted forensic checks:
 
 0. **MANDATORY: Screenshot every page.** Before any forensic work, navigate to every primary route and take a screenshot. The agent MUST read each screenshot via the Read tool and inspect for: blank pages, error states, broken layouts, missing content. This is the "proof of life" gate — if a page is visibly broken, it's a finding before any deeper analysis begins.
+
+0a. **Screenshotting a surface gated behind a down worker pipeline (field report #359):** When a review/confirmation surface is normally produced by an async worker (extraction job, render queue) and that pipeline is down — so you cannot reach the surface through the happy path to satisfy the mandatory screenshot gate — do NOT skip the screenshot. SEED the surface directly: insert a draft row into the DB (or call the seed/fixture endpoint) and load it via the app's existing deep-link (`?draft=<id>` or equivalent). The render path runs with no worker. This lets the proof-of-life gate complete and produces a real screenshot of the surface the operator will see, even when the upstream pipeline is unavailable.
 
 1. **Console error sweep:** Navigate to every primary route. Capture all `pageerror` and `console.error` events (filtered per `browser-review.ts` pattern). Each uncaught exception is an automatic **High** finding with the error message, stack trace, and URL.
 

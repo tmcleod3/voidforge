@@ -46,6 +46,14 @@ Rotation runbooks must name the exact dashboard path. User API Tokens live at My
 - **Action:** Every secret rotation runbook MUST specify the exact dashboard path, not just the product name. Include both the User and Account paths when either could be the answer, and note which applies.
 - **Scope:** SECRETS_MANAGEMENT.md, deploy runbooks, rotation verification scripts.
 
+### Secrets hide in `.git/config` remote URLs, not just code/env
+
+An HTTPS remote of the form `https://user:TOKEN@github.com/...` stores a live credential in plaintext in `.git/config` and prints it on every `git remote -v` — leaking into logs, CI output, and screen-shares. This surface lives outside the code/env/`.env` scope the secrets scan normally covers.
+
+- **Evidence:** Field report #361 — a downstream session's first `git remote -v` printed a currently-valid GitHub PAT embedded in the `origin` URL.
+- **Action:** Add a git-remote scan to every Phase-1 secrets pass: `git remote -v` plus `grep -E 'https://[^/@]+:[^@]+@' .git/config` (also `x-access-token:`/`oauth2:`). Flag matches CRITICAL; remediate by rotating the token and switching the remote to SSH or a credential helper.
+- **Scope:** SECURITY_AUDITOR.md Phase 1, deploy-preflight, rotation runbooks.
+
 ## Reference
 
 - Agent registry: `/docs/NAMING_REGISTRY.md`

@@ -27,7 +27,7 @@ New layout:
 $SURFER_GATE_DIR/                          # resolved per fallback chain
   pointers/pointer-<repo_hash>             # session pointer for repo discovery
   sessions/<session_id>/
-    surfer-roster.json                     # roster sentinel (TTL 600s)
+    surfer-roster.json                     # roster sentinel (TTL 3600s, refreshed-on-activity — field report #360)
     surfer-bypass.flag                     # --light / --solo bypass
     gate.log                               # plain text audit trail
     surfer-gate-events.jsonl               # structured JSONL events (session-scoped)
@@ -54,6 +54,7 @@ Repo-persistent JSONL at `$CLAUDE_PROJECT_DIR/logs/surfer-gate-events.jsonl` rem
 
 ### Neutral
 - Adds `_paths.sh` as a new shared helper file — one indirection but DRY.
+- Roster TTL was raised from 600s to 3600s with mtime refresh-on-each-gate-fire (touch on every gate check that finds a still-valid roster) to avoid redundant Surfer re-scans during long real-code missions (field report #360).
 
 ## Alternatives Considered
 

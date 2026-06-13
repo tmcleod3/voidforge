@@ -234,9 +234,64 @@ const threadplexAgentStack: SafetyStack = {
  * make it visible.
  */
 
+// --- Lenient-schema + sanitize-at-trusted-boundary (untrusted extraction fields) ---
+
+/**
+ * Pattern for fields an LLM EXTRACTS from untrusted input (a scraped URL, an
+ * OCR'd 'join' link, a free-text field) that later flow to a security-sensitive
+ * sink (a calendar event body, an email, a chat receipt). Three forces collide:
+ *   1. Security  — the field must satisfy an invariant before it reaches the sink
+ *                  (e.g. https-only; no open-redirect; allowlisted host).
+ *   2. Extraction robustness — one bad optional field must NOT hard-fail the
+ *                  whole extraction; the rest of the structured output is still good.
+ *   3. Edit-data-loss — silently dropping the field at the schema loses data the
+ *                  operator could have corrected on the review surface.
+ *
+ * Resolution (field report #359): do NOT enforce the security invariant at the
+ * extraction schema. Validate the field LENIENTLY at the schema (accept the raw
+ * string, never hard-fail the extraction), normalize it in the ADAPTER, and
+ * enforce the invariant at the TRUSTED CONSUMER BOUNDARY — the code that writes
+ * into the sink. The sink-writer is the single choke point that decides whether
+ * the link is clickable; that is where https-only lives.
+ */
+export interface UntrustedExtractionField {
+  name: string
+  schemaPolicy: 'lenient'           // accept raw; never hard-fail the whole extraction
+  normalizeIn: string               // adapter location that trims/normalizes the raw value
+  invariant: string                 // e.g. 'https-only, no open-redirect, allowlisted host'
+  enforcedAt: string                // the TRUSTED consumer boundary that writes the sink
+  onInvariantFail: 'omit-from-sink-keep-for-edit'  // drop from the clickable sink, retain on the review surface
+}
+
+const conferenceUrlField: UntrustedExtractionField = {
+  name: 'conference_url',
+  schemaPolicy: 'lenient',
+  normalizeIn: 'calendar adapter — trim, lowercase scheme',
+  invariant: 'https-only; no open-redirect; matches known conferencing-host allowlist',
+  enforcedAt: 'safeHttpsLink() at the event-body / receipt writer (the sink choke point)',
+  onInvariantFail: 'omit-from-sink-keep-for-edit',
+}
+
+/* ANTI-PATTERN 4: enforce the security invariant at the extraction schema
+ *
+ * 'We made conference_url a z.string().url().startsWith("https://") in the
+ *  extraction schema, so a bad link can never reach the sink.'
+ *
+ * No. A hard schema constraint on ONE optional extracted field fails the WHOLE
+ * extraction when the model returns a non-https or malformed value, discarding
+ * the good fields too (force #2), and silently losing data the operator could
+ * have fixed (force #3). Worse, a field copied verbatim from an untrusted
+ * source that BYPASSES the schema path (added later, normalized elsewhere)
+ * reaches the sink unchecked — the exact open-redirect of field report #359.
+ *
+ * Fix: lenient schema, enforce https-only at the sink writer (safeHttpsLink),
+ * surface the raw value on the review surface for operator edit.
+ */
+
 export {
   authorityInstruction,
   denyListEnforcement,
   fsPermsEnforcement,
   threadplexAgentStack,
+  conferenceUrlField,
 }

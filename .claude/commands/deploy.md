@@ -36,7 +36,9 @@ Levi verifies the deploy is safe:
 3. **No uncommitted changes:** `git status` clean
 4. **Credentials available:** SSH key, API token, or platform credentials accessible
 5. **Version tagged:** Current version from VERSION.md matches the commit being deployed
-6. If any check fails → ABORT with clear error message
+6. **Config loads under prod env:** run the app's config validator (not just `docker compose config`, which only renders). `compose config` resolves env but does not run app-level Zod/schema validation — an optional strict-validated var fed `""` by `${VAR:-}` renders clean yet throws at boot. Run the config loader (or canary the worker — see Step 3) before the serving container goes live. (Field report #356)
+7. **Mandatory adversarial review for untrusted-data -> user-facing-sink changes:** If this deploy introduces a new path from untrusted data (extracted/user/third-party URL or text) to a user-facing sink (event body, email, SMS, push, chat receipt, webhook), the adversarial security review (Kenobi: Maul + Windu open-redirect/link-injection/sink-egress checks per SECURITY_AUDITOR.md "Mandatory Adversarial Review") MUST have run and passed before deploy. This is NOT author discretion. ABORT if it has not run. (Field report #359: a new untrusted `conference_url` would have shipped a High open-redirect into Calendar + Telegram/Slack/email receipts; the review caught it.)
+8. If any check fails → ABORT with clear error message
 
 ## Step 2.5 — Pre-Deploy Secret Scan (Leia)
 
@@ -52,6 +54,14 @@ Run the reference implementation at `docs/patterns/deploy-preflight.ts` (or its 
 ANY hit aborts the deploy with a non-zero exit and prints the offending path(s). Never auto-filter and continue — a hit means something is mis-configured upstream and the operator must decide.
 
 Evidence: field report #305 — 32-day live credential leak caused by `.env` in deploy payload. Pre-deploy scan would have caught it on the first deploy.
+
+## Step 2.6 — Pre-Build Disk Preflight (Mustang)
+
+For single-host Docker/VPS targets, before `docker build`, run the Pre-Build Disk Preflight (DEVOPS_ENGINEER.md): if free space is below threshold, prune build cache + stale SHA-tagged images (preserving the rollback tag) before building. A build that fails at image export wastes the full npm ci + build. (Field report #357 #1.)
+
+## Step 2.7 — Prompt-Change Eval Gate (Bayta) — when the deploy includes an eval-tracked prompt change
+
+If this deploy touches any eval-tracked prompt (extraction/classification/generation prompt with a golden dataset), the LIVE eval MUST have run and passed IN THIS SESSION before deploy — it is the agent's job, not a deferral to the operator. Run the secret-injected runner the repo provides (e.g. `npm run eval:op`, which wraps the eval in `op run --env-file=op/eval.env.op -- ...` so 1Password injects the model key) rather than treating `npm run eval` as an operator-only step. A prompt change is NOT deploy-ready until its LIVE eval is green. ABORT if the eval has not run or is red. (Field report #359: a deferred eval would have shipped an `is_virtual` 1.00->0.00 regression; running it inline caught it.)
 
 ## Step 3 — Deploy Execution (Levi)
 
@@ -70,6 +80,12 @@ Execute the deploy strategy for the detected target:
 **Railway:** `railway up` or git push to Railway remote
 **Docker:** `docker build -t app . && docker push && ssh ... "docker pull && docker restart"`
 **Static/Cloudflare:** `wrangler deploy` or S3 sync
+
+**Config-affecting change? Canary the worker first.** When the deploy changes env/config that BOTH web and workers load, deploy the worker (or one worker replica) FIRST and confirm it boots clean. The worker loads the same config a strict validator would crash on, but a worker crash does not pull the serving web container out of rotation — so a config boot-crash (see Step 2 item 6 and §Config Foot-Guns: empty-string-into-strict-Zod) is caught on the worker without taking the site down. Only after the worker is healthy do you reload/restart web. (Field report #356 #2.)
+
+## Step 3.5 — Pre-Prod Verification Strategy
+
+If there is no staging environment AND the product is low-traffic/pre-real-users AND rollback is fast, prefer a canary deploy + verify-on-prod (rollback armed) over a localhost simulation; see CAMPAIGN.md Pre-Prod Verification. (Field report #357 #2.)
 
 ## Step 4 — Health Check (L)
 
@@ -121,6 +137,8 @@ This step closes that gap by fetching a fingerprint back through the **public/se
 This gate is mandatory and non-skippable for any deploy that serves a built frontend bundle or a versioned backend artifact. A green health check with an unverified artifact is a false "DEPLOY COMPLETE." (field report #349 [F-1] — host static-root vs docker-internal-dist split: every step returned 0, prod served the old bundle, health check passed, stale code lived in production undetected.)
 
 ## Step 5 — Rollback (Valkyrie)
+
+Before rolling back on a failed OAuth sign-in, check whether the error is on the IdP domain (pre-callback) vs your callback — an IdP-side error with a re-auth token is usually transient; retry incognito first. (Field report #357 #3; see DEVOPS_ENGINEER.md Deploy Safety Rules.)
 
 If health check fails:
 1. **VPS:** `ssh ... "git checkout HEAD~1 && npm ci && npm run build && pm2 restart"`

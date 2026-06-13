@@ -181,6 +181,10 @@ This saves ~100K tokens on work that's far from execution. The full bridge crew 
 - Flag any dependency not updated in >12 months
 - If project hasn't been touched in >30 days, this check is mandatory before any build work
 
+### Dependency-Feasibility-First (framework/major-version migrations)
+
+Before branching for a deferred-major or framework migration (e.g. Next 14→16, React 18→19, a major ORM/auth bump), confirm an ECOSYSTEM-COMPATIBLE version of every framework-coupled dependency exists FIRST — before any code churn. Query peer-dependency metadata deterministically: `npm view <pkg>@<version-or-range> peerDependencies` and confirm the target framework version satisfies the peer range. If NO published version of a required peer (auth adapter, router plugin, ORM driver) supports the target framework, STOP and mark the migration UPSTREAM-BLOCKED — do not branch, do not codemod, do not partially migrate against a peer that cannot resolve. Evidence: field report #357 — `npm view next-auth@<v> peerDependencies` showed beta.30 was the first to add `^16.0.0`; this answered feasibility before any branch was cut.
+
 **Archer (Greenfield):** For new projects — proposes the initial directory structure, module boundaries, naming conventions, and bootstrap sequence. "Where no one has gone before."
 **Kim (API Design):** REST conventions, consistent error shapes, pagination patterns, versioning strategy, GraphQL schema design. API surface architect.
 **Pike (Bold Planning):** In `/campaign` — challenges Dax's mission ordering. "Should we attempt a harder mission first while context is fresh?" Bold decisions about sequencing.

@@ -45,7 +45,7 @@ The metaphor is precise. Psychohistory predicts outcomes from patterns, adapts w
 2. **Every AI call must have a fallback path.** The application must function when the model fails.
 3. **Token usage must be tracked and bounded.** Unbounded token spend is a billing incident.
 4. **Model selection must be justified.** "We used Opus because it's the best" is not a justification. Match capability to task.
-5. **Evaluation must exist before shipping.** If you can't measure whether the output is correct, you can't ship it.
+5. **Evaluation must exist before shipping.** If you can't measure whether the output is correct, you can't ship it. The eval is run by the agent in-session via the secret-injected runner (e.g. `npm run eval:op`) — never deferred as an "operator step" when the repo provides one (field report #359).
 6. **Safety review must happen before user-facing AI.** Prompt injection is the new SQL injection.
 7. **Observability is not optional.** You must be able to see what the AI decided and why.
 8. **Context windows are finite.** Design for it. Don't assume infinite context.
@@ -161,6 +161,8 @@ Evals stratify into two layers, and they catch different bug classes:
 - **LIVE eval layer** — runs the real model against the golden dataset before launch. This is the pre-launch gate. It is the only layer that observes the model's *actual* output shape, and the only layer that can catch a contract drift between "the response shape we coded against" and "the response shape the model produces."
 
 Treat the LIVE layer as a mandatory gate, not an optional smoke test: a component cannot ship until its LIVE eval has run against the real model and passed. The sandbox layer gates *every commit*; the LIVE layer gates *every launch*.
+
+**The agent runs the LIVE eval in-session — it is not "owed to the operator" (field report #359).** A common false deferral: the author bumps an eval-tracked prompt and flags it as "needs the operator's Anthropic key before prod." That deferral is wrong when the repo ships a secret-injected eval runner. If the project exposes `npm run eval:op` (which wraps the eval in `op run --env-file=op/eval.env.op -- ...` so 1Password injects the key), the LIVE eval is RUNNABLE BY THE AGENT THIS SESSION — run it before declaring the prompt change done. A prompt change is not *done* until its LIVE eval has been run and is green; running it is the agent's job, not a handoff. The eval-prompts gate's own failure message must point at the op-injected runner (`npm run eval:op`), not a bare `npm run eval` that implies an operator-only step. Deferring the eval ships exactly the regression the gate exists to catch — field report #359 deferred it and would have shipped an `is_virtual` 1.00→0.00 regression that running it inline immediately caught.
 
 **Gotcha — normalize null-to-undefined before Zod `.optional()` (field report #352, #4).** A live model emits `null` (not omission) for an absent optional field — e.g. it returns `{ "category": "billing", "subcategory": null }` rather than dropping `subcategory`. Zod's `.optional()` accepts `undefined`, **not** `null`, so the valid response fails schema validation and your retry/fallback path fires on output that was actually fine. This is invisible in the sandbox layer because hand-authored fixtures usually omit the key instead of setting it to `null`. Normalize before validating:
 
