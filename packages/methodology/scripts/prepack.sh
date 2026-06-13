@@ -26,6 +26,11 @@ mkdir -p "$PKG_DIR/.claude/commands" "$PKG_DIR/.claude/agents"
 cp "$REPO_ROOT"/.claude/commands/*.md "$PKG_DIR/.claude/commands/"
 cp "$REPO_ROOT"/.claude/agents/*.md "$PKG_DIR/.claude/agents/"
 
+# Copy .claude/workflows/ (ADR-067 — re-platformed gauntlet/assemble review scripts).
+# Without this, command docs reference .claude/workflows/*.js that don't ship to consumers.
+mkdir -p "$PKG_DIR/.claude/workflows"
+cp "$REPO_ROOT"/.claude/workflows/*.js "$PKG_DIR/.claude/workflows/" 2>/dev/null || true
+
 # Copy docs/methods/ and docs/patterns/
 rm -rf "$PKG_DIR/docs"
 mkdir -p "$PKG_DIR/docs/methods" "$PKG_DIR/docs/patterns"

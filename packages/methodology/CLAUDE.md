@@ -256,6 +256,7 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
 | **Patterns** | `/docs/patterns/` | When writing code (37 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
+| **Workflows** | `/docs/methods/WORKFLOWS.md` | Dynamic Workflow authoring standard (ADR-067) — when to use, API, gotchas, the ADR-064 gate-launch sequence |
 | **Native Capabilities** | `/docs/NATIVE_CAPABILITIES.md` | Command × native-skill collision tracker (ADR-066) — re-audit each release |
 | **Compatibility** | `/docs/COMPATIBILITY.md` | Node + Claude Code platform floor & feature maturity tags (ADR-065) |
 

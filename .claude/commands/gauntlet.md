@@ -23,6 +23,18 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 **Dispatch control:** `--light` skips dynamic dispatch (core only). `--solo` runs lead agent only.
 
+## Workflow Execution (default — ADR-067)
+
+The Gauntlet's 5-round skeleton runs as a **Dynamic Workflow** — `.claude/workflows/gauntlet.workflow.js` — so the 60–80 agents' intermediate findings live in script variables, not the lead's context (only the final synthesis returns). The rounds below define **what** each round does; the workflow **implements** them (discovery → JS dedupe → 3-lens REFUTE verify → crossfire → council). See `docs/methods/WORKFLOWS.md`.
+
+**Gate-compliant launch sequence (ADR-064 — the gate now covers the Workflow tool):**
+1. Run the **Silver Surfer** (Agent tool — self-launch always allowed) per the gate header above; announce the heralding.
+2. **Record the roster:** `[ -x scripts/surfer-gate/record-roster.sh ] && bash scripts/surfer-gate/record-roster.sh '<roster-json>' || true` — *before* invoking the workflow, or the gate blocks it.
+3. **Invoke the workflow:** `Workflow({ scriptPath: '.claude/workflows/gauntlet.workflow.js', args: { scope, roster: <Surfer roster>, } })`. The gate allows it (roster recorded); the workflow's internal `agent()` calls are that roster.
+4. **The lead applies fixes** from the returned report, then re-invokes the workflow to re-verify (workflows take no mid-run input — fix application + the Debate Protocol + severity re-rating stay lead/prose judgment).
+
+`--light`/`--solo` skip the workflow and use the raw-Agent path below as the fallback (set a `bypass.sh --light`/`--solo` so the gate permits the reduced run). The prose rounds below remain the canonical description of each round.
+
 ## Round 1 — Discovery (parallel)
 
 **Thanos:** "Before I test, I must understand."

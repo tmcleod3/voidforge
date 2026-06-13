@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.18.0] - 2026-06-13
+
+### Workflow re-platform of `/gauntlet` + `/assemble` (ADR-067)
+
+The opportunity ADR-064 unblocked. The heavy review commands' deterministic skeletons now run as Dynamic Workflows, so 60–80 agents' intermediate findings live in script variables instead of the lead's context.
+
+### Added
+
+- **`.claude/workflows/gauntlet.workflow.js`** — the 5-round Gauntlet as a workflow: discovery (parallel core leads) → **plain-JS dedupe** → **3-lens adversarial REFUTE** per claim (schema-validated votes, default-to-refuted, keep ≥2/3, verify-the-FIX, reproduce-through-real-path) → crossfire (adversaries hunt NEW issues) → council (JS synthesis by severity). Refuted claims logged, never silently dropped.
+- **`.claude/workflows/assemble-review.workflow.js`** — the review-heavy `/assemble` phases (engage + sentinel + crossfire + council) over a mission's working diff; one run per pass so `--interactive` pauses at the boundary. Build/architecture/devops phases **stay prose orchestration**.
+- **`docs/methods/WORKFLOWS.md`** — the authoring standard: when-to-use, API (`phase`/`parallel`/`pipeline`/`agent({schema})`), the `args`-as-JSON-string (#363) + label-leading-character (#348) gotchas, the 16/1000 caps (ADR-059), and the **ADR-064 gate-launch sequence** (Surfer → record-roster → Workflow). Added to the CLAUDE.md Docs Reference.
+- **ADR-067** decision record.
+
+### Changed
+
+- **`gauntlet.md` / `assemble.md`** gain "Workflow Execution" sections: the gate-compliant launch (muster Surfer → record roster → invoke the workflow with the roster in `args`), what's workflow-backed vs prose, and the `--light`/`--solo` raw-Agent fallback. Personas, the Agent Debate Protocol, severity re-rating, and **fix application** stay lead/prose judgment (the lead applies fixes from the returned report, then re-runs to re-verify).
+- **Distribution (Phase 12.75 gate):** `.claude/workflows/` is a new shared file category — added to `prepack.sh` (npm package) and `copy-assets.sh` (CLI `init`) so the scripts reach consumers (they were referenced by the command docs but would not have shipped otherwise — the #297 class).
+
+### Validation
+
+Both workflow scripts pass `node --check` (ESM, async-wrapped to match the Workflow runtime). The **live end-to-end gauntlet run is the acceptance test** (it launches 30+ real review agents through the now-gated Workflow path); the raw-Agent prose path remains the fallback and canonical description. Dogfooded pre-tag `npm test` (1390/1390) + publish-gate. Dep range `^23.17.0` → `^23.18.0` (ADR-062).
+
+---
+
 ## [23.17.0] - 2026-06-13
 
 ### Effort-tiering fleet edit (ADR-054) — verified + applied

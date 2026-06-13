@@ -67,6 +67,12 @@ Mandatory runtime verification BEFORE code review begins:
 
 **Gate:** All endpoints return expected status codes. No route collisions. No infinite render loops detected. Update assemble-state.
 
+## Workflow Execution — review phases (ADR-067)
+
+The **review-heavy fan-out phases** — Phase 3-5 (engage), 7-8 (sentinel), 12 (crossfire), 13 (council) — run as a **Dynamic Workflow** (`.claude/workflows/assemble-review.workflow.js`) over the mission's working diff, so the 15+-agent fan-out stays out of the lead's context (ADR-067; see `docs/methods/WORKFLOWS.md`). The **build/architecture/devops phases (1-2.5, 9) STAY prose orchestration** — they write code, are sequentially dependent, and need lead judgment + `--interactive` gates between them.
+
+Run the review workflow as **one workflow run per review pass** so an `--interactive` pause sits at the workflow boundary (workflows take no mid-run input). **Gate (ADR-064):** muster the Silver Surfer + `record-roster.sh` *before* invoking, then `Workflow({ scriptPath: '.claude/workflows/assemble-review.workflow.js', args: { diff, roster } })`. The lead applies fixes from the returned report, then re-runs to re-verify. The phase prose below is the canonical description; `--light`/`--solo` use the raw-Agent fallback (with a `bypass.sh`).
+
 ## Phase 3 — Review Round 1 (Full Roster — see Agent Deployment Manifest)
 **Fury:** "Picard's team — first pass. Find everything. Full roster deployed."
 
