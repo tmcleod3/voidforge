@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.14.0] - 2026-06-12
+
+### Field Report Triage — 2 reports closed (#362, #363)
+
+`/debrief --inbox` triaged and applied 8 accepted fixes across 9 files. #363 was self-filed the prior session (debrief of the #356–#361 triage + the v23.13.0/.1 releases); #362 is an enhancement report. The apply phase **dogfooded #363 itself** — the registry-derived fan-out coverage check (9/9 target files confirmed in `git diff`) and `npm test` (1390/1390) both ran *before* tagging.
+
+### Added
+
+- **`/engage --pre-deploy --diff` mode** (`.claude/commands/engage.md`) — the named, right-sized pre-deploy review gate: scopes review to the working-tree diff (`git diff HEAD`), auto-sizes the lens panel to change size (~2 for a tweak, 4–5 for schema/security), and always runs the Step 2.5 adversarial-verify pass. Not a new review engine; lighter than `/gauntlet`, tighter than full `/engage`. (#362-F1/F2)
+- **`SUB_AGENTS.md` "The Pre-Deploy Review Gate"** — documents the diff-scoped N-lens + mandatory-verify gate and its sizing rubric. (#362-F1)
+- **`SUB_AGENTS.md` "Registry-Derived Fan-Out: Enumerate the Tuple Set, Diff the Result"** — the apply-phase analog of the #355 glob-fan-out residual sweep: derive the work-list from the authoritative accepted-fix registry (never memory), then `git diff --name-only` against the accepted `targetFile` set; completion = "every accepted targetFile appears in the diff." (#363-F3)
+- **`DEVOPS_ENGINEER.md` "Chronically-Red Check Policy"** (red ≥2 releases → fix / informational-with-tracking-issue / remove; no fourth disposition) and **"Publish gate alignment"** (the tag-push publish workflow must `needs:` the full E2E+a11y suite or gate on a same-SHA `workflow_run` — a unit-only publish gate is structurally blind to a11y regressions). (#363-F4)
+- **`TESTING.md` "Numeric constant migration checklist"** — `git grep` the old literal and fix all assertions (or extract the constant) in the same commit; generalizes the error-shape rule to any value tests encode. (#363-F2)
+
+### Changed
+
+- **`.claude/commands/git.md` Step 5 (Verify)** — new **first** action: run the project test suite (`npm test`/`make test`/`pytest`/`cargo test`) and stop on failure *before* Step 6 Push, because tag-push arms an irreversible CI publish. (#363-F1)
+- **`docs/methods/RELEASE_MANAGER.md`** — Verification Checklist gains "all CI checks green or a recorded chronically-red disposition" and "publish workflow depends on the full validation suite"; Pre-Push Lint Sweep clarified as *additive to*, not a substitute for, the test suite, plus the `gh auth refresh -s workflow` note for `.github/workflows/` pushes. (#363-F1/F4/F5)
+- **`docs/methods/SUB_AGENTS.md`** — Workflow scripts must defensively parse `args` (delivered as a JSON string). (#363-F5)
+- **`.claude/commands/debrief.md` Step 6** — the inbox apply block now enumerates the `(fixId,targetFile)` work-list before dispatch and runs the post-apply coverage diff-check before closing any issue. (#363-F3)
+- **`docs/methods/QA_ENGINEER.md` + `PRODUCT_DESIGN_FRONTEND.md`** — atomic-visual render-harness screenshot carve-out: a component-in-isolation screenshot satisfies the "verify visually" rule for a single component/icon/loader/state, without standing up the full authed app (scoped to atomic artifacts; layout/flow still gets the full-page pass). (#362-F3)
+
+### Pipeline
+
+Cut via a 9-agent per-file applier workflow. Dep range `^23.13.1` → `^23.14.0` (ADR-062). Note for a follow-up: this repo's own `publish.yml` does not yet satisfy the new Publish-gate-alignment rule (it `needs: [test]` only; the e2e/a11y job lives in `validate-branches.yml`) — wiring that dependency is a `.github/workflows/` change (needs the `workflow` token scope) tracked separately.
+
+---
+
 ## [23.13.1] - 2026-06-12
 
 ### Publish-gate fix for v23.13.0 (stale surfer-gate test)

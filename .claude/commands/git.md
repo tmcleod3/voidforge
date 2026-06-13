@@ -76,8 +76,9 @@ Tags are local until pushed (Step 6). Why default-on: a release commit without a
 
 ## Step 5 — Verify (Barton)
 Confirm everything is consistent:
-1. Run `git log -1 --format="%H %s"` — verify the commit exists and message is correct
-2. Check version consistency:
+1. **Run the project test suite** (`npm test` / `make test` / `pytest` / `cargo test` — whichever the repo uses). If it fails, **stop** — do not proceed to Step 6 (Push). A pushed tag arms an irreversible CI publish; a failure caught here costs zero, caught after push costs a patch release (field report #363).
+2. Run `git log -1 --format="%H %s"` — verify the commit exists and message is correct
+3. Check version consistency:
    - `VERSION.md` current version matches
    - **every** versioned `package.json` matches the new version (all workspace packages, not just the root), and any internal dep pin reads `^<new-version>` (ADR-062)
    - any tracked generated copy re-synced in Step 3 reflects this release (VoidForge: `packages/methodology/CLAUDE.md` diff against the stripped root `CLAUDE.md` is empty)
@@ -85,8 +86,8 @@ Confirm everything is consistent:
    - Commit message starts with the correct version tag
    - `git tag --list vX.Y.Z` returns the tag (unless `--no-tag` was used)
    - **ROADMAP.md cross-check (field report #309 Fix 4):** if `ROADMAP.md` exists, grep it for the new version string. If milestones in ROADMAP.md reference a higher version than `package.json`, that's drift — surface it and offer to bump. If ROADMAP claims a milestone is "DONE" at a version that doesn't match the just-committed bump, surface that too. Drift between ROADMAP and package.json typically goes unnoticed for weeks.
-3. Run `git status` — verify working tree is clean (no forgotten files)
-4. If any inconsistency found, flag it and offer to fix
+4. Run `git status` — verify working tree is clean (no forgotten files)
+5. If any inconsistency found, flag it and offer to fix
 
 ## Step 6 — Push (Coulson) [Optional]
 Only if the user explicitly requests:

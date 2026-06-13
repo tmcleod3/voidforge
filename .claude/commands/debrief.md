@@ -166,9 +166,11 @@ If `$ARGUMENTS` contains `--inbox`, skip Steps 0-5 and triage incoming field rep
    - For accepted fixes: list the specific file changes with line-level detail
    - Present triage results to user
    - On user approval:
-     - Apply accepted fixes (modify method docs, commands, patterns)
+     - **Enumerate the work-list FIRST.** Before dispatching any applier, list every `(fixId, targetFile)` tuple marked `accept` and record it as the authoritative work-list — derive it from the triage registry, never reconstruct it from memory. A registry-derived fan-out can silently drop a tuple that has no glob to grep for (field report #363).
+     - Apply accepted fixes (modify method docs, commands, patterns), dispatching one applier per target file
+     - **Verify coverage AFTER all appliers return.** Run `git diff --name-only` and confirm every accepted `targetFile` from the work-list appears in the diff. Any absent tuple is unapplied — re-dispatch its applier or flag it; do NOT close the issue until the diff confirms full coverage. Completion = "every accepted targetFile appears in the diff," not "all appliers reported done."
      - Comment on the GitHub issue with triage results
-     - Close the issue if fully addressed: `gh issue close <number> --comment "Triaged and resolved."`
+     - Close the issue only once the diff confirms full coverage: `gh issue close <number> --comment "Triaged and resolved."`
 7. After all issues processed, summarize: "Inbox cleared. [N] issues triaged, [N] fixes applied."
 
 ## Arguments

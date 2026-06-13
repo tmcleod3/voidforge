@@ -122,6 +122,8 @@ After every commit, Barton verifies:
 - [ ] If `--npm` was used: every published package returns the new version from `npm view <name> version`
 - [ ] `ROADMAP.md` "Current:" line matches `VERSION.md` (added v23.11.3 — field-report #309 Fix 4 and v23.11.2 deploy synthesis both flagged drift; ROADMAP had been pinned ~24 versions back before this checklist line existed)
 - [ ] For monorepo CLI/methodology pairs: the CLI's `voidforge-build-methodology` dep range is `^<current-version>`, never `"*"` (ADR-062 — pin tightening shipped in v23.11.3 to close the silent-cross-major drift)
+- [ ] All CI checks are green on the release commit, OR a chronically-red check has a recorded disposition (see DEVOPS_ENGINEER.md "Chronically-Red Check Policy") — a check red across ≥2 releases must be fixed, converted to informational, or removed, never tolerated silently (field report #363 F4)
+- [ ] The tag-push publish workflow declares a dependency on the FULL validation suite (E2E + a11y), not only unit tests — via `needs:` or a same-SHA `workflow_run`. A publish gate that excludes E2E/a11y can ship a critical regression a green unit gate never sees (field report #363 F4)
 
 ## CLAUDE.md Command Table Integrity Check
 
@@ -205,6 +207,10 @@ find scripts/ -maxdepth 2 -type f \( -name 'check-*' -o -name 'lint_*' \) -execu
 ```
 
 For each script discovered, document its purpose + waiver convention in the project README or `docs/CONTRIBUTING.md`. Field report #324 (Union Station v7.8) documents 3 separate hotfix loops in a single session where the waiver convention (`# system-org-allowed` for source code, double-backticks for prose) existed but was not surfaced in any reviewer-readable checklist.
+
+**The sweep is in addition to, not a substitute for, the canonical test suite.** The `check-*`/`lint_*` glob above matches contract/lint gates, not test runners — it would not even match `scripts/surfer-gate/test.sh`. `npm test` (or `make test` / `pytest` / `cargo test`) MUST run and pass before any tag, separately from this sweep. A pushed tag arms an irreversible CI publish; a failing test caught locally costs zero, caught after push costs a patch release (field report #363 F1).
+
+**Pushing `.github/workflows/` changes needs the `gh` `workflow` scope.** A commit touching `.github/workflows/` is rejected on push unless the `gh` token carries the `workflow` OAuth scope (the default `gh auth login` doesn't request it). Verify with `gh auth status`; grant once with `gh auth refresh -s workflow` (field report #363 F5).
 
 **Methodology vs project tooling:** the SCRIPTS are project-specific; the DISCIPLINE (run all gates before push) is methodology. The orchestrator does not need to know what each script does — only that it exists and must pass.
 

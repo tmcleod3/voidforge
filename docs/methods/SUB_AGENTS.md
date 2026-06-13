@@ -119,6 +119,16 @@ This is **methodology-driven logging**, not hook-driven. Hooks cannot extract ag
 
 When dispatching via the Workflow tool, set the agent **label** so the named character surfaces in the `/workflows` progress tree. Use the form `"<agent> · <key>"` (e.g., `"Picard · review:architecture"`, `"Kenobi · sentinel:auth"`, `"Galadriel · ux:a11y"`), or omit the label entirely so the underlying `agentType` surfaces on its own. If you instead pass only a dimension key like `review:architecture` as the label, that key OVERRIDES the agent identity and the tree shows the dimension instead of Picard/Kenobi/Galadriel — the roster becomes anonymous in the dashboard and the Danger Room ticker correlation breaks. Keep the character name as the leading token of every workflow label. (Field report #348 #2.)
 
+#### Workflow Scripts Receive `args` as a JSON String
+
+The Workflow tool delivers a script's structured `args` as a **JSON string**, not a parsed object/array — so `args.map(...)` (or any object access) throws `is not a function`/`undefined` before the script does any work. Defensively parse at the top of any script that receives structured args:
+
+```js
+const parsed = typeof args === 'string' ? JSON.parse(args) : args;
+```
+
+Do this once, up front, and use `parsed` thereafter. The `typeof` guard keeps the script correct whether the runtime hands it a string or an already-parsed value. (Field report #363 F5.)
+
 ## Delegation Template
 
 ```
@@ -365,6 +375,17 @@ Every review command — `/engage`, `/sentinel`, `/gauntlet` — runs the same f
 
 The refutation lens is what separates this from the Intentionally Overlapping Mandates convergence rule: convergence asks independent agents to agree; refutation assigns one agent to disagree on purpose. Run both — convergence raises confidence on what's flagged, refutation removes false positives from the fix batch. (Field report #354 F1.)
 
+### The Pre-Deploy Review Gate (diff-scoped, right-sized)
+
+For the common case — a small incremental change about to deploy to a **live** environment — neither `/engage` (full code review) nor `/gauntlet` (30+ agents, comprehensive) is the right tool. The right-sized gate is a **diff-scoped Workflow of N domain lenses plus a MANDATORY adversarial-verify stage over the working diff**, run as the gate immediately before any deploy to live. Lighter than `/gauntlet`, tighter than a full `/engage` (field report #362 F1).
+
+- **Scope is the working diff, not the repo.** Every lens reviews `git diff` only — what is actually about to ship — not the whole tree.
+- **Scale N to the change size.** ~2 lenses for a copy/CSS tweak; 4–5 for a schema migration, an auth/security change, or a routing/classifier change. Pick the lenses by what the diff touches (Galadriel for UI, Stark for API, Kenobi for auth/validation, Spock for schema), same description-driven dispatch as elsewhere.
+- **The adversarial-verify stage is not optional.** After the lenses run, one pass interrogates the diff adversarially — the "Verify the FIX, not just the finding" discipline above (wedge/loop/orphan/double-send, TOCTOU, unvalidated input reaching a sink). This stage is included at every size, even the 2-lens tweak.
+- **It is the gate, not advice.** A blocking finding stops the deploy; deploy only after findings are resolved (then re-verify the resolution over the new diff).
+
+This is realized as the **`/engage --pre-deploy --diff` mode** (see `.claude/commands/engage.md`): review only the working-tree diff, auto-size the lens panel, always include the adversarial-verify pass. Use it on every incremental-change-to-live session — it caught a real defect on ~4 of 5 increments in the motivating session (duplicate-banner `replaceState` race, a WCAG-AA contrast failure, a set-default/hide TOCTOU, an unvalidated UUID that 500'd), none of which warranted a full Gauntlet. (Field report #362 F1.)
+
 ### Multi-Session Parallelism (Separate Terminals)
 
 For larger projects where agents need to make code changes simultaneously, use separate Claude Code sessions in different terminal windows. Each session works on separate files within defined scope boundaries.
@@ -478,6 +499,15 @@ When a wave fans out per-file or per-entity work across a directory or migration
 2. **Pair every fan-out with a post-fan-out completeness sweep before the wave is "done."** After all fan-out agents return, run ONE grep for the legacy pattern across the WHOLE target tree (not just the assigned files) — e.g., `grep -rn "oldApiCall(" src/` or `grep -rln "TODO: migrate" .`. A wave is not complete while that grep returns hits. The sweep catches: files the glob/partition missed, files created mid-wave by a parallel agent, and occurrences an agent declared done but left behind. Zero hits is the completion gate, not "all dispatched agents reported done."
 
 The failure mode this prevents: a fan-out reports "9/9 agents complete" while 3 files still carry the legacy pattern — because they were never in the hand-typed list, and nobody grepped the whole tree to confirm. "All my agents finished" is not "the migration is complete." The completeness sweep is the difference. (Field report #355 F2.)
+
+### Registry-Derived Fan-Out: Enumerate the Tuple Set, Diff the Result
+
+The glob-fan-out rule above covers waves where scope is a pattern you can grep (one agent per file matching `src/routes/**/*.ts`). It does NOT cover the other fan-out shape: an **apply wave driven by an accepted-fix registry**, where each unit of work is a `(fixId, targetFile)` tuple and there is no legacy pattern to grep — the target file may be a doc that has never carried the soon-to-be-added rule, so a residual `grep` returns nothing whether the fix landed or not. Two rules are MANDATORY here (field report #363 F3):
+
+1. **Derive the applier work-list from the authoritative accepted-fix registry of `(fixId, targetFile)` tuples — NEVER from memory.** Enumerate every accepted tuple programmatically (the triage verdict table, the issue's "Files That Should Change" rows, the registry the investigate phase produced) and partition *that* into agent assignments. A hand-built per-file list silently drops the tuple that wasn't top-of-mind — and that omitted target's fix simply never gets written. The registry is the source of truth for "what must change," not the orchestrator's recollection of the triage.
+2. **After appliers return, `git diff --name-only` and diff the touched files against the accepted `targetFile` set.** Any accepted `targetFile` that is NOT in the diff is an unapplied tuple → re-dispatch its applier or flag it. Completion = **"every accepted targetFile appears in the diff,"** not "all agents reported done." An agent reporting STATUS: Done is not evidence its file changed; the diff is.
+
+The failure mode this prevents: an apply fan-out reports every agent complete while one accepted `(fixId → targetFile)` mapping (e.g., `AI_INTELLIGENCE.md` as a target of a multi-file fix) was omitted from the hand-built work-list and never written. There is no legacy pattern to grep for it — the only proof is the diff coverage check. The earlier the diff-vs-registry assertion runs, the cheaper the catch; left to the pre-commit full-diff review gate, it surfaces but only after the wave declared itself finished. (Field report #363 F3.)
 
 ### Context Passing Between Phases
 

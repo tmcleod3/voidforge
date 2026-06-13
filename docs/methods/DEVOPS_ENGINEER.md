@@ -258,11 +258,30 @@ Evidence: field report #303 — saltwater.com was serving 264 agent files, 37 pa
 
 E2E tests run as a separate CI job, parallel with unit tests. Browser binaries cached via `actions/cache` (GitHub Actions) or equivalent CI cache. E2E failures are informational for the first release (v18.0-v18.1), then enforced as blocking. Playwright uses Chromium only in CI to minimize binary size (~250MB cached). Configuration:
 
-- **Job isolation:** E2E job runs independently from unit test job — a flaky E2E test never blocks the unit test gate
+- **Job isolation (scoped to the unit gate):** E2E job runs independently from the unit test job — a flaky E2E test never blocks the *unit* gate. This isolation is correct ONLY for the unit gate. Isolating E2E from the unit gate is right; excluding it from the *publish* gate is not (see Publish gate alignment below)
 - **Browser cache:** Cache `~/.cache/ms-playwright` (Linux) or `~/Library/Caches/ms-playwright` (macOS) between runs. Key on Playwright version from `package-lock.json`
 - **Retry policy:** Failed E2E tests retry once in CI before reporting failure (catches transient timing issues)
 - **Artifacts:** On failure, upload Playwright trace files and screenshots as CI artifacts for debugging
 - **Enforcement timeline:** v18.0-v18.1 informational only (report but don't block). v18.2+ E2E failures block merge.
+
+### Publish gate alignment
+
+Isolating the E2E job from the *unit* gate is correct; excluding it from the *publish* gate is not. The tag-push publish workflow must depend on the **full validation suite — E2E and a11y included**, not unit tests alone. Wire the dependency one of two ways:
+
+- **`needs:`** — the publish job declares `needs: [test, e2e, a11y]` so it cannot run until every validation job passes on the same run, OR
+- **same-SHA `workflow_run`** — the publish workflow triggers on `workflow_run` completion of the validation workflow and re-checks the SHA, refusing to publish unless the full suite went green on that exact commit.
+
+A publish workflow with `needs: [test]` (unit only) is structurally blind to E2E and a11y regressions: tag-push arms the irreversible npm publish, and a green unit gate ships a broken bundle. (Field report #363 F4 — this session: `publish.yml` had `needs: [test]` and no dependency on the `e2e` job, so an `aria-required-children` regression shipped while the e2e/a11y job was red.)
+
+### Chronically-Red Check Policy
+
+A CI check that is red across **≥2 consecutive releases** is not "known-flaky background noise" — it is a blind spot, and it MUST be resolved into exactly one of three dispositions (no fourth):
+
+1. **Fixed** — the underlying failure is repaired and the check goes green.
+2. **Converted to informational** — `continue-on-error: true` (or the CI equivalent) PLUS a comment linking a tracking issue. A muted check with no tracking issue is not a disposition.
+3. **Removed** — the check is deleted from the workflow if it no longer earns its keep.
+
+Kusanagi flags any release whose CI carries a check red across the **prior two releases** with no recorded disposition. (Field report #363 F4 — this session: a chronically-red `validate-branches` check sat ignored for ~2 months and hid an `aria-required-children` regression that shipped, because `publish.yml` had no dependency on the e2e job that would have caught it.)
 
 ## Deploy Automation (`/deploy` command)
 
