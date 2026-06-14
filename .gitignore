@@ -60,5 +60,12 @@ logs/
 # VoidForge runtime data (personal, never committed)
 .voidforge/
 
+# Silver Surfer gate-race repro scratch — left by /gauntlet & /assemble workflow agents
+# adversarially probing check.sh's reap/TTL/bypass races. Harmless (isolated to mktemp +
+# a fake $HOME) but must never be committed. See memory project_gauntlet_leaves_scratch.
+/.gate-repro-scratch/
+scripts/surfer-gate/.*-probe.sh
+scripts/surfer-gate/.*.tmp.*
+
 # nohup output
 nohup.out
