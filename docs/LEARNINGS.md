@@ -1,7 +1,7 @@
 # Project Operational Learnings
 
 Persistent knowledge from live operations. Things code reviews can't catch.
-Updated: 2026-05-12 | Entries: 15/50
+Updated: 2026-06-14 | Entries: 16/50
 
 ---
 
@@ -144,6 +144,15 @@ Both `npm ci` and `npm install` with an existing lockfile fail to install platfo
 - **scope:** Any ADR proposing a scoped npm package
 - **evidence:** Field report #308; v23.9.0 → v23.9.1 pivot from `@voidforge/cli` to unscoped `voidforge-build` after web-UI rejection.
 - **context:** Companion to LRN-4. Registry probe and org-create probe are different checks — do both before committing to a name.
+
+### LRN-11: A new shipped file category must be wired into all FOUR distribution paths
+VoidForge ships methodology to consumers through four separate copy paths, and a new shipped category (anything under `.claude/`, `docs/`, `scripts/`) must be added to every one or it silently fails to reach some installs: (1) `packages/methodology/scripts/prepack.sh` — the npm `voidforge-build-methodology` package; (2) `packages/voidforge/scripts/copy-assets.sh` — the CLI `dist/`; (3) `packages/voidforge/wizard/lib/project-init.ts` `copyMethodology()` — `npx voidforge-build init`; (4) `packages/voidforge/wizard/lib/updater.ts` diff `dirs` — `npx voidforge-build update`. v23.18.0 added `.claude/workflows/` to (1) and (2) only, stranding `init` and `update`; v23.19.0 fixed (3) and (4) and added regression tests.
+
+- **category:** distribution-gotcha
+- **verified:** 2026-06-14
+- **scope:** `packages/methodology/scripts/prepack.sh`, `packages/voidforge/scripts/copy-assets.sh`, `packages/voidforge/wizard/lib/{project-init.ts,updater.ts}`
+- **evidence:** v23.19.0 gauntlet findings C1/C2 (Field Report #366, F2). A new shipped artifact type also needs a `pretest` validator in the same release (e.g. `scripts/validate-workflows.sh`).
+- **context:** True until a single shipped-categories manifest replaces the four hand-maintained lists. When adding any new shipped file, grep all four paths for an existing sibling category (`scripts/thumper`, `.claude/agents`) and mirror it.
 
 ## Decisions
 
