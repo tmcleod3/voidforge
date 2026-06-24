@@ -216,6 +216,33 @@ For each script discovered, document its purpose + waiver convention in the proj
 
 **Methodology vs project tooling:** the SCRIPTS are project-specific; the DISCIPLINE (run all gates before push) is methodology. The orchestrator does not need to know what each script does — only that it exists and must pass.
 
+## Removal Sweep
+
+When a release deletes a symbol, export, prop, env var, command, or any other named artifact, the deletion is only half done until its *name* is gone everywhere too. A green build and a green test suite confirm the **code** compiles without it — they say nothing about the comments that still describe it, the README sentence that still tells users to set it, or the doc that still links to it. That prose drift survives every automated gate and ships as a silent lie.
+
+**Rule:** Before commit, for every symbol/export/prop/env-var/command removed in this release, Coulson greps for its name across the **whole tree** — code AND comments AND user-facing copy (READMEs, docs, CLAUDE.md, command files, UI strings, help text) — not just source. Any surviving reference is either updated to match the new reality or itself removed, before the commit lands.
+
+**Sweep shape (run once per removed name):**
+
+```bash
+# NAME = the deleted symbol/export/prop/env-var/command
+git grep -nI -- "$NAME" -- ':!CHANGELOG.md' ':!PROJECT_VERSION.md' ':!VERSION.md'
+# Every hit that is not the intentional "Removed" changelog line must be resolved.
+```
+
+**Why both, not just code.** Field report #375 (PerpWatch): retiring the shared `MONITOR_TOKEN` auth path left stale `MONITOR_TOKEN` references across ~8 comment sites **plus** user-facing copy ("set a monitor token") after the symbol was deleted — the build and 97 unit tests were green throughout, because none of the stale references were *code*. Root cause: no sweep step pairing a symbol removal with its prose. Pair the deletion with the grep, every time.
+
+## Ship-and-Validate: New Artifact Type Needs a Validator the Same Release
+
+A release that introduces a **new shipped artifact type** (a new file category copied into the distributed packages — e.g. `.claude/workflows/*.workflow.js`, a new agent format, a new pattern extension) MUST ship a matching pretest/CI validator **in the same release**. The validator runs in `pretest`/CI so the new category is checked on every build, not just by hand once. A release MUST NOT claim a validation it does not actually run — a CHANGELOG line, VERSION.md note, or release summary asserting "validated" / "passes `node --check`" / "schema-checked" is a hard defect unless a wired-in check actually produced that result this release.
+
+**Coulson rejects a release when:**
+
+1. The diff adds a new shipped file category but adds **no** validator that exercises it (no `scripts/validate-*.sh`, no CI step, nothing in `pretest`).
+2. The CHANGELOG / VERSION.md / release notes assert a validation that no command in the release actually ran — verify the claim by running the asserted check before accepting the wording. An unrun claim gets the wording struck or the check wired in; never shipped as-is.
+
+**Why.** Field report #366 (v23.18.0): the release added `.claude/workflows/*.workflow.js`, claimed "both scripts pass `node --check`" (FALSE — their top-level `return`/`await` make a bare `node --check` fail), and added **no** pretest validator. Three of the next release's fourteen bugs traced to that one omission. This is the recurring "referenced-but-doesn't-ship" / "gate that doesn't gate" class (#297, #352): the fix that closes it is a real validator wired into `pretest` plus an honest claim. (The companion distribution-paths checklist — wiring a new category into ALL of `prepack.sh`, `copy-assets.sh`, `project-init.ts`, and `updater.ts` — lives in BUILD_PROTOCOL.md Phase 12.75.)
+
 ## Post-Amend SHA Pin
 
 `git commit --amend` rewrites the SHA but `logs/campaign-state.md` rows still reference the pre-amend SHA. Across a long campaign, these dangling references accumulate and break post-hoc audits (`git log --grep` against the recorded SHA returns nothing).

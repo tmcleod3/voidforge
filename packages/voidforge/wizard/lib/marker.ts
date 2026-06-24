@@ -6,12 +6,28 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 
 // ── Types ────────────────────────────────────────────────
+
+/**
+ * How `update` is allowed to touch the project's CLAUDE.md (issue #368):
+ *   - 'preserve' (default, safest): never overwrite in place. If upstream
+ *      differs, write it to `CLAUDE.md.upstream` and warn — the operator merges
+ *      deliberately. CLAUDE.md is the file Claude Code loads every session and
+ *      carries project-specific operational knowledge; clobbering it is the same
+ *      bug class as #331 (silent destruction of user content).
+ *   - 'merge': update only the content between the sentinel fences
+ *      `<!-- VOIDFORGE:BEGIN methodology -->` / `<!-- VOIDFORGE:END methodology -->`,
+ *      leaving every project section outside the fences verbatim. Falls back to
+ *      'preserve' (side-file) when fences are absent — there is no lossless
+ *      in-place merge without them.
+ *   - 'skip': the updater never reads or writes CLAUDE.md at all.
+ */
+export type ClaudeMdStrategy = 'preserve' | 'merge' | 'skip';
 
 export interface VoidForgeMarker {
   id: string;
@@ -19,7 +35,16 @@ export interface VoidForgeMarker {
   created: string;
   tier: 'full' | 'methodology';
   extensions: string[];
+  /**
+   * Optional CLAUDE.md update policy (issue #368). Absent on legacy markers;
+   * callers MUST default to 'preserve' when undefined so the safe-by-default
+   * behavior applies to projects created before this field existed.
+   */
+  claudeMd?: ClaudeMdStrategy;
 }
+
+/** Safe default when a marker omits `claudeMd`. Never silently clobber. */
+export const DEFAULT_CLAUDE_MD_STRATEGY: ClaudeMdStrategy = 'preserve';
 
 // ── Constants ────────────────────────────────────────────
 
@@ -49,6 +74,7 @@ export function createMarker(
   version: string,
   tier: VoidForgeMarker['tier'] = 'full',
   extensions: string[] = [],
+  claudeMd: ClaudeMdStrategy = DEFAULT_CLAUDE_MD_STRATEGY,
 ): VoidForgeMarker {
   return {
     id: randomUUID(),
@@ -56,6 +82,7 @@ export function createMarker(
     created: new Date().toISOString(),
     tier,
     extensions,
+    claudeMd,
   };
 }
 
@@ -107,6 +134,70 @@ export function requireProjectRoot(startDir: string = process.cwd()): string {
     process.exit(1);
   }
   return root;
+}
+
+// ── Legacy Methodology-Consumer Detection (issue #369) ───
+
+export interface LegacyConsumer {
+  dir: string;
+  /** Tier inferred from the project shape: 'full' if a wizard/ dir is present. */
+  inferredTier: VoidForgeMarker['tier'];
+}
+
+/**
+ * Detect a legacy methodology consumer that predates the `.voidforge` marker.
+ *
+ * Such projects originally consumed methodology via git (before the marker
+ * convention) and so `update` hard-errors them toward `init` — which is the
+ * wrong remedy on an existing project (issue #369). The signature of a real
+ * consumer is the methodology footprint: `VERSION.md` + `.claude/commands/` +
+ * `docs/methods/` all present. When that holds and NO marker exists, the CLI
+ * should OFFER to create the marker rather than send the user to `init`.
+ *
+ * Tier is inferred from `wizard/` presence (full-tier projects embed/embedded
+ * the wizard), mirroring the workaround in the field report.
+ *
+ * Returns null when the dir already has a marker (not legacy) or does not look
+ * like a methodology consumer (genuinely not a VoidForge project).
+ */
+export function detectLegacyConsumer(dir: string = process.cwd()): LegacyConsumer | null {
+  const root = resolve(dir);
+
+  // If a valid marker is already present anywhere up the tree, it is not legacy.
+  if (findProjectRoot(root) !== null) return null;
+
+  const hasVersion = existsSync(join(root, 'VERSION.md'));
+  const hasCommands = isDir(join(root, '.claude', 'commands'));
+  const hasMethods = isDir(join(root, 'docs', 'methods'));
+
+  if (!(hasVersion && hasCommands && hasMethods)) return null;
+
+  const inferredTier: VoidForgeMarker['tier'] = isDir(join(root, 'wizard'))
+    ? 'full'
+    : 'methodology';
+
+  return { dir: root, inferredTier };
+}
+
+/** Read the methodology version from a project's VERSION.md, or 'unknown'. */
+export function readVersionFile(dir: string): string {
+  const versionPath = join(resolve(dir), 'VERSION.md');
+  if (!existsSync(versionPath)) return 'unknown';
+  try {
+    const raw = readFileSync(versionPath, 'utf-8');
+    const match = raw.match(/(\d+\.\d+\.\d+)/);
+    return match ? match[1] : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function isDir(p: string): boolean {
+  try {
+    return existsSync(p) && statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 // ── Global Config ────────────────────────────────────────

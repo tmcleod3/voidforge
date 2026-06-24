@@ -258,6 +258,9 @@ Grep for deferred wiring comments: `Set after`, `Wire after`, `None #`, `TODO: w
 7. Log each batch to `/logs/phase-05-features.md`
 
 **Phase 6 — Integrations.**
+
+**MANDATORY PRE-INTEGRATION WEB-VERIFICATION (Romanoff owns; field report #364 Finding A).** BEFORE writing any external-API integration code, web-verify the provider's live docs (WebFetch) for: the CURRENT API version, deprecation/sunset notices on the endpoints you plan to call, and the auth requirements (OAuth scopes, token type, developer-token gating). Treat the PRD/vault/plan's API version, endpoint names, and auth specifics as STALE until confirmed — they rot fast across a multi-day campaign on a fast-moving platform (Google/Meta/Stripe ad & billing APIs deprecate aggressively). The post-build live smoke test below is NOT a substitute: it verifies the call you wrote works, not that you wrote against the right (non-deprecated) API. Real case (Kongo M8): a vault plan said "v17→v21, use `uploadClickConversions`" — live docs showed v24 was current, that path was blocked for the project's token 3 days out, and the correct route was a different API with a different scope and no developer token. Building blind would have wasted the whole mission and missed a hard external deadline. Log the verified version/deprecation/auth findings to the phase log before coding.
+
 1. Each integration: client wrapper, env vars, test mode, error handling, retry logic
 2. For async work, follow `/docs/patterns/job-queue.ts`
 3. Kenobi reviews each integration
@@ -356,6 +359,10 @@ If this build introduces a new shared file category (e.g., `.claude/agents/`, a 
 5. `FORGE_KEEPER.md` — listed in Bombadil's shared file manifest
 6. `void.md` — listed in user-facing sync checklist
 Missing even one path means some users silently miss the feature. This gate is mandatory after any structural addition to the methodology. (Field report #297: .claude/agents/ was added to packaging but missed in 3 of 6 delivery paths.)
+
+**Four-path distribution discipline (LRN-11, field report #366 F2).** Of the paths above, FOUR are the actual file-copy routes a new category must land in or it strands some installs — verify each by name: (1) `packages/methodology/scripts/prepack.sh` (the npm methodology package), (2) `packages/voidforge/scripts/copy-assets.sh` (the CLI `dist/`), (3) `packages/voidforge/wizard/lib/project-init.ts` `copyMethodology()` (`npx voidforge-build init`), (4) `packages/voidforge/wizard/lib/updater.ts` diff `dirs` (`npx voidforge-build update`). v23.18.0 added `.claude/workflows/` to (1) and (2) only, stranding `init` and `update` — three of that release's bugs trace to the omission. Grep all four for an existing sibling category (`.claude/agents`, `scripts/thumper`) and mirror it.
+
+**Ship-with-validator rule (field report #366 F2).** A new shipped artifact TYPE must ship, in the same release, with a CI/pretest validator for it — e.g. a new `.claude/workflows/*.js` category ships with `scripts/validate-workflows.sh` wired into `pretest`, plus a regression test that init/update actually copy it. And **a release must never claim a validation it did not run.** v23.18.0 claimed "both scripts pass `node --check`" when their top-level `return`/`await` make a bare `node --check` fail — the claim was false and ran nothing. State the exact command the validator runs; if it cannot run in CI, say so — never assert a green you didn't observe.
 
 **Phase 13 — Launch Checklist.**
 All flows in production. SSL. Email. Payments. Analytics. Monitoring. Backups. Security headers. Legal. Performance. Mobile. Accessibility. Tests passing. **Build-time env var verification:** For every new `NEXT_PUBLIC_*` / `VITE_*` / `REACT_APP_*` reference introduced during this build, verify the variable exists in `.env` or the deploy environment. Missing build-time vars cause features to silently disappear without errors. (Field report #104) Log final status to `/logs/phase-13-launch.md`.

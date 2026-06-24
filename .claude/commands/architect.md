@@ -91,15 +91,16 @@ In autonomous/blitz mode: append every AGENT_INVENTED constraint to `needs_opera
 
 Evidence: BarrierWatch campaign (field report #304) invented a $20 kill switch and $50/$50 capital split that took ~90 minutes to remove across 39 files. Both propagated into ROADMAP, source modules, config YAML, tests, and an ADR before the operator reviewed the design.
 
-## Step 4.6 — Schema-vs-ADR Cross-Check (Spock + Worf)
+## Step 4.6 — Reality-Anchor: Internal + External Claim Cross-Check (Spock + Worf + Uhura)
 
-Before any ADR claiming a property of an existing table or callsite is marked Accepted, validate the claim against code reality. Field reports #312, #313, #316 document a pattern where ADRs say *"every tenant-touching table has `org_id`"* or *"X primitive landed in mission Y"* — and downstream missions discover the claim was aspirational. SQL errors at build time, ~1 day mid-mission rescoping per occurrence.
+Before any ADR claiming a fact is marked Accepted, validate the claim against reality — both *internal* reality (the code/schema/files) and *external* reality (the third-party platform's live docs). Field reports #312, #313, #316 document the internal pattern: ADRs say *"every tenant-touching table has `org_id`"* or *"X primitive landed in mission Y"* and downstream missions discover the claim was aspirational. Field report #376 documents the external pattern: a PRD claimed *"Calendar/Contacts are restricted scopes → CASA assessment required,"* which is wrong (they are *sensitive* scopes — no CASA), and the false "fact" propagated into multiple agent outputs as ground truth, steering the project toward a months-long security assessment that does not apply. A wrong external fact is as costly as a wrong internal one — and harder to spot, because nothing in the codebase contradicts it.
 
-For each ADR with a "Implementation Scope" or "Existing State" claim, run:
+For each ADR with an "Implementation Scope," "Existing State," or third-party-platform claim, run the applicable checks:
 
 1. **Existing-table claims** → grep schema files for the column/constraint/index. Do NOT trust prose. Spock confirms with `grep -nE "^\s*org_id\s+(INTEGER|UUID|BIGINT)" schema*.sql` per claim.
 2. **"X already landed in mission Y" claims** → Worf empirically inspects the referenced files. If the claim is about a security primitive (paper-gate, allowlist, RLS policy), verification is mandatory before any downstream mission treats it as scope-reduction.
 3. **File-path claims** → `[ -f <path> ] && echo present || echo MISSING` for every path the ADR cites as a deliverable. Reject "Fully implemented in vX.Y" framing for paths that don't exist at HEAD.
+4. **External-platform claims (Uhura)** → Any PRD/ADR claim about a third-party platform's **OAuth scope tiers** (restricted vs sensitive vs basic), **API rate/quota limits**, **auth or verification process** (CASA assessment, app review, brand verification), **pricing/plan gating**, or **token lifecycle** MUST be re-verified against the live provider docs via **WebFetch** before any downstream mission scopes work around it. Cite the doc URL and quote the relevant line in the ADR. A claim like "this scope requires a CASA security assessment" or "this endpoint is rate-limited to N/min" is not ground truth until a live-docs fetch confirms it. If no web tools are available, mark the claim `UNVERIFIED — external` and flag that downstream scoping is provisional. (Field report #376: a CASA-vs-sensitive-scope error in the PRD nearly steered the project into months of unnecessary security-assessment work; the operator caught it, but a WebFetch check would have caught it first.)
 
 If verification fails, the ADR's status is `Proposed`, not `Accepted`, until the gap is closed. Do not apply Riker's review to an unverified claim — the reviewer is testing the *decision*, not the *factual ground state*.
 

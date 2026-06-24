@@ -143,6 +143,7 @@ Run sequentially — each builds on findings from parallel phase:
 - Are system prompts deduplicated across requests?
 - Is streaming used where appropriate? (Time to first token)
 - Estimated monthly cost at projected volume?
+- **Are hardcoded per-token cost constants verified against CURRENT provider pricing?** Per-token LLM rates are a STALENESS LIABILITY: models get retired and repriced, so a constant that was right at build time silently rots. Whenever touching cost-tracking or cost-cap code, verify every per-token rate against the provider's live pricing — do not trust the value in the repo, the PRD, or a prior vault. A stale rate mis-records COGS and mis-sets margin guards: field report #364 found Opus hardcoded at $15/$75 per 1M tokens against an actual current $5/$25 — a 3× over-statement that inflated every recorded generation cost and set AI-cost caps *above* subscription revenue (a live margin leak). (Field report #364)
 
 **Bayta Darell (Evaluation):** Quality measurement.
 - Does an eval exist for each AI component?
@@ -258,6 +259,8 @@ If issues found, return to Phase 3. Maximum 2 iterations.
 - [ ] Human review process for edge cases
 - [ ] LIVE eval layer runs against the real model and passes before launch (sandbox layer alone cannot catch model-output-shape bugs) (field report #352, #4)
 - [ ] Model output normalized null-to-undefined before Zod `.optional()` validation (field report #352, #4)
+- [ ] Safety-eval leak-detector is INDEPENDENT of the production deny-list/filter — it does not re-import the filter's own banned-terms or regex. Reusing the filter to test the filter is tautological: every term the filter misses, the eval also misses, so the eval reports PASS on a real leak. Build the leak-detector from a separate oracle (hand-curated banned-phrase set, second model / LLM-judge, or human labels). (Field report #378)
+- [ ] Safety eval includes adversarial cases for all three deny-list false-fire classes: NEGATION ("no accreditation evidence" must PASS — it's the safe answer), PROPER-NOUN (a contact at "Visa" / a fund named "Trust Fund" must not flag on the substring), and HOMOGLYPH / zero-width evasion ("аccredited" with a Cyrillic 'а', or a zero-width-split token, must still be CAUGHT after NFKC normalization). (Field report #378)
 
 ### AI Gate Bootstrapping (Cold-Start Problem)
 AI-gated approval systems have a cold-start problem: no historical outcomes -> gate rejects all requests -> no operations -> no outcomes. During the first N decisions (configurable, default 20), the gate should approve at reduced size (0.5-0.7x normal) to build a track record. The gate should never reject solely because "no historical data exists." Include explicit prompt guidance: "Lack of history is not a reason to reject — approve at reduced size to build the track record." (Field report #152)

@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.20.0] - 2026-06-23
+
+### Triaged 12 upstream field reports → methodology hardening, + `/seal` and `/contextmeter`
+
+Ran `/debrief --inbox` over the 12 open field reports (#364–#378), applied every accepted fix across ~41 method docs / agents / patterns / commands (one applier per file, diff-coverage verified), implemented the two wizard-code reports, and shipped two new commands. All 12 issues closed. Build clean, full suite 1392 → 1420.
+
+The recurring theme across the reports: **green static gates (build, unit tests, denylists, ADR claims, status codes, declared coverage) keep passing while the real runtime / scale / auth / external path is never exercised.**
+
+### Added
+
+- **`/seal`** — session-closeout ritual: `/git` commit → push → `/debrief --submit` → `/vault --seal`, then always prints the next-session handoff prompt. Fail-safe pipeline (a test failure halts before push but still seals a vault recording the blocked state). Thin orchestrator — no new persona.
+- **`/contextmeter`** (Ducem Barr) — context-budget meter. A status line rendering a colored context-usage meter (green → yellow → red; yellow 80%, red 92%) plus a `UserPromptSubmit` hook that injects remaining-context awareness into Claude itself once usage crosses the threshold, so it can `/vault`/`/seal` before compaction. **Default-on:** `init` auto-wires it (new `mergeStatuslineSettings`, mirrors the surfer-gate hook merge; sets `statusLine` only if absent, appends the hook idempotently). Named to avoid the native `/statusline`/`/context` collision (logged in `NATIVE_CAPABILITIES.md`). `scripts/statusline/` wired through all four distribution paths + the npm `files` allowlist (LRN-11).
+- **`docs/patterns/post-deploy-probe.sh`** — deploy probe asserting response content + Content-Type, not HTTP status only (defeats the SPA catch-all false-positive). [#371]
+- **`docs/patterns/exclusion-set-invariant.md`** — superset invariant across `.gitignore` / rsync / secret-scanner exclusion sets. [#377]
+
+### Changed — methodology hardening (#364–#378)
+
+- **QA / Testing** [#378/#373/#365] — throughput/scale gate for per-row network stages; partial/edge-state smoke; drift-guard shared check-fn + CI-wiring proof.
+- **Architecture** [#378/#373/#376] — ADR concurrency-claim verification gate; ADRs record provider-doc-verified token lifecycle; `architect` Step 4.6 extended to verify EXTERNAL platform claims vs live docs.
+- **Security** [#378/#377] — PII export-format `.gitignore`; denylist = tripwire vs authoritative-boundary (prove reachability before escalating to CRITICAL).
+- **DevOps** [#377/#365/#364] — production-path tracer for arming gates; live contrastive systemd/sandbox smoke; promote gate verifies deployed-commit == branch HEAD.
+- **Gauntlet / Campaign** [#377/#373/#365/#371] — live runtime assertion on fix-batch acceptance; dark-flag activation gated on review (not deploy); declared-vs-implemented reconciliation lens; FR-A5 HTTP two-principal isolation + planted-uid red-check.
+- **Frontend / UX** [#376/#375] — anti-generic originality gate (justify-or-reject named defaults); render-gate coverage (every changed-prop surface, both auth states).
+- **Build / Release** [#376/#366/#364/#375] — "adversarially verify the as-implemented diff" step; distribution-validator rule; pre-integration web-verification; removal sweep.
+- **AI safety** [#378/#364] — deny-list discipline (negation-adjacency / proper-noun allowlist / NFKC / independent eval); LLM per-token cost-constant staleness.
+- **Sub-agents / Workflows** [#378/#377/#371/#366] — orchestrator owns dedup + dispatch; verify the empirical premise of a severity rating; auth-mechanism → client-gate-migration audit; mktemp scratch rule; WORKFLOWS recovery subsection.
+- **Forge artist currency** [#367] — removed the retired DALL-E 3 HD provider row; gpt-image-1 throughout.
+- **Wizard `update`** [#368/#369] — non-destructive CLAUDE.md merge (new `claude-md-strategy.ts`: preserve + side-file / sentinel-fence merge / skip; marker `claudeMd` field; `--help` guard; section-loss warning), replacing the destructive "preserve first 10 lines, overwrite the rest" clobber; legacy-consumer marker detection (offer to create the marker instead of erroring to `init`).
+
+### Fixed
+
+- **Silver Surfer gate `/debrief` gap** [#366-F4] — `/debrief` and other fixed-roster non-review commands take a `--light` / `--solo` bypass before launching sub-agents (the hook blocks *every* non-Surfer Agent launch regardless of the gated-commands list). Documented in `CLAUDE.md` + `debrief.md` + `FIELD_MEDIC.md`, including the live-observed `bypass.sh` stale-pointer bug + re-run workaround.
+- **`gauntlet.workflow.js` dedup** [#366-F6] — strip the repo-root prefix from a finding's path before keying, so the same finding raised by two agents dedupes.
+
+Dep `^23.19.0` → `^23.20.0`.
+
+---
+
 ## [23.19.0] - 2026-06-13
 
 ### Gauntlet acceptance test → 14 fixes

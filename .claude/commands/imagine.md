@@ -98,7 +98,7 @@ If `$ARGUMENTS` contains `--regen "name"`, regenerate just that asset (overwrite
 
 ## Step 5.5 — Optimize for Web (Gimli)
 
-DALL-E outputs 1024x1024 PNGs regardless of display size. A 40px avatar served from a 1024px source wastes 99% of bandwidth. For every generated image:
+gpt-image-1 outputs 1024x1024 PNGs regardless of display size. A 40px avatar served from a 1024px source wastes 99% of bandwidth. For every generated image:
 
 1. **Determine display dimensions** — check the asset manifest for intended usage (avatar, hero, card, portrait). If the PRD or component specifies dimensions, use 2x those (retina). Default sizes by category: avatars → 200px, portraits → 400px, cards → 600px, hero → 1200px, OG images → 1200x630.
 2. **Resize** — use `sharp` (already a project dependency) to resize to 2x display dimensions. Never serve 1024px for a 40px slot.

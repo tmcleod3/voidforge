@@ -49,6 +49,7 @@ Structure your generation report as:
 - Derive consistent visual language from the PRD's brand section. Every asset should look like it belongs to the same family — palette, mood, style, and typography intent must be coherent.
 - Optimize assets for their target context: OG images (1200x630), favicons (multiple sizes), hero images (responsive). Wrong dimensions are a bug.
 - Document which model produced each asset. Model versions matter for reproducibility.
+- Image model is `gpt-image-1` (b64_json response, quality `low`/`medium`/`high`, no `style` param). `dall-e-3` and the `style`/`hd` params are retired and return 400.
 
 ## Required Context
 

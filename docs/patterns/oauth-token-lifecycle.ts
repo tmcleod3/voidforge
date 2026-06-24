@@ -8,6 +8,20 @@
  * - Failure escalation: retry 3x → pause platform → alert → requires_reauth
  * - Token stored as encrypted blob in vault, keyed by platform name
  * - Session token (daemon) rotates every 24 hours (§9.19.15)
+ * - VERIFY EXPIRY + REFRESH-GRANT BEHAVIOR AGAINST THE PROVIDER'S LIVE DOCS AT
+ *   INTEGRATION TIME. The PLATFORM_CONFIGS TTLs below are STARTING ASSUMPTIONS,
+ *   not ground truth — providers change them and "no refresh token / never
+ *   expires" is a common false assumption. Field report #373: a Todoist
+ *   integration shipped on "tokens don't expire," but the modern API issues
+ *   ~1h access tokens WITH a refresh token; the code discarded the refresh
+ *   token + expiry and registered no refresher, so it died ~1h after every
+ *   connect across four sessions — looking exactly like intermittent
+ *   revocation. At integration time: (1) read the provider's OAuth docs and
+ *   quote the verified access-token TTL + whether a refresh_token is issued;
+ *   (2) if a refresh_token exists, PERSIST it and register a refresher — never
+ *   discard it; (3) distinguish "expired" from "revoked" via the API's OWN
+ *   error body, not by inference (an expired token that mimics revocation will
+ *   send you reauth-hunting instead of refreshing).
  *
  * Agents: Breeze (platform relations), Dockson (vault)
  *
@@ -50,6 +64,13 @@ interface PlatformTokenConfig {
   revokeEndpoint?: string;
 }
 
+// ASSUMPTIONS, NOT GROUND TRUTH (field report #373). These TTLs and the
+// "refreshTokenTtlDays: 0 = never expires" entries are starting points. At
+// integration time, VERIFY each value against the provider's current OAuth
+// docs and the live token response (`expires_in`, presence of `refresh_token`)
+// — a provider that "doesn't expire" today may issue ~1h tokens tomorrow, and
+// a missing refresher then surfaces as recurring prod token-death that mimics
+// revocation. Treat any new platform here the same way before shipping.
 const PLATFORM_CONFIGS: PlatformTokenConfig[] = [
   { platform: 'meta',     accessTokenTtlHours: 1440, refreshTokenTtlDays: 0,  refreshEndpoint: 'https://graph.facebook.com/v19.0/oauth/access_token' },
   { platform: 'google',   accessTokenTtlHours: 1,    refreshTokenTtlDays: 0,  refreshEndpoint: 'https://oauth2.googleapis.com/token' },

@@ -82,4 +82,10 @@ if [ -d "$REPO_ROOT/scripts/thumper" ]; then
   echo "copy-assets: scripts/thumper/ → dist/"
 fi
 
+if [ -d "$REPO_ROOT/scripts/statusline" ]; then
+  mkdir -p "$DIST/scripts/statusline"
+  cp "$REPO_ROOT"/scripts/statusline/* "$DIST/scripts/statusline/"
+  echo "copy-assets: scripts/statusline/ → dist/"
+fi
+
 echo "copy-assets: done."

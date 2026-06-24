@@ -67,6 +67,18 @@ Mandatory runtime verification BEFORE code review begins:
 
 **Gate:** All endpoints return expected status codes. No route collisions. No infinite render loops detected. Update assemble-state.
 
+## Phase 2.75 — Adversarially Verify the As-Implemented Diff (Maul + Deathstroke + Constantine)
+**Fury:** "Before anyone reviews the codebase, review the *change*. The bugs we just shipped are in the new lines, not the old ones."
+
+The Phase 3-5 review roster reviews the whole codebase (and pre-build, it reviewed the OLD code). This phase is different and runs FIRST: an adversarial pass over the AS-IMPLEMENTED diff specifically — the lines Phase 2 just wrote — to catch defects the build introduced that a whole-codebase or pre-build review structurally cannot (a fix that latches a flag, focus jumping, a re-attach-into-false-timeout dead-end). Reviewing intent ≠ reviewing the artifact.
+
+1. Capture the mission diff: `git diff <build-start-ref>..HEAD` (use the ref Phase 2 recorded at start). This is the ONLY surface under review here.
+2. Use the Agent tool to run in parallel, each prompted to attack the NEW diff: `subagent_type: Maul` (exploits introduced by the change), `subagent_type: Deathstroke` (boundaries the new code crosses), `subagent_type: Constantine` (code in the diff that works by accident).
+3. Each agent answers: "What did THIS change break that didn't exist before it?" — not "is the codebase good."
+4. Fix all Must Fix findings on the diff before proceeding to the full review rounds.
+
+**Gate:** No Must Fix defects in the as-implemented diff. Update assemble-state. (Field report #376 #3.)
+
 ## Workflow Execution — review phases (ADR-067)
 
 The **review-heavy fan-out phases** — Phase 3-5 (engage), 7-8 (sentinel), 12 (crossfire), 13 (council) — run as a **Dynamic Workflow** (`.claude/workflows/assemble-review.workflow.js`) over the mission's working diff, so the 15+-agent fan-out stays out of the lead's context (ADR-067; see `docs/methods/WORKFLOWS.md`). The **build/architecture/devops phases (1-2.5, 9) STAY prose orchestration** — they write code, are sequentially dependent, and need lead judgment + `--interactive` gates between them.

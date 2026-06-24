@@ -4,7 +4,7 @@ The standing audit ADR-050 deferred and never created. It records every VoidForg
 
 > **Why this matters.** On surfaces with project-local command resolution (the CLI in a VoidForge repo) a same-named `.claude/commands/*.md` wins. On surfaces *without* it (claude.ai web, some IDE extensions) a colliding **native** skill can win instead — running ungated and without VoidForge's semantics. ADR-050 renamed `/review`→`/engage` and `/security`→`/sentinel` for exactly this reason.
 
-**Audited:** 2026-06-13 against the mid-2026 native set (`/init`, `/review`, `/security-review`, `/code-review`, `/test`, `/qa`-class, `/commit`, `/debug`, `/deep-research`, plus built-ins).
+**Audited:** 2026-06-13 against the mid-2026 native set (`/init`, `/review`, `/security-review`, `/code-review`, `/test`, `/qa`-class, `/commit`, `/debug`, `/deep-research`, plus built-ins). **2026-06-23:** added `/statusline` + `/context` to the tracked native set (both shadow same-named project commands) when registering `/contextmeter`, and added the `/seal` row.
 
 ## Dispositions
 
@@ -20,6 +20,8 @@ The standing audit ADR-050 deferred and never created. It records every VoidForg
 | `/architect`, `/assess`, `/prd`, `/blueprint` | — | keep | no native collision |
 | `/debrief`, `/audit-docs`, `/vault`, `/ai`, `/imagine` | — | keep | no native collision |
 | `/void`, `/thumper`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`, `/ux` | — | keep | no native collision |
+| `/seal` | — | **keep** | session-closeout orchestrator (`/git`→`/debrief`→`/vault`); no native collision |
+| `/contextmeter` | native `/statusline`, `/context` | **renamed to avoid (done)** | native `/statusline` + `/context` always shadow a same-named project command, so the context meter ships as `/contextmeter` (installs the meter status line + the `UserPromptSubmit` awareness hook). Same precedent as the ADR-050 `/review`→`/engage` rename. |
 
 **Coverage rule (ADR-066 verification gate):** every command in `.claude/commands/*.md` must appear in this table with a disposition. A newly-added command without a row fails the audit. (Aliases `/review`, `/security` resolve to their canonical rows above.)
 

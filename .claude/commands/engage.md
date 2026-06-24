@@ -94,6 +94,11 @@ For every `useEffect` in new/modified components:
 - Generic fallback messages are only used when the server truly returns no useful error info
 - The UI form state after error allows retry without losing user input
 
+**CLIENT-GATE-MIGRATION AUDIT (mandatory when the diff changes an auth mechanism — field report #371).** When a change swaps or alters how authentication is carried — token string → cookie session, header → httpOnly cookie, a new principal/role check, a different session source — the server side is only half the migration. Find EVERY client-side gate that depended on the OLD mechanism and confirm it was migrated to the new one:
+- Grep the client for every place that reads the old credential (e.g., `token`, `localStorage.getItem('token')`, `Authorization` header construction) and every UI gate keyed on it (`if (token)`, `disabled={!token}`, route guards, panel-visibility checks).
+- For each, verify it now reads the NEW source. A server that authenticates via cookie while the SPA still gates UI on a token string that is no longer set means signing in unlocks nothing — the feature is *inert* despite the request layer being correct.
+- This is the wiring/composition gap per-mission review misses and the Victory Gauntlet's UX lens catches late: the server is wired, the client gates are not switched. Verify the gate migration as part of the review, not as a downstream surprise.
+
 ## Step 1.5 — Conflict Detection
 After parallel analysis completes, scan findings from all agents for conflicts:
 - **Same code, different verdicts:** Spock says "pattern violation" but Data says "intentional trade-off"

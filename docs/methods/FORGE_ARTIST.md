@@ -90,10 +90,9 @@ Stored at `public/images/manifest.json`:
 
 Default: OpenAI (gpt-image-1). Provider-abstracted for future extensibility.
 
-| Provider | Model | Per Image (HD) | Notes |
-|----------|-------|---------------|-------|
-| OpenAI | gpt-image-1 | ~$0.04 | Default. Best quality/cost ratio. |
-| OpenAI | DALL-E 3 HD | ~$0.08 | Higher detail, double cost. |
+| Provider | Model | Per Image | Notes |
+|----------|-------|-----------|-------|
+| OpenAI | gpt-image-1 | ~$0.04 | Default. Best quality/cost ratio. For higher detail, raise `quality` to `high`. |
 
 ## Deliverables
 

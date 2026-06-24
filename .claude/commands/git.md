@@ -56,10 +56,22 @@ Update all version files:
 4. Update the version in **every** versioned `package.json`. For a single-package repo that is the root `package.json`. For a workspaces/monorepo it is each non-private workspace package — VoidForge has **two**: `packages/voidforge/package.json` and `packages/methodology/package.json` (the root is `"private": true` with no version). **Also bump any internal dep pin:** when one workspace package depends on a sibling, set the range to `^<new-version>` — for VoidForge, `voidforge-build`'s `voidforge-build-methodology` dependency, per ADR-062. A bump that updates one package but not its sibling or the pin ships an inconsistent release (and the Step 7 publish skips any package whose version doesn't match).
 5. **Re-sync tracked generated copies of release files.** If a source file changed this release has a tracked copy that is regenerated at publish, re-sync it so the in-repo copy doesn't go stale between releases. VoidForge: `packages/methodology/CLAUDE.md` is the root `CLAUDE.md` with the ADR-058 template block stripped — `sed '/<!-- REMOVE-FOR-NPM-PUBLISH/,/END-REMOVE-FOR-NPM-PUBLISH -->/d' CLAUDE.md > packages/methodology/CLAUDE.md`.
 
+## Step 3.5 — Removal Sweep (Rogers)
+If Step 1 classified any change as **Removed** — a deleted symbol, export, prop, env var, command, or any named artifact — sweep its name out of comments and user-facing copy before the commit lands. A green build and green tests confirm the code compiles without it; they say nothing about a comment that still describes it or a doc that still tells users to set it.
+
+For each removed name, grep the **whole tree** — code AND comments AND user-facing copy (READMEs, docs, CLAUDE.md, command files, UI strings, help text) — not just source:
+
+```bash
+# NAME = the deleted symbol/export/prop/env-var/command
+git grep -nI -- "$NAME" -- ':!CHANGELOG.md' ':!PROJECT_VERSION.md' ':!VERSION.md'
+```
+
+Every hit that is not the intentional "Removed" changelog line is either updated to the new reality or itself removed before committing. Field report #375: retiring `MONITOR_TOKEN` left ~8 stale comment sites plus user-facing copy ("set a monitor token") that a green build + 97 unit tests never caught — because none of the stale references were code.
+
 ## Step 4 — Commit (Rogers)
 Stage and commit:
 1. Stage all modified version files: `VERSION.md`, the active changelog (`CHANGELOG.md` or `PROJECT_VERSION.md`), **every** bumped `package.json` (all workspace packages, not just the root), and any generated copy re-synced in Step 3
-2. Stage any other files that are part of this release (from Step 0)
+2. Stage any other files that are part of this release (from Step 0), including any prose fixed by the Step 3.5 removal sweep
 3. Craft commit message in the format: `vX.Y.Z: One-line summary`
    - If elaboration needed, add a blank line then details
    - Match the style of existing commits (check `git log --oneline -10`)

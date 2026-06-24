@@ -56,6 +56,22 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/statusline/context-awareness-hook.sh"
+          }
+        ]
+      }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash scripts/statusline/voidforge-statusline.sh",
+    "padding": 0
   }
 }

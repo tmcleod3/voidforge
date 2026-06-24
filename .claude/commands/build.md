@@ -90,6 +90,14 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 3. **PRD alignment check (Living PRD):** Compare marketing pages against the PRD's marketing section. Verify copy claims (feature counts, pricing tiers, testimonial accuracy), visual treatments, and page structure match. Fix code OR update PRD for deviations.
 4. **Gate:** Pages render, SEO present, mobile responsive, PRD alignment verified
 
+## Phase 8.5 — Adversarially Verify the As-Implemented Diff (Maul + Deathstroke + Constantine)
+This runs BEFORE the whole-codebase review cycle and is distinct from it: a review of the NEW diff specifically — the lines this build wrote — not of the codebase or of pre-build intent. The double-pass review (Phases 9-11) reads the whole project; this phase reads only the change, catching defects the build introduced that a whole-codebase pass structurally misses (a fix that latches a flag, focus jumping backward, a re-attach-into-false-timeout dead-end). Reviewing intent ≠ reviewing the artifact.
+1. Capture the build diff: `git diff <build-start-ref>..HEAD` — this is the only surface under review here.
+2. Run in parallel via the Agent tool, each prompted to attack the NEW diff: `subagent_type: Maul`, `subagent_type: Deathstroke`, `subagent_type: Constantine`. Each answers "what did THIS change break that didn't exist before it?" — not "is the codebase good?"
+3. Fix all Must Fix findings on the diff before entering the review cycle.
+4. Log to `/logs/phase-08-5-diff-verify.md`.
+5. **Gate:** No Must Fix defects in the as-implemented diff. (Field report #376 #3.)
+
 ## Phases 9-11 — Double-Pass Review Cycle (Batman + Galadriel + Kenobi)
 
 ### Pass 1 — Find (all three run in parallel)

@@ -10,6 +10,11 @@
  * - Batch vs streaming mode toggle — same stages, different execution
  * - Error handling: skip-and-log vs fail-fast configurable per pipeline
  * - Progress reporting callback for observability
+ * - Source-format discovery BEFORE assuming CSV — the first stage detects the
+ *   real input format and dispatches to a SourceAdapter. Never hardcode
+ *   `read_csv`. A "giant contact dump" is frequently NOT a CSV (field report
+ *   #378: a 4k-row export arrived as an Apple Contacts `.abbu` SQLite bundle).
+ *   See the SourceAdapter section in Framework Adaptations below.
  *
  * Agents: Stark (backend), Banner (data), L (monitoring)
  *
@@ -250,6 +255,56 @@ export {
   checkNullRate, checkRange, computeDedupHash,
 };
 
+// ── Source Adapter (format discovery — field report #378) ──────────────
+//
+// The PRD says "CSV" but the real authorized source is often something else.
+// A pipeline's FIRST stage must DISCOVER the format and dispatch to an adapter,
+// never assume CSV. Each adapter normalizes its source into the same record
+// shape the rest of the pipeline consumes (e.g. a flat contact row). Adding a
+// source = adding an adapter, not editing every downstream stage.
+//
+//   type SourceFormat = 'csv' | 'vcard' | 'sqlite-contacts' | 'json';
+//
+//   /** Sniff the format from extension + magic bytes — do NOT trust the name alone. */
+//   function detectSourceFormat(path: string, head: Buffer): SourceFormat {
+//     const ext = path.toLowerCase();
+//     if (ext.endsWith('.vcf')) return 'vcard';                       // vCard text
+//     if (ext.endsWith('.abbu') || ext.endsWith('.abcddb')) return 'sqlite-contacts'; // Apple Contacts store
+//     if (head.subarray(0, 16).toString() === 'SQLite format 3 ') return 'sqlite-contacts';
+//     if (ext.endsWith('.json')) return 'json';
+//     if (head[0] === 0x42 && head[1] === 0x45 && head[2] === 0x47) return 'vcard'; // "BEG" of BEGIN:VCARD
+//     return 'csv';
+//   }
+//
+//   interface SourceAdapter { read(path: string): Promise<Record<string, unknown>[]>; }
+//
+//   // --- vCard (.vcf) ------------------------------------------------------
+//   // STUB: parse with a vCard lib (e.g. `vcf`/`ical.js`); map FN/EMAIL/TEL/ORG
+//   // to the canonical contact record. A single .vcf can hold many VCARD blocks.
+//   const vcardAdapter: SourceAdapter = {
+//     async read(_path) { throw new Error('Implement: split on BEGIN:VCARD, map FN/EMAIL/TEL/ORG'); },
+//   };
+//
+//   // --- SQLite contact stores (.abbu bundle / .abcddb) -------------------
+//   // STUB: an Apple Contacts `.abbu` is a BUNDLE containing an `.abcddb` SQLite
+//   // file; open read-only and SELECT from ZABCDRECORD/ZABCDEMAILADDRESS etc.
+//   // (schema varies by macOS version — probe table names, don't hardcode).
+//   const sqliteContactsAdapter: SourceAdapter = {
+//     async read(_path) { throw new Error('Implement: open .abcddb read-only, join ZABCDRECORD + email/phone tables'); },
+//   };
+//
+//   // --- JSON export -------------------------------------------------------
+//   // STUB: many providers export a JSON array (or NDJSON); validate with Zod
+//   // before mapping — exported JSON is untyped and frequently partial.
+//   const jsonAdapter: SourceAdapter = {
+//     async read(_path) { throw new Error('Implement: parse + Zod-validate, map to canonical record'); },
+//   };
+//
+//   // SECURITY: every one of these formats is a PII export. The default
+//   // .gitignore must cover them up front (*.vcf *.abbu *.abcddb* *.json input
+//   // dumps) — field report #378 logged TWO near-misses where a non-CSV source
+//   // dump sat un-ignored in the repo root.
+//
 // ── Framework Adaptations ───────────────────────────────
 //
 // === Python (pandas/polars) ===
@@ -262,7 +317,10 @@ export {
 //               raise FileNotFoundError(path)
 //
 //       def transform(self, path: str) -> pl.DataFrame:
-//           return pl.read_csv(path)
+//           # Discover the format first — do NOT assume CSV (field report #378).
+//           fmt = detect_source_format(path)          # 'csv'|'vcard'|'sqlite-contacts'|'json'
+//           return SOURCE_ADAPTERS[fmt](path)          # each adapter -> canonical DataFrame
+//           # e.g. sqlite-contacts: sqlite3.connect(f"file:{abcddb}?mode=ro", uri=True)
 //
 //   class CleanStage:
 //       def validate(self, df: pl.DataFrame) -> None:

@@ -328,6 +328,16 @@ If health check fails after deploy:
 
 (Field report #97: 3 campaigns of Dialog Travel code never reached production because no deploy step existed.)
 
+### Arming / go-no-go gates must run the REAL production launch path
+
+A go/no-go gate — a "tracer bullet" that authorizes arming an autonomous component, or a deploy gate that authorizes cutover — is only meaningful if it crosses the **same production seam** the live system uses. A tracer that runs through a dev shortcut and reports CLEAN gives **false confidence**: it proves a path that production never takes.
+
+The recurring failure: the gate executes via a dev/current-user code path — an `unsafe_run_as_current_user`-style flag, a `--dev`/`--local` launcher, the test harness's in-process invocation — and never crosses the privileged hand-off (the `sudo`/`setuid` drop, the systemd `User=`/`ExecStart`, the scheduler's spawn) that the production scheduler actually uses. It passes CLEAN while production is broken, because the broken seam was the one the tracer skipped.
+
+**Rule:** the gate that authorizes arming or deploy must exercise the **real entrypoint, the real OS user, the real privilege drop, and the real process model** — the production seam, end to end — not a dev bypass. Same systemd unit (or the same scheduler/launcher), same environment construction, same user/privilege transition, same hand-off. If the production path drops privileges and re-execs under a service account, the tracer must too; a tracer that stays in the current user's shell is testing a different program.
+
+**Checklist item (add to the deploy/arming go-no-go):** *"Tracer exercised the production seam — real entrypoint, real user, real privilege drop, real hand-off — not a dev/`--unsafe-current-user` shortcut."* If you cannot answer yes, the gate has not run; a CLEAN from a dev path is a false CLEAN. (Field report #377: an arming tracer ran via a current-user dev path, reported CLEAN, and gated the arming — the system's first real scheduled run then failed because the production privileged hand-off it had skipped was broken.)
+
 ## Load Testing (Pre-Launch)
 
 **When to load test:**
@@ -395,6 +405,29 @@ When staging and production coexist on the same server, enforce full isolation:
 8. **Staging-first deploy flow** — `/deploy` and `/git` should detect staging branches and push there first. Production deploy requires explicit `--prod` flag or promotion from staging.
 
 Convention isn't enough — enforcement is. The pre-push hook is the single most effective protection. (Field report #241: 68-hour production outage from shared infrastructure.)
+
+### Promote gate must verify the staging server's DEPLOYED COMMIT == branch HEAD
+
+A staging-first promote gate that checks only "staging branch is ahead of main" + "staging health endpoint returns 200" + "version was bumped" is **structurally blind to the one thing staging-first exists to guarantee**: that the code being promoted actually *ran on staging*. Branch-ahead proves the commit was *pushed*; health-200 proves *some* build is up. Neither proves the staging **server** is running the commit being promoted — a push-to-branch without a redeploy leaves the server lagging the branch, and "ahead + 200" both still pass. Promote at that point and you ship commits to prod that **never executed on staging** — the exact failure staging-first is built to prevent (and the same shape as the "deployed but never reloaded" stale-build outage elsewhere in this doc).
+
+**The gate (two required parts):**
+
+1. **Expose the running build's commit on the health/status endpoint.** A health body of `{status, checks, responseMs}` with no commit/version field gives nothing machine-checkable to promote against. Add the deployed git SHA (or version) to the payload — this is the same build-fingerprint discipline as §Build Staleness Detection, applied to the promote decision:
+   ```json
+   { "status": "ok", "commit": "abc1234", "version": "v5.5.1", "checks": { ... } }
+   ```
+2. **`promote.sh` compares the staging server's reported commit against the branch HEAD being promoted, and BLOCKS on mismatch.** Health-200 + branch-ahead is necessary, not sufficient — the *server* must be running the code being promoted.
+   ```bash
+   STAGING_COMMIT="$(curl -s "https://$STAGING_HOST/api/health" | jq -r '.commit')"
+   BRANCH_HEAD="$(git rev-parse --short "$PROMOTE_BRANCH")"
+   if [ "$STAGING_COMMIT" != "$BRANCH_HEAD" ]; then
+     echo "PROMOTE BLOCKED: staging server runs $STAGING_COMMIT but you are promoting $BRANCH_HEAD."
+     echo "Redeploy staging to $BRANCH_HEAD and re-run the health check before promoting."
+     exit 1
+   fi
+   ```
+
+A health-only promote gate promotes stale builds. The commit-equality check is the assertion that the thing you tested is the thing you ship. (Field report #364: a session pushed two missions to the staging *branch* without redeploying the staging *server*; "branch ahead + HTTP 200" both passed while the server lagged the branch by a full version — promoting would have shipped prod commits that never ran on staging, caught only by an operator's instinct to inspect server state.)
 
 ### Renaming a Linked Worktree Directory Breaks Git Silently
 
@@ -532,6 +565,29 @@ LockPersonality=true
 ReadWritePaths=/var/lib/myapp /var/log/myapp
 ```
 Note: ahead-of-time-compiled binaries (Go, Rust, statically compiled C/C++) have no JIT and **can** keep `MemoryDenyWriteExecute=true` — the restriction is specific to JIT runtimes (Node/V8, the JVM, PyPy, .NET with JIT). When a unit template is shared across services, gate MDWE on the runtime, not on the unit boilerplate.
+
+### Live contrastive smoke gate (systemd / shell / sudo / sandbox wiring)
+
+A unit file that *parses* is not a unit that *runs*. systemd sandbox flags (`ProtectHome`, `ReadWritePaths`, `MemoryDenyWriteExecute`, `User=`, `NoNewPrivileges`), shell `set -o pipefail` interactions, `sudo`/`setuid` drops, and `exec`-replaced traps all pass every code-read and unit-lint yet fail (or silently no-op) the moment the service runs under the real hardened runtime. `systemd-analyze verify <unit>` checks syntax; it does NOT prove the service does useful work inside its own sandbox.
+
+For any systemd/shell/sudo/sandbox wiring mission, the review gate must run a **live contrastive smoke** — prove the failure mode AND the fix *at runtime*, contrasting pass-vs-fail, not merely that the unit file is defined:
+
+1. **Reproduce the failure live.** Run the operation under the OLD/un-fixed sandbox config and show it actually blocks — e.g. a `systemd-run` (or `systemd-run --user`) transient unit carrying the restrictive flags demonstrates the write is denied / the process SIGTRAPs / the cadence run no-ops.
+2. **Prove the fix live.** Run the SAME operation under the NEW config and show it now succeeds.
+3. **Assert the contrast.** The gate passes only when fail→old and pass→new are both demonstrated. A unit that merely *exists* with the right flags is not proof the service runs under them.
+
+```bash
+# Contrastive smoke: does the service actually run under its real hardened runtime?
+# OLD config must BLOCK; NEW config must ALLOW. Run both; assert the contrast.
+systemd-run --pty --property=ProtectHome=read-only \
+  --property=ReadWritePaths=/var/log/myapp \
+  /usr/bin/env sh -c 'echo probe > /home/svc/repo/run.log'   # expect: FAILS (read-only)
+systemd-run --pty --property=ProtectHome=tmpfs \
+  --property=ReadWritePaths=/var/log/myapp /home/svc/repo \
+  /usr/bin/env sh -c 'echo probe > /home/svc/repo/run.log'   # expect: SUCCEEDS (path writable)
+```
+
+This catches the class of defect that unit-green code hides: a `ProtectHome=read-only` + enumerated `ReadWritePaths` that makes a repo-root log read-only and **silently no-ops every armed cadence run**; an `OnFailure=` alert unit that `203/EXEC`-fails because its script lacks the executable bit; a secret still readable in `/proc/<pid>/environ` after an in-process `unsetenv`. None are reachable by code-reading or unit tests — only by running the service under its real runtime and watching what it does. (Field report #365: an M13 systemd sandbox passed every unit test but would have silently no-op'd every armed cadence run; reachable only by live proof, not code-reading.)
 
 ## Config Foot-Guns (deploy/runtime)
 

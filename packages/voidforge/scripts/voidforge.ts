@@ -391,6 +391,22 @@ async function cmdMigrateTreasury(): Promise<void> {
   console.log('  To rollback: move archive back to ~/.voidforge/treasury/\n');
 }
 
+function showUpdateHelp(): void {
+  console.log('voidforge update — update project methodology (Bombadil)\n');
+  console.log('Usage: npx voidforge update [options]\n');
+  console.log('Options:');
+  console.log('  --self             Update the wizard/CLI itself instead of the project');
+  console.log('  --extensions       Update all installed extensions across registered projects');
+  console.log('  --no-self-update   Skip the automatic CLI self-upgrade check');
+  console.log('  --help, -h         Show this help (does NOT run the update)');
+  console.log('');
+  console.log('CLAUDE.md is updated per the `.voidforge` marker `claudeMd` policy:');
+  console.log('  preserve (default) Never overwrite in place — write CLAUDE.md.upstream + warn');
+  console.log('  merge              Replace only the VOIDFORGE methodology fences, keep project sections');
+  console.log('  skip               Never touch CLAUDE.md');
+  console.log('');
+}
+
 function showHelp(): void {
   console.log('VoidForge — From nothing, everything.\n');
   console.log('Usage: npx voidforge <command> [options]\n');
@@ -515,7 +531,16 @@ async function main(): Promise<void> {
       }
 
       case 'update': {
-        if (args.includes('--self')) {
+        const { resolveUpdateMode } = await import('../wizard/lib/updater.js');
+        const updateMode = resolveUpdateMode(args);
+        // Help guard (issue #368): `update --help` / `-h` must PRINT usage and
+        // exit — never execute the (potentially destructive) update. Help wins
+        // over every action flag, checked before any work happens.
+        if (updateMode === 'help') {
+          showUpdateHelp();
+          break;
+        }
+        if (updateMode === 'self') {
           const { selfUpdate } = await import('../wizard/lib/updater.js');
           const result = selfUpdate();
           console.log(result.message);
@@ -557,7 +582,7 @@ async function main(): Promise<void> {
             // npm view failed — offline or registry issue. Continue with local version.
           }
         }
-        if (args.includes('--extensions')) {
+        if (updateMode === 'extensions') {
           const { readRegistry } = await import('../wizard/lib/project-registry.js');
           const { readMarker: readMkr } = await import('../wizard/lib/marker.js');
           const { getExtension } = await import('../wizard/lib/extensions.js');
@@ -582,11 +607,46 @@ async function main(): Promise<void> {
           break;
         }
         // Methodology update
-        const { findProjectRoot: findProjRoot } = await import('../wizard/lib/marker.js');
-        const projRoot = findProjRoot();
+        const {
+          findProjectRoot: findProjRoot,
+          detectLegacyConsumer,
+          readVersionFile,
+          createMarker: makeMarker,
+          writeMarker: saveMarker,
+        } = await import('../wizard/lib/marker.js');
+        let projRoot = findProjRoot();
         if (!projRoot) {
-          console.error('Not a VoidForge project — run `npx voidforge init` first.');
-          process.exit(1);
+          // Issue #369: a project that consumed methodology via git (pre-marker)
+          // has no `.voidforge` but IS a real consumer. Offer to create the
+          // marker instead of sending the user to `init` (which scaffolds).
+          const legacy = detectLegacyConsumer();
+          if (legacy) {
+            const version = readVersionFile(legacy.dir);
+            console.log('\n  No .voidforge marker found, but this looks like a legacy');
+            console.log('  VoidForge methodology consumer:');
+            console.log(`    dir:     ${legacy.dir}`);
+            console.log(`    tier:    ${legacy.inferredTier} (inferred)`);
+            console.log(`    version: ${version} (from VERSION.md)`);
+            console.log('');
+            let createIt = true;
+            if (process.stdin.isTTY) {
+              const answer = (await prompt('  Create the .voidforge marker now? [Y/n]: ')).toLowerCase();
+              createIt = answer === '' || answer === 'y' || answer === 'yes';
+            } else {
+              console.log('  Non-interactive: creating the marker automatically.');
+            }
+            if (!createIt) {
+              console.log('\n  Aborted — no marker created. Update skipped.\n');
+              break;
+            }
+            const newMarker = makeMarker(version, legacy.inferredTier);
+            await saveMarker(legacy.dir, newMarker);
+            console.log(`  Created .voidforge marker (${newMarker.id}).\n`);
+            projRoot = legacy.dir;
+          } else {
+            console.error('Not a VoidForge project — run `npx voidforge init` first.');
+            process.exit(1);
+          }
         }
         const { diffMethodology, applyUpdate } = await import('../wizard/lib/updater.js');
         const plan = await diffMethodology(projRoot);
@@ -608,6 +668,13 @@ async function main(): Promise<void> {
           for (const f of plan.removed) console.log(`    - ${f} (kept locally)`);
         }
         console.log(`  Unchanged: ${plan.unchanged} files\n`);
+        // CLAUDE.md non-destructive handling (issue #368) — surface the policy,
+        // any dropped-section warning, and the side-file path before applying.
+        if (plan.claudeMd && plan.claudeMd.warnings.length > 0) {
+          console.log('  CLAUDE.md:');
+          for (const w of plan.claudeMd.warnings) console.log(`    ${w}`);
+          console.log('');
+        }
         const result = await applyUpdate(projRoot);
         console.log(`  Updated to v${result.newVersion}. ${plan.added.length + plan.modified.length} files changed.\n`);
         break;

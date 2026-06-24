@@ -81,7 +81,19 @@ const VERDICT = {
   },
 }
 
-const key = (f) => `${(f.file || '').toLowerCase()}::${(f.title || '').toLowerCase().slice(0, 60)}`
+// Normalize the file path before keying so the SAME finding reported by two agents —
+// one with an absolute `/Users/.../repo/src/x.ts:42`, one with a relative `src/x.ts:42` —
+// dedupes instead of surviving as two "distinct" claims (#366 F6). Strip the repo-root
+// prefix (the launch cwd, passed via args; fall back to env) and any leading `./`.
+// Workflows forbid argless `new Date()`/`Math.random()` but env reads are fine.
+const REPO_ROOT = (input.repoRoot || (typeof process !== 'undefined' && process.cwd && process.cwd()) || '')
+  .replace(/\/+$/, '')
+const normPath = (p) => {
+  let s = (p || '').trim()
+  if (REPO_ROOT && s.startsWith(REPO_ROOT + '/')) s = s.slice(REPO_ROOT.length + 1)
+  return s.replace(/^\.\/+/, '').toLowerCase()
+}
+const key = (f) => `${normPath(f.file)}::${(f.title || '').toLowerCase().slice(0, 60)}`
 
 // ── Round 1: Discovery + Round 2/3: Strike ────────────────────────────────────
 const dom = (a) => a.domain || a.key || 'their domain'  // avoid literal "undefined" in prompts

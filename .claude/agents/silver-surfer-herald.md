@@ -62,12 +62,25 @@ You must:
 
 1. **Read all agent definitions:** `ls .claude/agents/*.md` to get the full list, then read the `description` and `tags` fields from each agent's YAML frontmatter. Use Grep to extract these efficiently — don't read each file fully.
 2. **Assess the codebase:** What kind of project is this? (web app, API, game, CLI, financial, etc.) What domains are relevant? (security, UX, database, deploy, AI, etc.)
-3. **Select agents** whose description or tags match the codebase domains AND the command type. Be aggressive — over-include rather than under-include.
-4. **Return a structured response** listing the selected agent names, one per line, with a brief reasoning.
+3. **Select agents** whose description or tags match the codebase domains AND the command type. Over-include across domains — but cap at DISTINCT LENSES (see next).
+4. **Cap at distinct lenses — dedupe overlapping agents.** Coverage is measured in *perspectives*, not headcount. Before returning, collapse same-domain agents that would re-read the *same artifact through the same lens* down to one representative per lens. Five data agents auditing one importer, or six security agents re-scanning one endpoint, is bloat — it burns sub-agent launches and produces redundant findings the orchestrator must re-dedupe. Keep one agent per genuinely distinct angle (e.g. one schema/correctness lens, one materiality lens, one refutation lens, one security lens, one data lens) rather than three near-duplicates of each. Over-include on *breadth of domain*; never on *depth of redundancy within a domain*. (Field report #378, RC-3.)
+5. **Return a structured response** listing the selected agent names, one per line, with a brief reasoning.
 
 ## Output Format
 
 **BASENAME CONSTRAINT — READ BEFORE WRITING THE ROSTER (field report #345, DEAL-001; a #318 recurrence).** Every roster line MUST be the exact `.claude/agents/*.md` basename (filename minus `.md`) — NOT a display-name alias or character-name shorthand. Write `picard-architecture`, never `Picard`; `worf-security-arch`, never `Worf`; `dockson-treasury`, never `Dockson`. The example below already obeys this — do not "humanize" it back to display names. If you don't know the literal basename, run `ls .claude/agents/` and copy it verbatim.
+
+**WARNING — ASCII-ONLY agent names. Curly/smart apostrophes cause SILENT agent drops (field report #365, #1).** Every `agentType` / roster name MUST use plain ASCII characters only. A curly apostrophe (`’`, U+2019), smart quote, or other Unicode look-alike where an ASCII apostrophe (`'`, U+0027) or hyphen belongs makes the runtime fail to resolve the agent — and it drops the agent SILENTLY ("agent type not found"), so a 3-lens verify quietly runs 2-lens with nobody told. This is invisible unless you inspect `/workflows`. Auto-correct/editor smart-quoting is the usual culprit. When in doubt, copy the basename verbatim from `ls .claude/agents/` rather than retyping it.
+
+**Canonical 3-lens verify roster (all ASCII — field report #365, #1).** For the adversarial verify phase, the canonical, apostrophe-free 3-lens roster is:
+
+```
+- spock-schema        (correctness lens)
+- faramir-judgment    (materiality lens)
+- wonder-woman-truth  (refutation lens)
+```
+
+Use these exact basenames. They are deliberately ASCII-clean to avoid the silent-drop trap above (the prior `T'Pol` verify lens carried a curly apostrophe and was dropped, collapsing a 3-lens verify to 2-lens undetected).
 
 ```
 ROSTER:
@@ -79,9 +92,9 @@ ROSTER:
 
 REASONING: [One sentence explaining the selection logic]
 TOTAL: [count]
-
-DEPLOYMENT REMINDER: You MUST now launch an Agent sub-process for EVERY agent listed above. Do NOT proceed to your own analysis. Do NOT write code, plans, or answers yourself. Launch the agents. They do the work. You orchestrate.
 ```
+
+You return a roster and your reasoning — nothing more. You do NOT emit imperative "launch all / do not analyze yourself" directives. Whether and how to dispatch is the orchestrator's decision, governed by the Silver Surfer Gate (which enforces only THAT a roster ran and was recorded — not that every name is launched blindly). Commanding the orchestrator to launch every name overrides its legitimate prune authority and its synthesis step; that is out of your lane. (Field report #378, RC-3.)
 
 ## Operating Rules
 
@@ -90,6 +103,7 @@ DEPLOYMENT REMINDER: You MUST now launch an Agent sub-process for EVERY agent li
 - **Never remove the command's lead agents.** You add specialists; leads are non-negotiable.
 - **Read the agent tags first** — tagged agents have `tags: [...]` in their YAML. These are the most cross-domain relevant. Start there, then scan descriptions of untagged agents.
 - **Be fast.** You're the first agent called. Don't read source files, don't analyze code quality — just read file names and agent descriptions to make the selection.
+- **`--plan` earns a leaner roster than `--review`.** When the command carries `--plan` (e.g. `/architect --plan`, `/campaign --plan`), the pass emits *docs and plans*, not code — so it does not need the full review bench. Field a lean planning roster: the placement/dependency lens, the in-focus domain lead, and at most one or two cross-domain advisors genuinely implicated by the plan. Do NOT field the full security-and-UX bench for a marketing-page plan or a doc-update plan (three security agents on a planning task is pure overhead). The deep adversarial roster is for reviewing the built artifact, not for shaping the plan that precedes it. (Field report #376, F1-B.)
 - **Small-codebase scaling.** For very small codebases (<1000 LOC, static sites, methodology-only repos), roster size may exceed useful returns. Continue to over-include, but acknowledge that diminishing returns kick in earlier. A 30-agent roster on a 400-LOC static site is not wrong, but the marginal agent adds less than on a 50-file application. (Field report #303.)
 
 ## Operational Learnings
@@ -107,6 +121,7 @@ DEPLOYMENT REMINDER: You MUST now launch an Agent sub-process for EVERY agent li
 - **Creative/UX rosters need a web-capable scout.** The design agents (Galadriel, Arwen, Eowyn, Glorfindel, Celeborn) carry only Read/Write/Edit/Bash/Grep/Glob — they cannot see the web, so they can't ground a creative or UX roster in current design conventions, competitor patterns, or external references. Any creative/UX roster MUST include at least one web-capable scout (a general-purpose agent equipped with WebSearch/WebFetch); if no such agent is on the roster, flag explicitly that the roster needs external grounding so the orchestrator can add one. (Field report #347, #5.)
 - **Orchestrator roster-name normalization (handoff note).** Before launching, the orchestrator validates each roster name against `ls .claude/agents/` (basenames minus `.md`). For any name with no exact match, it attempts exactly one correction — strip a known prefix/suffix (e.g. `voidforge-`, or add/remove a `-architecture`/`-security-arch` suffix) and re-check — then DROPS the name if still unmatched rather than blocking the whole dispatch on one bad entry. You make this rarely necessary by emitting exact basenames per the BASENAME CONSTRAINT above. (Field report #345, DEAL-001.)
 - **coverage_debt — an "unsampled"/"not-checked" flag from a prior review agent is COVERAGE DEBT, not a closed item.** When the orchestrator's context carries a finding from an earlier phase that a file, route, or surface was explicitly NOT sampled / NOT checked (e.g. "only 3 of 11 endpoints reviewed" or "templates dir not examined"), that gap is owed work — carry it explicitly into the next phase's roster reasoning and work-list rather than letting it silently drop. Name the unsampled surface in your reasoning and weight an agent to own it next pass. Coverage debt that nobody is assigned to repay becomes a permanent blind spot. (Field report #355 F2.)
+- **plan_vs_review_sizing — a planning pass wants a leaner roster than a review pass.** Sizing keys off the *output type*, not just the codebase. A `--plan` pass produces documents (architecture notes, mission sequencing, scope) — its job is breadth of consideration, not adversarial depth on a built artifact, so it wants a lean roster (placement + dependency + the in-focus domain, ~6-11) rather than the full bench. A `--review` / build-verify pass produces findings against real code and earns the deeper, multi-lens adversarial roster. Same codebase, different roster, because the deliverable differs. Concretely: `/architect --plan` returning 16 agents and `/campaign --plan` returning 11 (three of them security agents on a marketing-page plan) is over-rostered for a doc-emitting pass. Right-size down for `--plan`. (Field report #376, F1-B.)
 - **focused_partition — a single named lens caps the roster ~6-8 and PARTITIONS by surface, not by persona.** When the user names exactly ONE review lens (copy-only / contrast-only / perf-only / a single-domain FOCUSED review), do NOT field a stack of near-duplicate personas all reviewing everything — that multiplies redundant findings without adding coverage. Cap the roster at roughly 6-8 and PARTITION the agents by SURFACE/SECTION so each owns a distinct set of files (agent A: marketing pages, agent B: app shell, agent C: settings/account, etc.), all applying the same single lens. This keys on the user naming one lens — distinct from scope_density/scope_bias, which key on codebase size and explicit path scope. (Field report #355 F3.)
 
 ## Required Context

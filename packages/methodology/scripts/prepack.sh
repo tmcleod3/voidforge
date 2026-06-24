@@ -54,4 +54,11 @@ mkdir -p "$PKG_DIR/scripts/surfer-gate"
 cp "$REPO_ROOT"/scripts/surfer-gate/* "$PKG_DIR/scripts/surfer-gate/"
 chmod +x "$PKG_DIR"/scripts/surfer-gate/*.sh 2>/dev/null || true
 
+# Copy scripts/statusline/ (/contextmeter — context-usage meter + awareness hook).
+# Without this the command doc references scripts that don't ship to consumers.
+rm -rf "$PKG_DIR/scripts/statusline"
+mkdir -p "$PKG_DIR/scripts/statusline"
+cp "$REPO_ROOT"/scripts/statusline/* "$PKG_DIR/scripts/statusline/"
+chmod +x "$PKG_DIR"/scripts/statusline/*.sh 2>/dev/null || true
+
 echo "Prepack: done. Files ready for npm pack."

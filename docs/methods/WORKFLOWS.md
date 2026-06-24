@@ -53,6 +53,7 @@ return { confirmed: claims.filter((c,i) => verdicts[i]?.survives) }
 5. **Cost lever:** route cheap stages with `agent(p, {model:'haiku'})` (scout pre-scans) and reserve the default model for synthesis — the way the Surfer already runs on Haiku.
 6. **`agentType` resolves by the agent's `name:` display field, NOT the filename** (e.g. `'Picard'`, not `'picard-architecture'`). A filename-style `agentType` fails to resolve and the `agent()` call returns `null` (silently filtered by `.filter(Boolean)`), so the agent simply never runs. If a roster carries both, pass `a.name`. Same rule as the Agent tool's `subagent_type`.
 7. **Validate before shipping:** a workflow script's top-level `await`/`return` make a bare `node --check` fail ("Illegal return statement") — that is expected (the runtime wraps the body in an async fn). Use `npm run validate:workflows` (wired into `pretest`), which reproduces the wrapper before checking, so a real syntax error is caught in CI rather than shipping to npm.
+8. **Repro scratch goes to `mktemp`, never the repo tree** (#366 F5). A workflow's adversarial/repro agents that reproduce a finding via shell (probe scripts, atomic-write `.tmp` files, fixture dirs) MUST write to `$(mktemp -d)` (or `$(mktemp)` for a single file) — isolated, auto-cleaned, invisible to `git add -A`. Never write probe scripts or scratch into the working tree: the gauntlet's gate-race repro littered `.gate-repro-scratch/` and `scripts/surfer-gate/.*-probe.sh` into the repo on two separate runs and was nearly committed. The agent prompt that asks for a shell repro must say *where* to write it. Projects may also `.gitignore` a designated scratch path as a backstop, but the primary rule is `mktemp`. (Same rule for raw Agent dispatch — see `SUB_AGENTS.md`.)
 
 ## Gate interop (ADR-064) — REQUIRED
 
@@ -70,6 +71,19 @@ The 264 personas, the Agent Debate Protocol, severity re-rating from votes, the 
 ## Resume
 
 Every Workflow run persists its script + a journal. To resume after an edit/kill: `Workflow({scriptPath, resumeFromRunId})` — unchanged `agent()` calls return cached results; the first edited call and everything after re-runs.
+
+## Recovery — after `/clear` or a crash (#366 F1)
+
+A background workflow survives **neither** `/clear` **nor** a host crash. Both leave the launching task's output empty (0-byte) or partial — the run did not finish synthesizing, even though the journal on disk may hold dozens of completed `agent()` results. The reflex is to re-run from scratch; for a 60–80-agent gauntlet that throws away ~80 minutes and the token cost of every cached agent. **Resume FIRST.**
+
+**Recovery procedure:**
+
+1. **Record the `runId` at launch.** `/gauntlet` and `/assemble` write the workflow `runId` to their state file (and the vault) the moment they invoke the Workflow tool, so a fresh post-`/clear` session can find it. If you don't have it, the runtime can list recent runs for the script.
+2. **On an empty or partial task-output, resume — don't restart.** `Workflow({ scriptPath, resumeFromRunId })` replays the journal: every unchanged `agent()` call returns its cached result instantly, and execution continues from the first incomplete call through the final synthesis. You pay only for what didn't finish.
+3. **Empty-output handling is not "the run failed."** A 0-byte output means the *lead's task* was interrupted, not that the agents didn't run. Check the journal/`runId` before concluding the work was lost.
+4. **What survives:** the script source and the per-call result journal (so cached `agent()` results survive). **What does NOT survive:** in-flight agents at crash time (re-run on resume), and any repro scratch the agents wrote (gone with `mktemp`, as it should be — Gotcha 8). If you *edited* the script after the crash, resume re-runs from the first changed call forward; an unchanged script resumes cleanly.
+
+Re-running from scratch is correct only when no `runId` is recoverable. Treat blind restart as the fallback, not the default.
 
 ## Related
 

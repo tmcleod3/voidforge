@@ -5,6 +5,16 @@ Bashir examines the patient. Time to diagnose.
 2. Read `/logs/build-state.md`, `/logs/assemble-state.md`, `/logs/campaign-state.md`
 3. Read recent git history: `git log --oneline -20`
 
+## Gate Bypass — REQUIRED before any sub-agent (#366 F4)
+
+`/debrief` is NOT in the Silver Surfer gated-commands list, but the gate's `PreToolUse` hook blocks *every* non-Surfer Agent launch — so Ezri/O'Brien/Nog/Jake below would be blocked. This is a fixed, command-prescribed roster (not a cherry-picked review), so it takes the bypass rather than mustering the Surfer. BEFORE Step 0, run:
+
+```bash
+[ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true
+```
+
+The existence guard is a no-op on projects that predate the gate. **If the first sub-agent launch still blocks** (stale session pointer — the repo pointer pointed at a dead session, so the flag landed in the wrong dir), re-run the exact same `bypass.sh --light` line once: the first blocked `check.sh` fire repoints the pointer to the live session, so the second write lands correctly and the launch proceeds. See CLAUDE.md "Silver Surfer Gate" → "Known gate bug — stale session pointer."
+
 ## Step 0 — Reconstruct the Timeline
 
 **Ezri** `subagent_type: Ezri` reads the session's history and reconstructs what happened:

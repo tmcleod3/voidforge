@@ -39,6 +39,8 @@ For each of the 9 universes, evaluate which agents have relevant expertise for *
 3. Does this agent bring a unique perspective no other included agent covers? → Include
 4. Would this agent's findings be a subset of another agent's? → Exclude (dedup)
 
+**The orchestrator owns this dedup and the dispatch decision.** Whether the roll comes from the Muster evaluation above or from the Silver Surfer's pre-scan, the candidate list is *advice* — the orchestrator collapses same-domain agents auditing the same artifact into one agent per distinct lens before launching, and decides which survive. A roster that returns ~5 data agents and ~6 security agents re-reading one artifact is bloat, not coverage; it wastes tokens on launch and again on re-deduping near-identical findings. The Herald advises; it never commands "launch all / do not analyze yourself." See SUB_AGENTS.md "The Orchestrator Owns Roster Dedup + Dispatch" for the full rule. (Field report #378 RC-3.)
+
 **Universe leads (always evaluated, included if relevant):**
 
 | Universe | Lead | Domain | Include When |

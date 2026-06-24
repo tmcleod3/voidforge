@@ -31,6 +31,8 @@ Document in phase log: "How to run", key routes, where components/styles/copy li
 
 **Screenshot mandate (MANDATORY):** If the app is runnable, start the server, take screenshots of EVERY page via Playwright or browser, and READ them via the Read tool. Without screenshots, the review is code-reading — not visual verification. Take at desktop (1440x900), plus 375px and 768px for responsive proof-of-life.
 
+**Render-gate regression coverage (MANDATORY) (field report #375).** A green build and a green unit suite do NOT catch render-gate regressions — a removed or renamed prop can silently kill a feature (a component still gating its render on a prop that is now always `null`) while every automated gate stays green. So when this review covers a change that touched a prop or a shared contract, the browser/e2e pass must cover **EVERY surface that consumes the changed prop/contract — not a sampled page** — and must explicitly **re-check the render *gates* that key off the changed prop** (does the panel that gated on it still render?). Verify each changed component in BOTH signed-in and signed-out states. Do not satisfy this mandate with an e2e that exercises a *different* surface than the one that changed.
+
 ## Step 0.5 — World-Scan / Reference Grounding (MANDATORY) (field report #347 #1)
 Before any creative direction is finalized, web-capable agents fan out and ground the review in the current state of the craft. This is a **required input to every downstream generation agent** — visual, design-system, and enhancement work in Steps 2, 5, and 6 must cite the dossier produced here.
 
@@ -43,6 +45,17 @@ Before any creative direction is finalized, web-capable agents fan out and groun
 4. **Produce a reference dossier.** Write `reference-dossier.md` to the phase log directory with: the named sites/typefaces/interactions above, a short "target quality bar" statement, and an "anti-reference" note (what to avoid / what reads as generic). Downstream agents receive this dossier as required context.
 
 If no web tools are available, log the gap explicitly in the phase log and proceed with PRD-derived references only — but flag that reference grounding is degraded.
+
+### Originality Gate — JUSTIFY-OR-REJECT the homogenized defaults (MANDATORY) (field report #376 #1)
+The world-scan above grounds the work; this gate forces it to *bite*. Before any visual direction is emitted, run the proposed direction through an explicit anti-reference list and, for EACH item, record one of: **REJECTED** (not in this direction) or **JUSTIFIED** (deliberately kept, with the reason tied to a concrete artifact in the Step 0.5 reference dossier). "It looked fine" is not a justification — only a named dossier reference is. The homogenized defaults to check, by name:
+
+- **blue-600 (or the equivalent default-primary) hero** — the reflexive Tailwind/SaaS accent.
+- **purple→cyan (violet→teal) gradient headings** — the `bg-clip-text` rainbow headline.
+- **the shadcn default hero** — centered headline + sub + two buttons + faint grid/radial, untouched.
+- **floating orbs / particles / aurora blobs** — decorative background motion with no meaning.
+- **the default Inter / Playfair (modern-sans + elegant-serif) pairing** — reached for by reflex.
+
+A direction passes only when every item above is explicitly REJECTED or JUSTIFIED against the dossier. The default posture is **distinctive and ownable, not "current SaaS standard."** If three or more items are JUSTIFIED rather than rejected, treat that as a smell that the direction has converged on the mean and send it back to Step 0.5. Log the gate result (the five verdicts + reasons) to the phase log.
 
 ## Step 1 — Product Surface Map
 List every screen/route, primary user journeys, key shared components, and the state taxonomy (loading/empty/error/success/partial/unauthorized). Write to phase log.

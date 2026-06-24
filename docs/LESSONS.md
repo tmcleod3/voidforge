@@ -254,3 +254,10 @@
 **Lesson:** "Distribution" means packaging AND delivery AND sync. After adding a new shared file category, verify ALL 6 consumption paths: prepack.sh (npm packaging), copy-assets.sh (build), project-init.ts (new project creation), updater.ts (existing project update), FORGE_KEEPER.md (sync protocol), void.md (user-facing sync command). Missing even one path means some users silently miss the feature.
 **Action:** After adding any new shared file category, run a distribution verification checklist across all 6 paths before publishing. (Field report #297)
 **Promoted to:** Not yet
+
+### Cancel account-scoped debounced writes on an auth transition
+**Agent:** Bashir (Field Medic) + Galadriel (Frontend) | **Category:** gotcha
+**Context:** PerpWatch FR-S1 (account-scoped favorites). A 600ms debounced PUT, left uncancelled on sign-out, could fire AFTER the auth state changed — landing under the next account's cookie and writing one principal's data into another's account. Caught in the /assemble review (field report #371).
+**Lesson:** A debounced/throttled write closure captures the principal that SCHEDULED it, but it EXECUTES later — possibly after a sign-out or user switch. If the credential is resolved at execution time (cookie, fresh token), a queued write lands under whoever is signed in when the timer fires, not who triggered it. This is a silent cross-account WRITE, not a read leak — harder to spot and worse in impact.
+**Action:** On every auth-state transition (sign-out, user switch, token rotation), CANCEL all pending account-scoped network writes (clear debounce timers, abort in-flight requests via AbortController). Never let a write closure outlive the session that scheduled it. Bind the principal into the request at SCHEDULE time, not execution time, so a late fire fails closed instead of writing to the wrong account.
+**Promoted to:** Not yet

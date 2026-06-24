@@ -92,6 +92,8 @@ Trace the primary user flow step by step. This is a narrative walkthrough, not a
 2. **MANDATORY: Screenshot every page.** Save screenshots to temp directory. The agent MUST read each screenshot via the Read tool and visually analyze it for: layout integrity, content completeness, visual hierarchy, spacing consistency, state correctness. This is how Galadriel "sees" the product — without screenshots, the review is code-reading, not visual review. Take at desktop viewport (1440x900) for primary analysis.
 
    **Atomic-visual carve-out:** For an atomic visual change — a single component, one icon, a loader, one state — a component-level **render-harness** screenshot (the component mounted in isolation, captured, and Read) satisfies the "verify visually" rule. It is a faster, equally-valid proof than standing up the full authed app, and avoids the auth + DB + server setup the full-page pass requires. Use it only for genuinely isolated visual artifacts; anything touching layout, navigation, or cross-component flow still gets the full-page screenshot pass. (Field report #362.)
+
+   **Render-gate regression coverage:** A green build and a green unit suite do NOT catch render-gate regressions — a removed or renamed prop can silently kill a feature (a component still gating its render on a prop that is now always `null`) while every automated gate stays green. So when the change under review touched a prop or a shared contract, the walkthrough must cover **EVERY surface that consumes the changed prop/contract — not a sampled page** — and must explicitly **re-check the render *gates* that key off the changed prop** (the panel that gated on it: does it still render?). Verify each changed component in BOTH signed-in and signed-out states. A "screenshot every page" pass satisfied by an e2e that exercises a *different* surface than the one that changed is not coverage — it is a miss waiting to ship a dead feature. (Field report #375.)
 3. **Behavioral verification:** Click every button, link, tab on primary routes. After each click, verify something visible changed (DOM mutation, navigation, modal). Flag non-responsive interactive elements.
 4. **Form interaction:** Fill every form. Verify: focus rings visible on Tab, validation triggers on blur/submit, error messages appear next to correct fields, success state shows after valid submission.
 5. **Keyboard walkthrough:** Tab through each page. Verify: focus order matches visual order, no focus traps except intentional modals, Escape closes overlays.
@@ -216,6 +218,22 @@ Screen all copy and visuals against the tells that mark generated work as genera
 - **Cream-editorial-as-trope** — the warm off-white background + serif + wide margins "editorial" look applied to products it doesn't fit, because the model treats it as shorthand for "premium."
 
 A surface that trips three or more of these tells is presumed AI-slop and goes back for de-AI revision, anchored against the Step 1.8 reference dossier.
+
+### The Originality Gate — justify-or-reject the homogenized defaults
+
+(Field reports #376, #1.)
+
+The de-AI checklist above flags tells *after* a surface exists. The Originality Gate runs *before* any visual direction is emitted and is stricter: it names the specific homogenized defaults the model reaches for by reflex, and forces an explicit verdict on each. For EACH item below, record one of two verdicts — **REJECTED** (not used in this direction) or **JUSTIFIED** (deliberately kept, with the reason anchored to a concrete, named artifact in the Step 1.8 reference dossier). The bar is asymmetric on purpose: rejection is free, justification must cite the dossier. "It looked fine," "it's a clean default," or "it's what the framework ships" are not justifications — only a named dossier reference is.
+
+The named defaults to adjudicate:
+
+- **blue-600 hero** (or the framework's default-primary accent) — the reflexive Tailwind/SaaS blue.
+- **purple→cyan / violet→teal gradient headings** — the `bg-clip-text` rainbow headline.
+- **the shadcn default hero** — centered headline + sub + two buttons + faint grid/radial, untouched.
+- **floating orbs / particles / aurora blobs** — decorative background motion that carries no meaning.
+- **the default Inter / Playfair pairing** — the reflexive "modern sans + elegant serif" combo.
+
+The direction passes the gate only when every item is explicitly REJECTED or JUSTIFIED against the dossier. The default posture is **distinctive and ownable, not "current SaaS standard."** If three or more items land on JUSTIFIED rather than REJECTED, treat that as evidence the direction has converged on the statistical mean and send it back to Step 1.8 reference grounding before it goes any further. Originality is a gate the work must pass, not a hope — the "everything on the internet looks AI-generated now" failure mode is produced precisely by methodologies that *default* to these picks and never force the verdict.
 
 ## Step 2 — UX/UI Attack Plan
 

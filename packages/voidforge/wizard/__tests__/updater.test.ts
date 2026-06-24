@@ -3,9 +3,27 @@ import { join } from 'node:path';
 import { mkdtemp, rm, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { diffMethodology, applyUpdate } from '../lib/updater.js';
+import { diffMethodology, applyUpdate, resolveUpdateMode } from '../lib/updater.js';
 import { createProject } from '../lib/project-init.js';
 import { readMarker } from '../lib/marker.js';
+
+describe('resolveUpdateMode (--help guard, issue #368)', () => {
+  it('returns help for --help and -h, beating every action flag', () => {
+    expect(resolveUpdateMode(['update', '--help'])).toBe('help');
+    expect(resolveUpdateMode(['update', '-h'])).toBe('help');
+    // Help MUST win even when an action flag is also present — the old router
+    // fell through to executing the destructive update on `update --help`.
+    expect(resolveUpdateMode(['update', '--help', '--self'])).toBe('help');
+    expect(resolveUpdateMode(['update', '--extensions', '-h'])).toBe('help');
+  });
+
+  it('routes action flags when no help flag is present', () => {
+    expect(resolveUpdateMode(['update', '--self'])).toBe('self');
+    expect(resolveUpdateMode(['update', '--extensions'])).toBe('extensions');
+    expect(resolveUpdateMode(['update'])).toBe('methodology');
+    expect(resolveUpdateMode(['update', '--no-self-update'])).toBe('methodology');
+  });
+});
 
 describe('updater', () => {
   let tempDir: string;
@@ -136,6 +154,92 @@ describe('updater', () => {
       expect(result.applied).toBe(false);
       expect(result.plan.added.length).toBe(0);
       expect(result.plan.modified.length).toBe(0);
+    });
+  });
+
+  // ── Non-destructive CLAUDE.md handling (issue #368) ─────
+  describe('CLAUDE.md is never silently clobbered', () => {
+    it('preserve (default): customized CLAUDE.md untouched, upstream parked in side file', async () => {
+      await createProject({ name: 'Customized', directory: projectDir, skipGit: true });
+      const claudePath = join(projectDir, 'CLAUDE.md');
+
+      // Simulate a heavily-customized project CLAUDE.md (the #368 scenario).
+      const customized =
+        '# CLAUDE.md\n\n## Project\n- **Name:** Customized\n\n' +
+        '## Critical Files\nsrc/important.ts\n\n' +
+        '## Color Theme\nbrand colors\n\n## SACRED IP Rules\ndo not leak\n';
+      await writeFile(claudePath, customized, 'utf-8');
+
+      const plan = await diffMethodology(projectDir);
+      expect(plan.claudeMd?.action).toBe('side-file');
+      expect(plan.claudeMd?.droppedSections).toContain('Critical Files');
+      expect(plan.claudeMd?.droppedSections).toContain('SACRED IP Rules');
+      expect(plan.modified).toContain('CLAUDE.md.upstream');
+      expect(plan.modified).not.toContain('CLAUDE.md');
+
+      await applyUpdate(projectDir);
+
+      // Original is byte-for-byte intact — nothing dropped.
+      const after = await readFile(claudePath, 'utf-8');
+      expect(after).toBe(customized);
+      expect(after).toContain('## Critical Files');
+      expect(after).toContain('## SACRED IP Rules');
+
+      // Upstream methodology parked in the side file for deliberate merge.
+      const sideFile = join(projectDir, 'CLAUDE.md.upstream');
+      expect(existsSync(sideFile)).toBe(true);
+    });
+
+    it('skip: CLAUDE.md and side file are both left untouched', async () => {
+      await createProject({ name: 'Skipper', directory: projectDir, skipGit: true });
+
+      const marker = await readMarker(projectDir);
+      marker!.claudeMd = 'skip';
+      const { writeMarker } = await import('../lib/marker.js');
+      await writeMarker(projectDir, marker!);
+
+      const claudePath = join(projectDir, 'CLAUDE.md');
+      const customized = '# CLAUDE.md\n\n## Project\ncustom\n\n## My Section\nkeep\n';
+      await writeFile(claudePath, customized, 'utf-8');
+
+      await applyUpdate(projectDir);
+
+      expect(await readFile(claudePath, 'utf-8')).toBe(customized);
+      expect(existsSync(join(projectDir, 'CLAUDE.md.upstream'))).toBe(false);
+    });
+
+    it('merge requested but upstream is un-fenced: safe side-file fallback (never clobbers)', async () => {
+      // The shipped upstream CLAUDE.md does not (yet) carry VOIDFORGE fences, so
+      // a `merge` request cannot perform a lossless in-place merge. It MUST fall
+      // back to the non-destructive side-file path rather than overwrite. (The
+      // precise fenced-merge mechanics are covered at the unit level in
+      // claude-md-strategy.test.ts where a fenced upstream is supplied.)
+      await createProject({ name: 'Merger', directory: projectDir, skipGit: true });
+
+      const marker = await readMarker(projectDir);
+      marker!.claudeMd = 'merge';
+      const { writeMarker } = await import('../lib/marker.js');
+      await writeMarker(projectDir, marker!);
+
+      const claudePath = join(projectDir, 'CLAUDE.md');
+      const fenced =
+        '# CLAUDE.md\n\n## Project\n- **Name:** Merger\n\n' +
+        '<!-- VOIDFORGE:BEGIN methodology -->\nSTALE methodology block\n<!-- VOIDFORGE:END methodology -->\n\n' +
+        '## My Project Section\nmust survive\n';
+      await writeFile(claudePath, fenced, 'utf-8');
+
+      const plan = await diffMethodology(projectDir);
+      expect(plan.claudeMd?.action).toBe('side-file');
+      expect(plan.claudeMd?.warnings.join(' ')).toMatch(/no .*fences/i);
+
+      await applyUpdate(projectDir);
+
+      // Original untouched — project section and stale fence both preserved
+      // (operator merges deliberately from the side file).
+      const after = await readFile(claudePath, 'utf-8');
+      expect(after).toBe(fenced);
+      expect(after).toContain('## My Project Section');
+      expect(existsSync(join(projectDir, 'CLAUDE.md.upstream'))).toBe(true);
     });
   });
 });

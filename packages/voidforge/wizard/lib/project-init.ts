@@ -187,6 +187,17 @@ async function copyMethodology(
     await mergeSettingsHook(projectDir);
   }
 
+  // Context-meter status line (/contextmeter) — default-on. Ship the scripts AND wire
+  // the statusLine + UserPromptSubmit awareness hook into settings.json, the same way the
+  // surfer-gate hook is wired. Defaults: warn 80% / crit 92% (baked into the scripts).
+  // Opt out per project with `/contextmeter --uninstall`.
+  const statuslineSrc = join(methodologyRoot, 'scripts', 'statusline');
+  if (existsSync(statuslineSrc)) {
+    count += await copyDir(statuslineSrc, join(projectDir, 'scripts', 'statusline'));
+    await chmodShellScripts(join(projectDir, 'scripts', 'statusline'));
+    await mergeStatuslineSettings(projectDir);
+  }
+
   return count;
 }
 
@@ -235,6 +246,57 @@ async function mergeSettingsHook(projectDir: string): Promise<void> {
     ...existingHooks,
     PreToolUse: [...existingPreTool, ...productionHook.PreToolUse],
   };
+  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+}
+
+/**
+ * Wire the /contextmeter status line + awareness hook into settings.json (default-on).
+ * Mirrors mergeSettingsHook: set `statusLine` only when the project doesn't already have
+ * one (never clobber a user's), and append the UserPromptSubmit awareness hook unless an
+ * equivalent is already present (idempotent). Defaults (warn 80 / crit 92) live in the
+ * scripts, so the wired commands carry no env prefix.
+ */
+async function mergeStatuslineSettings(projectDir: string): Promise<void> {
+  const snippetPath = join(projectDir, 'scripts', 'statusline', 'settings-snippet.json');
+  const settingsPath = join(projectDir, '.claude', 'settings.json');
+  if (!existsSync(snippetPath)) return;
+
+  const snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
+  const snippetStatusLine = snippet?.statusLine;
+  const snippetUserPrompt = (snippet?.hooks?.UserPromptSubmit ?? []) as Array<Record<string, unknown>>;
+  if (!snippetStatusLine && snippetUserPrompt.length === 0) return;
+
+  let settings: Record<string, unknown> = {};
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+    } catch {
+      // Existing settings.json is unreadable — leave it alone.
+      return;
+    }
+  } else {
+    await mkdir(join(projectDir, '.claude'), { recursive: true });
+  }
+
+  // statusLine: never clobber a project's existing one.
+  if (snippetStatusLine && !settings.statusLine) {
+    settings.statusLine = snippetStatusLine;
+  }
+
+  // UserPromptSubmit: append the awareness hook unless an equivalent is already present.
+  const existingHooks = (settings.hooks ?? {}) as Record<string, unknown>;
+  const existingUserPrompt = (existingHooks.UserPromptSubmit ?? []) as Array<Record<string, unknown>>;
+  const alreadyHasMeter = existingUserPrompt.some((entry) => {
+    const hooks = (entry?.hooks ?? []) as Array<Record<string, unknown>>;
+    return hooks.some((h) => typeof h?.command === 'string' && h.command.includes('context-awareness-hook'));
+  });
+  if (!alreadyHasMeter && snippetUserPrompt.length > 0) {
+    settings.hooks = {
+      ...existingHooks,
+      UserPromptSubmit: [...existingUserPrompt, ...snippetUserPrompt],
+    };
+  }
+
   await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
 }
 

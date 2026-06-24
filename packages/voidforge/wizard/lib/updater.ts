@@ -3,11 +3,13 @@
  * self-update, and extension update.
  */
 
-import { readFile, readdir, cp, stat } from 'node:fs/promises';
+import { readFile, readdir, cp, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { execSync } from 'node:child_process';
-import { readMarker, writeMarker } from './marker.js';
+import { readMarker, writeMarker, DEFAULT_CLAUDE_MD_STRATEGY } from './marker.js';
+import { planClaudeMdUpdate, UPSTREAM_SUFFIX } from './claude-md-strategy.js';
+import type { ClaudeMdAction } from './claude-md-strategy.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -16,12 +18,39 @@ export interface UpdatePlan {
   modified: string[];
   removed: string[];
   unchanged: number;
+  /** Non-destructive CLAUDE.md handling (issue #368). */
+  claudeMd?: {
+    action: ClaudeMdAction;
+    droppedSections: string[];
+    warnings: string[];
+    /** Side file written instead of CLAUDE.md, relative to project root. */
+    sideFile?: string;
+  };
 }
 
 export interface UpdateResult {
   applied: boolean;
   plan: UpdatePlan;
   newVersion: string;
+}
+
+// ── Update Mode Resolution ───────────────────────────────
+
+export type UpdateMode = 'help' | 'self' | 'extensions' | 'methodology';
+
+/**
+ * Decide which `update` mode the given argv selects. Pure — no I/O, no exit.
+ *
+ * Help MUST win over every action flag (issue #368): `update --help` printed
+ * usage but the OLD router fell through and EXECUTED the (destructive) update.
+ * Centralizing the precedence here makes that ordering testable and keeps the
+ * CLI from re-introducing the bug.
+ */
+export function resolveUpdateMode(args: string[]): UpdateMode {
+  if (args.includes('--help') || args.includes('-h')) return 'help';
+  if (args.includes('--self')) return 'self';
+  if (args.includes('--extensions')) return 'extensions';
+  return 'methodology';
 }
 
 // ── Methodology Source Resolution ────────────────────────
@@ -68,6 +97,26 @@ async function collectFiles(dir: string, base: string = ''): Promise<string[]> {
 }
 
 /**
+ * Compute the non-destructive CLAUDE.md plan for a project (issue #368).
+ * Reads the marker's `claudeMd` strategy (default 'preserve') and delegates the
+ * decision to the pure planner. Returns null only when there is no upstream
+ * CLAUDE.md to apply.
+ */
+async function planClaudeMd(sourceRoot: string, projectDir: string) {
+  const srcPath = join(sourceRoot, 'CLAUDE.md');
+  if (!existsSync(srcPath)) return null;
+  const upstream = await readFile(srcPath, 'utf-8');
+
+  const destPath = join(projectDir, 'CLAUDE.md');
+  const current = existsSync(destPath) ? await readFile(destPath, 'utf-8') : null;
+
+  const marker = await readMarker(projectDir);
+  const strategy = marker?.claudeMd ?? DEFAULT_CLAUDE_MD_STRATEGY;
+
+  return planClaudeMdUpdate(current, upstream, strategy);
+}
+
+/**
  * Diff methodology source against project files.
  * Returns a plan showing what would change.
  */
@@ -89,10 +138,33 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     { src: 'docs/patterns', dest: 'docs/patterns' },
     { src: 'scripts/thumper', dest: 'scripts/thumper' },
     { src: 'scripts/surfer-gate', dest: 'scripts/surfer-gate' },
+    // Context-meter status line + awareness hook (/contextmeter). Scripts propagate on
+    // update; activation (statusLine + UserPromptSubmit hook in settings.json) stays opt-in.
+    { src: 'scripts/statusline', dest: 'scripts/statusline' },
   ];
 
-  // Single files to compare
-  const singleFiles = ['CLAUDE.md', 'HOLOCRON.md', 'VERSION.md'];
+  // CLAUDE.md is handled via the non-destructive strategy mechanism (issue #368)
+  // — never the old "preserve first 10 lines, overwrite the rest" clobber.
+  const claudeMdPlan = await planClaudeMd(sourceRoot, projectDir);
+  if (claudeMdPlan) {
+    plan.claudeMd = {
+      action: claudeMdPlan.action,
+      droppedSections: claudeMdPlan.droppedSections,
+      warnings: claudeMdPlan.warnings,
+      sideFile: claudeMdPlan.sideFileContent !== null ? `CLAUDE.md${UPSTREAM_SUFFIX}` : undefined,
+    };
+    if (claudeMdPlan.action === 'unchanged' || claudeMdPlan.action === 'skip') {
+      plan.unchanged++;
+    } else if (claudeMdPlan.action === 'side-file') {
+      // The side file is the only thing that changes; CLAUDE.md itself is untouched.
+      plan.modified.push(`CLAUDE.md${UPSTREAM_SUFFIX}`);
+    } else {
+      plan.modified.push('CLAUDE.md');
+    }
+  }
+
+  // Other single files compare/copy verbatim (no special preservation needed).
+  const singleFiles = ['HOLOCRON.md', 'VERSION.md'];
 
   // Check single files
   for (const file of singleFiles) {
@@ -105,16 +177,8 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     } else {
       const srcContent = await readFile(srcPath, 'utf-8');
       const destContent = await readFile(destPath, 'utf-8');
-      // Skip CLAUDE.md first 10 lines (project identity) when comparing
-      if (file === 'CLAUDE.md') {
-        const srcLines = srcContent.split('\n').slice(10).join('\n');
-        const destLines = destContent.split('\n').slice(10).join('\n');
-        if (srcLines !== destLines) plan.modified.push(file);
-        else plan.unchanged++;
-      } else {
-        if (srcContent !== destContent) plan.modified.push(file);
-        else plan.unchanged++;
-      }
+      if (srcContent !== destContent) plan.modified.push(file);
+      else plan.unchanged++;
     }
   }
 
@@ -177,25 +241,28 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     return { applied: false, plan, newVersion };
   }
 
+  // CLAUDE.md: apply the non-destructive strategy decision (issue #368).
+  // Never overwrite a customized CLAUDE.md in place. `preserve` writes a side
+  // file; `merge` replaces only the fenced block; `skip` does nothing.
+  const claudeMdPlan = await planClaudeMd(sourceRoot, projectDir);
+  const claudeMdDestPath = join(projectDir, 'CLAUDE.md');
+  if (claudeMdPlan) {
+    if (claudeMdPlan.claudeMdContent !== null) {
+      await writeFile(claudeMdDestPath, claudeMdPlan.claudeMdContent, 'utf-8');
+    }
+    if (claudeMdPlan.sideFileContent !== null) {
+      await writeFile(`${claudeMdDestPath}${UPSTREAM_SUFFIX}`, claudeMdPlan.sideFileContent, 'utf-8');
+    }
+  }
+
+  // The CLAUDE.md plan entries are handled above — exclude them from the
+  // generic verbatim copy loop so we don't double-write or clobber.
+  const claudeMdEntries = new Set(['CLAUDE.md', `CLAUDE.md${UPSTREAM_SUFFIX}`]);
+
   // Copy added + modified files
   const { mkdir } = await import('node:fs/promises');
   for (const file of [...plan.added, ...plan.modified]) {
-    // Special handling for CLAUDE.md: preserve project identity (first 10 lines)
-    if (file === 'CLAUDE.md') {
-      const srcContent = await readFile(join(sourceRoot, file), 'utf-8');
-      const destPath = join(projectDir, file);
-      if (existsSync(destPath)) {
-        const destContent = await readFile(destPath, 'utf-8');
-        const destIdentity = destContent.split('\n').slice(0, 10).join('\n');
-        const srcBody = srcContent.split('\n').slice(10).join('\n');
-        await import('node:fs/promises').then(fs =>
-          fs.writeFile(destPath, destIdentity + '\n' + srcBody, 'utf-8'),
-        );
-      } else {
-        await cp(join(sourceRoot, file), destPath);
-      }
-      continue;
-    }
+    if (claudeMdEntries.has(file)) continue;
 
     const srcPath = join(sourceRoot, file);
     const destPath = join(projectDir, file);

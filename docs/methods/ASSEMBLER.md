@@ -127,6 +127,18 @@ Verify no circular calls between store actions and API methods. Specifically che
 
 When a feature is added to one surface (API, dashboard, CLI, marketing site), verify all other surfaces displaying the same entities are updated. A new field added to the API response but missing from the dashboard table, or a new tier added to the pricing page but missing from the settings panel, creates an inconsistent product. After each pipeline phase that adds or modifies a feature, grep for the entity name across all surfaces: API routes, React/Vue components, CLI output formatters, marketing page copy, email templates, admin panels. (Triage fix from field report batch #149-#153.)
 
+### Render-Gate Regression Coverage (Phase 2.5 smoke + Phase 6 /ux)
+
+A green build and a green unit suite do NOT catch render-gate regressions — a removed or renamed prop can silently kill a feature while every automated gate stays green. Example: a component still gates its render on `!token`; the `token` prop is removed (now always `null`); the headline panel becomes invisible to every signed-in user — and `build` plus 97 unit tests all pass, because the compiler and the unit suite never render the gated surface. Only a browser does. (Field report #375.)
+
+So when a pipeline change removes or renames a **prop or a shared contract**, the Phase 2.5 smoke and the Phase 6 `/ux` browser/e2e pass must:
+
+1. Cover **EVERY surface that consumes the changed prop/contract — not a sampled page.** Grep for the symbol; the consuming-surface list is the screenshot list, not a subset of it.
+2. Explicitly **re-check the render *gates* that key off the changed prop** — for each gate (`!token`, `prop && <Panel/>`, `if (!x) return null`), confirm the gated surface still renders after the change.
+3. Verify each changed component in **BOTH signed-in and signed-out states.**
+
+An e2e that exercises a *different* surface than the one that changed does not satisfy the screenshot mandate — it is a coverage gap that ships a dead feature. (Field report #375: removing a browser token prop left `TelegramConnect` gated on a now-always-`null` value; the headline connect panel went invisible to every signed-in user, passed a green build + 97 unit tests, and was caught only by the review roster because the e2e exercised the Account dialog, not the changed surface.)
+
 ### Phase 13.5 — Doc-Currency Refresh (pre-SEAL)
 
 After the Council signs off, but BEFORE Fury seals the run and makes the Deploy Offer, sweep the project's source-of-truth docs for drift introduced over the course of the pipeline. A full `/assemble` touches architecture, features, version, and build state — by the time the Council finishes, the docs that describe the project frequently no longer match it. This mirrors the Doc-Currency Refresh mission in `CAMPAIGN.md`: same checklist, applied once at the end of the pipeline instead of once per mission. (Field report #342 F-1: `/assemble` shipped a Council-clean build whose `CLAUDE.md` Project block and `PROJECT_VERSION` line still described the pre-build scaffold.)

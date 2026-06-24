@@ -8,6 +8,9 @@ import {
   writeMarker,
   createMarker,
   findProjectRoot,
+  detectLegacyConsumer,
+  readVersionFile,
+  DEFAULT_CLAUDE_MD_STRATEGY,
   MARKER_FILE,
 } from '../lib/marker.js';
 import type { VoidForgeMarker } from '../lib/marker.js';
@@ -37,6 +40,17 @@ describe('marker', () => {
       const marker = createMarker('21.0.0', 'methodology', ['cultivation']);
       expect(marker.tier).toBe('methodology');
       expect(marker.extensions).toEqual(['cultivation']);
+    });
+
+    it('defaults claudeMd to the safe "preserve" strategy (issue #368)', () => {
+      const marker = createMarker('21.0.0');
+      expect(marker.claudeMd).toBe('preserve');
+      expect(DEFAULT_CLAUDE_MD_STRATEGY).toBe('preserve');
+    });
+
+    it('accepts an explicit claudeMd strategy', () => {
+      expect(createMarker('21.0.0', 'full', [], 'merge').claudeMd).toBe('merge');
+      expect(createMarker('21.0.0', 'full', [], 'skip').claudeMd).toBe('skip');
     });
   });
 
@@ -151,6 +165,56 @@ describe('marker', () => {
       // and not `$HOME` (which would cause the #331 disaster).
       const root = findProjectRoot(tempDir);
       expect(root).toBeNull();
+    });
+  });
+
+  // ── Legacy methodology-consumer detection (issue #369) ──
+  describe('detectLegacyConsumer', () => {
+    async function makeConsumer(dir: string, opts: { withWizard?: boolean } = {}) {
+      await writeFile(join(dir, 'VERSION.md'), '# Version\n\nv23.19.0\n', 'utf-8');
+      await mkdir(join(dir, '.claude', 'commands'), { recursive: true });
+      await writeFile(join(dir, '.claude', 'commands', 'build.md'), '# build\n', 'utf-8');
+      await mkdir(join(dir, 'docs', 'methods'), { recursive: true });
+      await writeFile(join(dir, 'docs', 'methods', 'BUILD_PROTOCOL.md'), '# x\n', 'utf-8');
+      if (opts.withWizard) {
+        await mkdir(join(dir, 'wizard'), { recursive: true });
+        await writeFile(join(dir, 'wizard', 'server.ts'), '// x\n', 'utf-8');
+      }
+    }
+
+    it('detects a pre-marker methodology consumer (VERSION.md + commands + methods)', async () => {
+      await makeConsumer(tempDir);
+      const legacy = detectLegacyConsumer(tempDir);
+      expect(legacy).not.toBeNull();
+      expect(legacy!.dir).toBe(tempDir);
+      expect(legacy!.inferredTier).toBe('methodology');
+    });
+
+    it('infers full tier when a wizard/ directory is present', async () => {
+      await makeConsumer(tempDir, { withWizard: true });
+      const legacy = detectLegacyConsumer(tempDir);
+      expect(legacy!.inferredTier).toBe('full');
+    });
+
+    it('returns null when a valid marker already exists (not legacy)', async () => {
+      await makeConsumer(tempDir);
+      await writeMarker(tempDir, createMarker('23.19.0'));
+      expect(detectLegacyConsumer(tempDir)).toBeNull();
+    });
+
+    it('returns null for a non-consumer directory', async () => {
+      // Only VERSION.md, missing .claude/commands and docs/methods.
+      await writeFile(join(tempDir, 'VERSION.md'), 'v1\n', 'utf-8');
+      expect(detectLegacyConsumer(tempDir)).toBeNull();
+    });
+
+    it('reads the version from VERSION.md', async () => {
+      await makeConsumer(tempDir);
+      expect(readVersionFile(tempDir)).toBe('23.19.0');
+    });
+
+    it('readVersionFile returns "unknown" when VERSION.md is absent', () => {
+      expect(readVersionFile(tempDir)).toBe('unknown');
     });
   });
 });

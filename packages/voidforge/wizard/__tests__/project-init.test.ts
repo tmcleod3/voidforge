@@ -148,6 +148,44 @@ describe('project-init', () => {
     expect(marker!.extensions).toEqual(['cultivation', 'danger-room']);
   });
 
+  it('wires the /contextmeter status line + awareness hook into settings.json (default-on)', async () => {
+    await createProject({
+      name: 'Test',
+      directory: projectDir,
+      skipGit: true,
+    });
+
+    // The scripts ship to the project.
+    expect(existsSync(join(projectDir, 'scripts', 'statusline', 'voidforge-statusline.sh'))).toBe(true);
+    expect(existsSync(join(projectDir, 'scripts', 'statusline', 'context-awareness-hook.sh'))).toBe(true);
+
+    type HookCmd = { command?: string };
+    type HookEntry = { hooks?: HookCmd[] };
+    type Settings = {
+      statusLine?: { command?: string };
+      hooks?: { UserPromptSubmit?: HookEntry[]; PreToolUse?: HookEntry[] };
+    };
+    const settings = JSON.parse(
+      await readFile(join(projectDir, '.claude', 'settings.json'), 'utf-8'),
+    ) as Settings;
+
+    // statusLine points at our renderer.
+    expect(settings.statusLine?.command).toContain('statusline/voidforge-statusline.sh');
+
+    // The awareness hook is appended under UserPromptSubmit.
+    const hasMeterHook = (settings.hooks?.UserPromptSubmit ?? []).some((e) =>
+      (e.hooks ?? []).some((h) => h.command?.includes('context-awareness-hook')),
+    );
+    expect(hasMeterHook).toBe(true);
+
+    // The surfer-gate PreToolUse hook is wired by init too — the statusline merge must
+    // not clobber it (it runs after mergeSettingsHook and preserves existing hooks).
+    const hasGate = (settings.hooks?.PreToolUse ?? []).some((e) =>
+      (e.hooks ?? []).some((h) => h.command?.includes('surfer-gate/check.sh')),
+    );
+    expect(hasGate).toBe(true);
+  });
+
   it('creates into existing empty directory', async () => {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(projectDir);

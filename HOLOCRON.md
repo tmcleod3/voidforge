@@ -96,7 +96,7 @@ Or manually: copy CLAUDE.md, .claude/, and docs/ from the npm package into your 
 
 Every tier includes:
 - **CLAUDE.md** — Root context loaded at every session start
-- **30 slash commands** (28 primary + 2 permanent aliases: `/review` → `/engage`, `/security` → `/sentinel`) — `/prd`, `/blueprint`, `/build`, `/qa`, `/test`, `/sentinel`, `/ux`, `/engage`, `/deploy`, `/devops`, `/architect`, `/assess`, `/git`, `/void`, `/vault`, `/thumper`, `/assemble`, `/gauntlet`, `/campaign`, `/imagine`, `/debrief`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`, `/ai`. Run `ls .claude/commands/*.md | wc -l` for the live file count.
+- **33 slash commands** (31 primary + 2 permanent aliases: `/review` → `/engage`, `/security` → `/sentinel`) — `/prd`, `/blueprint`, `/build`, `/qa`, `/test`, `/sentinel`, `/ux`, `/engage`, `/deploy`, `/devops`, `/architect`, `/assess`, `/git`, `/void`, `/vault`, `/seal`, `/contextmeter`, `/thumper`, `/assemble`, `/gauntlet`, `/campaign`, `/imagine`, `/debrief`, `/audit-docs`, `/dangerroom`, `/cultivation`, `/grow`, `/current`, `/treasury`, `/portfolio`, `/ai`. Run `ls .claude/commands/*.md | wc -l` for the live file count.
 - **13-phase build protocol** — PRD to production with verification gates
 - **18 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
 - **Named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, Anime, Cosmere, and Foundation — each materialized as a subagent definition in `.claude/agents/`
@@ -620,9 +620,23 @@ Seldon distills session intelligence into a portable briefing. The Time Vault pr
 
 Flags: `--seal` (auto-confirm), `--open` (read most recent vault), `--list` (list all vaults), `--for <target>` (tailor for `campaign`, `colleague`, or `trigger`).
 
+#### `/seal` — Session Closeout Ritual
+**When:** You're done for the session and want to ship, report, preserve, and hand off in one move.
+
+`/seal` is a thin conductor — it runs no new persona, it sequences three you already know: Coulson ships the release (`/git` commit + push), Bashir files the field report upstream (`/debrief --submit`), and Seldon seals the vault (`/vault --seal`). It always ends by printing the copy-paste pickup prompt that boots the next session. The order is deliberate: commit and push first so the report and vault describe the final state; debrief before vault so the vault folds in the debrief's learnings. It short-circuits safely — a failing test suite halts the pipeline before push (you don't ship a broken build or file a success report on it) but still seals a vault recording the blocked state, so the next session resumes on the right foot.
+
+Flags: `--dry-run` (preview every stage), `--yes` (no confirmation pause), `--no-push`, `--no-submit`, `--no-debrief`, and `/git` pass-throughs (`--major`/`--minor`/`--patch`/`--no-tag`).
+
+#### `/contextmeter` — Context Budget Meter
+**When:** It's installed **by default** on `init` (warn 80% / crit 92%) — run this command only to retune thresholds, re-install on an older project, or uninstall.
+
+Installs two small scripts: a **status line** that renders a colored context meter (`⟦████████░░⟧ 78% ctx · 44k left`, green → yellow → red as it fills) for you, and a **`UserPromptSubmit` hook** that injects "you have ~X% context left, checkpoint soon" into Claude's own context once usage crosses the threshold — so the model can `/vault` or `/seal` before compaction instead of being caught out. The meter's colors and the hook's warnings share the same thresholds (yellow/warn 80%, red/critical 92%). The status line reads Claude Code's native `context_window` field (with a transcript fallback); the hook derives usage from the transcript. Named `/contextmeter` rather than `/statusline` because the native `/statusline` and `/context` commands always shadow a same-named project command (`docs/NATIVE_CAPABILITIES.md`). Requires `jq`.
+
+Flags: `--warn-pct N` / `--crit-pct N` (hook thresholds), `--window N` (fallback denominator), `--status`, `--uninstall`, `--dry-run`.
+
 ### Flag System
 
-VoidForge flags are standardized across all 30 commands. Same flag = same meaning everywhere.
+VoidForge flags are standardized across all 33 commands. Same flag = same meaning everywhere.
 
 **Tier 1 — Universal:** `--resume` (resume from state), `--plan` (plan without executing), `--fast` (reduced review passes), `--dry-run` (preview without doing), `--status` (show state), `--blitz` (autonomous, no pauses)
 

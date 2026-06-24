@@ -288,10 +288,95 @@ const conferenceUrlField: UntrustedExtractionField = {
  * surface the raw value on the review surface for operator edit.
  */
 
+// --- Deny-list discipline (forbidden-inference / forbidden-token filters) ---
+
+/**
+ * Pattern for a deny-list that strips or rejects forbidden content an LLM might
+ * emit — e.g. a compliance filter that must NOT let the model infer or assert a
+ * subject's wealth, accreditation, or citizenship. A naive "does the output
+ * contain any banned token?" substring/regex filter false-fires three ways and
+ * is silently un-testable a fourth. Field report #378 (InvestorGraph) hit all
+ * four on a compliance-critical forbidden-inference filter:
+ *
+ *   1. NEGATION / DISCLAIMER false-positive
+ *      The model correctly writing "*no* accreditation evidence" or "citizenship
+ *      unknown" is the SAFE answer — yet a bare token match strips it and
+ *      penalizes the model for being careful. The filter must scope matches to
+ *      POSITIVE assertions: if a negation/disclaimer cue sits adjacent to the
+ *      banned token, the mention is not a leak.
+ *
+ *   2. PROPER-NOUN false-positive
+ *      A contact employed at "Visa", a fund literally named "Trust Fund", a
+ *      company "BIG RICH LLC", a "...High Net Worth Community" group — the banned
+ *      substring appears inside a legitimate entity name the model is allowed to
+ *      report. An allowlist of known proper nouns (and the entity's own
+ *      attribute values — employer, company, group names) must suppress the match.
+ *
+ *   3. HOMOGLYPH / ZERO-WIDTH evasion (false-NEGATIVE — the dangerous direction)
+ *      An adversary (or a quirk of upstream data) writes "аccredited" with a
+ *      Cyrillic 'а', or splits the token with a zero-width joiner, and the banned
+ *      term sails through. NFKC-normalize and strip zero-width / combining marks
+ *      BEFORE matching so visually-identical variants collapse to the canonical
+ *      form the deny-list is written against.
+ *
+ *   4. TAUTOLOGICAL EVAL (the un-testable trap)
+ *      The safety EVAL's leak-detector must be INDEPENDENT of the production
+ *      filter. If the eval re-imports the same deny-list / regex the filter uses,
+ *      it is structurally incapable of catching the filter's gaps — every term
+ *      the filter misses, the eval also misses, so the eval reports PASS on a
+ *      real leak. Testing a filter with itself is vacuous. The leak-detector
+ *      must be built from an independent oracle (a hand-curated banned-phrase
+ *      set, a second model, an LLM-judge, or human labels).
+ */
+export interface DenyListPolicy {
+  forbiddenTerms: string[]          // canonical, post-NFKC banned tokens/phrases
+  normalizeBeforeMatch: 'nfkc-strip-zerowidth'  // ALWAYS normalize first (guard #3)
+  negationGuard: {                  // guard #1 — a nearby negation/disclaimer un-flags the match
+    enabled: true
+    cues: string[]                  // e.g. ['no', 'not', 'unknown', 'unverified', 'absent', 'lacks']
+    windowTokens: number            // how many tokens of adjacency count as "negating" the term
+  }
+  properNounAllowlist: string[]     // guard #2 — names containing a banned substring that are OK
+  allowEntityAttributeValues: boolean  // guard #2 — also exempt the entity's own employer/company/group fields
+  evalLeakDetector: 'independent'   // guard #4 — MUST NOT reuse this policy's forbiddenTerms
+}
+
+const accreditationDenyList: DenyListPolicy = {
+  forbiddenTerms: ['accredited', 'net worth', 'high net worth', 'citizenship', 'wealthy'],
+  normalizeBeforeMatch: 'nfkc-strip-zerowidth',
+  negationGuard: {
+    enabled: true,
+    cues: ['no', 'not', 'unknown', 'unverified', 'absent', 'lacks', 'without', 'cannot confirm'],
+    windowTokens: 4,
+  },
+  properNounAllowlist: ['Visa', 'Trust Fund', 'BIG RICH LLC', 'High Net Worth Community'],
+  allowEntityAttributeValues: true,
+  evalLeakDetector: 'independent',
+}
+
+/* ANTI-PATTERN 5: bare substring/regex deny-list with a self-referential eval
+ *
+ * 'We strip any output line containing a banned term, and our safety eval
+ *  greps the output for the same banned terms — 11/11 pass, ship it.'
+ *
+ * No. Four failures, three loud and one silent:
+ *   - "no accreditation evidence" (the SAFE answer) is stripped + penalized.
+ *   - A contact at "Visa" / a "Trust Fund" is flagged on a proper noun.
+ *   - "аccredited" (Cyrillic а) or a zero-width-split token slips through.
+ *   - The eval reuses the filter's deny-list, so it CANNOT fail on a leak the
+ *     filter misses — 11/11 is a tautology, not evidence of safety.
+ *
+ * Fix: NFKC-normalize + strip zero-width BEFORE matching (defeats evasion);
+ * scope matches to positive assertions via a negation-adjacency guard; suppress
+ * proper-noun / entity-attribute matches via an allowlist; and build the eval's
+ * leak-detector from an INDEPENDENT oracle so it can actually fail.
+ */
+
 export {
   authorityInstruction,
   denyListEnforcement,
   fsPermsEnforcement,
   threadplexAgentStack,
   conferenceUrlField,
+  accreditationDenyList,
 }

@@ -34,6 +34,20 @@ declare const harness: {
   listAllReadEndpoints(): string[];
   listAllWriteEndpoints(): string[];
   resetDb(): Promise<void>;
+
+  // ── Handler-entry (HTTP-level) harness — field report #371 ──────────────
+  // Drives the REAL request entrypoint with a concrete credential, so the
+  // auth→uid wiring is exercised (not just the repository's WHERE org_id).
+  // `principal` is whatever the entrypoint actually authenticates with: a
+  // bearer token, a session cookie, an API key header — give two DISTINCT ones.
+  httpRequest(
+    principal: { headers: Record<string, string> },
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    path: string,
+    body?: unknown,
+  ): Promise<{ status: number; json: unknown }>;
+  // Two distinct, real principals for the SAME logical resource owner vs other.
+  principalForOrg(org: { apiKey: string; userId: string }): { headers: Record<string, string> };
 };
 
 // ── The Property ─────────────────────────────────────────────────────────
@@ -85,6 +99,43 @@ describe('multi-tenant isolation property', () => {
     const rowsB = await harness.readAsOrg(orgB, '/api/people');
     expect(rowsB.find((r) => r.org_id === orgA.id)).toBeUndefined();
   });
+
+  // ── Handler-entry two-principal variant (field report #371) ──────────────
+  // The repository-layer property above can pass while a handler that hardcodes
+  // `uid = 1` leaks across tenants — the repo test never crosses the auth→uid
+  // seam. This variant drives the REAL HTTP entrypoint with TWO DISTINCT
+  // credentials and asserts isolation through the request path. It is the test
+  // that the planted-bug check below must turn red.
+  test('two distinct principals through the real handler do not cross tenants', async () => {
+    const orgA = await harness.createOrg();
+    const orgB = await harness.createOrg();
+    const pA = harness.principalForOrg(orgA);
+    const pB = harness.principalForOrg(orgB);
+
+    // A writes through the real entrypoint with A's own credential.
+    const created = await harness.httpRequest(pA, 'POST', '/api/people', { name: 'A-secret' });
+    expect(created.status).toBeLessThan(300);
+    const writtenId = (created.json as { id: string }).id;
+
+    // B reads every list endpoint through the real entrypoint with B's credential.
+    for (const readEndpoint of harness.listAllReadEndpoints()) {
+      const res = await harness.httpRequest(pB, 'GET', readEndpoint);
+      const rows = Array.isArray(res.json) ? (res.json as Array<{ id?: string }>) : [];
+      expect(rows.find((r) => r.id === writtenId)).toBeUndefined();
+    }
+
+    // Cross-principal direct fetch: B asking for A's row by id must 404, not 403
+    // (404 avoids leaking existence — see CLAUDE.md "Return 404, not 403").
+    const direct = await harness.httpRequest(pB, 'GET', `/api/people/${writtenId}`);
+    expect(direct.status).toBe(404);
+  });
+
+  // PLANTED-BUG RED-CHECK (field report #371): hardcoding `uid = <owner>` in the
+  // handler MUST turn the two-principal test above RED. If you can introduce
+  // that bug and the suite stays green, your isolation test is not crossing the
+  // auth→uid seam — it is asserting at the repository layer only. Run this once
+  // as a mutation check: patch the handler to ignore the authenticated principal
+  // and pin uid to org A's id; the test above must fail. Revert after proving it.
 });
 
 function randomPayload(): fc.Arbitrary<unknown> {
@@ -112,8 +163,21 @@ function randomPayload(): fc.Arbitrary<unknown> {
 //         assert not any(r['id'] == written['id'] for r in rows_b), \
 //             f"LEAK: {write_endpoint} -> {read_endpoint}"
 //
+// # Handler-entry two-principal variant (field report #371) — drive the real
+// # entrypoint (FastAPI TestClient / Django test Client) with two distinct
+// # credentials, NOT the repository:
+// #   ra = client.post('/api/people', json={'name': 'A'}, headers=princ_a)
+// #   rb = client.get(f"/api/people/{ra.json()['id']}", headers=princ_b)
+// #   assert rb.status_code == 404      # not 403 — don't leak existence
+// # Mutation check: pin uid=<owner> in the handler; this MUST go red.
+//
 // ── Anti-patterns ────────────────────────────────────────────────────────
 //
+// 0. Asserting isolation only at the repository layer. A handler that
+//    hardcodes uid=1 passes every repo-level test while leaking across
+//    tenants. The isolation test MUST drive the real request entrypoint with
+//    two distinct principals (field report #371). Prove it with the planted
+//    uid red-check.
 // 1. Testing isolation only on known endpoints. The bug is in the endpoint
 //    you forgot. Property tests enumerate the full surface.
 // 2. Using SUPERUSER fixtures. They silently bypass FORCE RLS at the engine
