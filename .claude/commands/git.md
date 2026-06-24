@@ -8,8 +8,12 @@
 Scope the changes:
 1. Run `git status` — identify staged, unstaged, and untracked files
 2. Run `git diff --stat` — get a summary of what changed
-3. If there are unstaged changes, ask the user: "Stage everything, or should I be selective?"
-4. If there are no changes at all, stop: "Nothing to version. Working tree is clean."
+3. **Unrelated / pre-existing-change detection (field report #384 RC-1 — never `git add -A` blind).** Before staging, separate what this session authored from changes that were already in the working tree or fall outside the session's stated scope. Two mechanical checks:
+   - **Dependency manifests get special scrutiny.** If any manifest or lockfile appears in the diff — `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements.txt`, `pyproject.toml`, `Cargo.toml` / `Cargo.lock`, `go.mod` / `go.sum`, `Gemfile` / `Gemfile.lock` — read the actual dependency-level diff (`git diff -- <manifest>`), not just the filename. A dependency added / changed / removed that the session did not deliberately introduce is the exact bug this check exists for: the v23.20.0 `vercel` near-miss was a stray `npm install` that added `vercel` to root `dependencies` plus ~5,900 lockfile lines, and a naive `git add -A` would have shipped it into a methodology release. Flag every dependency change for an explicit include/exclude decision and honor "no new dependencies without justification" (CLAUDE.md Coding Standards).
+   - **Scope diff.** Cross-check the full changed-file list against what this session actually touched. Anything you did not author this session — a leftover edit, a scratch/probe file, an untracked artifact — is surfaced for an explicit keep/drop decision.
+   Present the split — *session-authored (stage these)* vs *pre-existing or out-of-scope (decide)* — and get the include/exclude decision BEFORE Step 4 staging. **Never `git add -A` / `git add .` a release without this split.**
+4. If there are unstaged changes, ask the user: "Stage everything, or should I be selective?" — informed by step 3's split.
+5. If there are no changes at all, stop: "Nothing to version. Working tree is clean."
 
 ## Step 1 — Analyze (Vision)
 Read the actual diffs and classify every change:
@@ -71,7 +75,7 @@ Every hit that is not the intentional "Removed" changelog line is either updated
 ## Step 4 — Commit (Rogers)
 Stage and commit:
 1. Stage all modified version files: `VERSION.md`, the active changelog (`CHANGELOG.md` or `PROJECT_VERSION.md`), **every** bumped `package.json` (all workspace packages, not just the root), and any generated copy re-synced in Step 3
-2. Stage any other files that are part of this release (from Step 0), including any prose fixed by the Step 3.5 removal sweep
+2. Stage any other files that are part of this release — explicitly, from Step 0's *session-authored* split, including any prose fixed by the Step 3.5 removal sweep. Stage by path; do **not** `git add -A` / `git add .` (that re-admits the pre-existing/out-of-scope changes Step 0 just excluded — field report #384 RC-1)
 3. Craft commit message in the format: `vX.Y.Z: One-line summary`
    - If elaboration needed, add a blank line then details
    - Match the style of existing commits (check `git log --oneline -10`)

@@ -13,7 +13,7 @@ Bashir examines the patient. Time to diagnose.
 [ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true
 ```
 
-The existence guard is a no-op on projects that predate the gate. **If the first sub-agent launch still blocks** (stale session pointer — the repo pointer pointed at a dead session, so the flag landed in the wrong dir), re-run the exact same `bypass.sh --light` line once: the first blocked `check.sh` fire repoints the pointer to the live session, so the second write lands correctly and the launch proceeds. See CLAUDE.md "Silver Surfer Gate" → "Known gate bug — stale session pointer."
+The existence guard is a no-op on projects that predate the gate. **Stale-pointer self-repair (#384 RC-3):** `bypass.sh` now repoints a stale pointer (one left by a `/clear`ed or crashed session) to the live session automatically — read from `CLAUDE_CODE_SESSION_ID` — so the bypass lands correctly on the first try. On older Claude Code builds without that env var the legacy behavior applies: if the first sub-agent launch still blocks, re-run the exact same `bypass.sh --light` line once (the first blocked `check.sh` fire repoints the pointer, so the second write lands correctly). See CLAUDE.md "Silver Surfer Gate" → "Stale session pointer — auto-repaired."
 
 ## Step 0 — Reconstruct the Timeline
 

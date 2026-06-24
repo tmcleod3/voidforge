@@ -43,6 +43,17 @@ Clean, consistent, well-documented releases. Every version bump tells a story. E
 4. **Never auto-push.** Push only when the user explicitly requests it.
 5. **Present before executing.** Show the changelog entry, version bump, and commit message for user approval before committing.
 6. **Breaking changes get called out.** If MAJOR, explain what breaks and why.
+7. **Never `git add -A` a release.** Run the Step-0 unrelated-change split first (see "Unrelated-Change Detection" below) and stage by path.
+
+## Unrelated-Change Detection — Step 0 (field report #384 RC-1)
+
+A release must ship only what the session authored. The working tree can also carry **pre-existing or out-of-scope changes** — a stray dependency, a leftover edit, an untracked scratch/probe file — and a naive `git add -A` bundles them into the release. The v23.20.0 near-miss: a `vercel` dependency (added to root `dependencies` by a stray `npm install`, +~5,900 `package-lock.json` lines) sat in the tree unrelated to the release; it was caught only because the lead manually diffed `package.json`. Encode that vigilance instead of relying on it.
+
+Before staging (in `/git` Step 0 and `/seal` Step 0):
+
+1. **Dependency manifests get special scrutiny.** If any manifest/lockfile is in the diff — `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements.txt`, `pyproject.toml`, `Cargo.toml`/`Cargo.lock`, `go.mod`/`go.sum`, `Gemfile`/`Gemfile.lock` — read the **dependency-level** diff (`git diff -- <manifest>`), not just the filename. Any dependency added/changed/removed that the session did not deliberately introduce is flagged for an explicit include/exclude decision. This enforces "no new dependencies without justification" (CLAUDE.md Coding Standards) at release time.
+2. **Scope diff.** Compare the full changed-file list against what the session actually touched. Surface anything you did not author this session for an explicit keep/drop decision.
+3. **Present the split** — *session-authored (stage these)* vs *pre-existing or out-of-scope (decide)* — and stage by path from the session-authored side only. `git add -A` / `git add .` re-admits exactly the changes this split exists to exclude.
 
 ## Semver Rules
 

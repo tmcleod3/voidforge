@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.21.0] - 2026-06-24
+
+### Triaged field reports #382 / #383 / #384 → `/seal`-hardening + DevOps/QA/orchestration fixes + a pattern-distribution gap
+
+**From #384 (the v23.20.0 `/seal` session's own debrief):**
+
+- **Added** — Release Step 0 *unrelated / pre-existing-change detection* (`/git`, `/seal`, `RELEASE_MANAGER.md`): before staging, the working tree is split into session-authored vs pre-existing/out-of-scope changes, with dependency manifests / lockfiles getting dependency-level scrutiny — the exact vigilance that caught the v23.20.0 `vercel` near-miss, now mechanical. Never `git add -A` a release.
+- **Added** — *Creation-time native-collision gate* (`BUILD_PROTOCOL.md`, `NATIVE_CAPABILITIES.md`): a new command's name is checked against the native command/skill set *before* the file is written, and its `NATIVE_CAPABILITIES` row is added at creation — the check shifts left from release-time re-audit to command-creation (the `/statusline`→`/contextmeter` rework cause).
+- **Fixed** — `scripts/surfer-gate/bypass.sh` *stale-pointer self-repair*: reads the live session id from `CLAUDE_CODE_SESSION_ID` and repoints a pointer left by a `/clear`ed/crashed session, so a single `bypass.sh --light` lands correctly on the first try — no operator re-run. Older CLIs without the env var keep the documented re-run fallback. (+4 regression tests; gate suite 27→31.)
+
+**From #382 (QA-isolation prod outage + sandbox / spend / coverage):**
+
+- **Added** — `DEVOPS_ENGINEER.md`: locking a shared parent dir must enumerate every traversing service account and grant each an explicit traverse ACL, then `curl` the prod FE and assert 200 (a `/home/ubuntu` `0750` lock 500'd nginx). Plus a headless-OAuth-bootstrap note (SSH `-L` port-forward or paste-the-code fallback).
+- **Added** — `docs/patterns/egress-sandbox.sh`: run a `systemd-run` egress-confined workload under `--uid`/`--gid` so artifacts stay user-owned, not root-owned — `IPAddress*` filtering is a cgroup property and uid-independent.
+- **Added** — `SUB_AGENTS.md`: a global spend ceiling must reserve max-possible in-flight child budget before launching the next child (an $80 cap spent $83.72), or document the overshoot bound.
+- **Added** — `QA_ENGINEER.md`: coverage honesty — count a case covered only at the fidelity actually exercised; record proof in a per-lane ledger; never reclassify a coverage SSOT on partial evidence.
+
+**Distribution:**
+
+- **Fixed** — `prepack.sh` / `copy-assets.sh` now ship **every** `docs/patterns/` file regardless of extension. Globbing by `.ts`/`.tsx`/`.md` had silently dropped the `.sh`/`.py`/`.conf` patterns (`post-deploy-probe.sh`, `nginx-vhost.conf`, `rls-test-fixture.py`, `structural-sql-sentinel.py`) from the published package — an LRN-11 gap, now a future-proof whole-dir copy.
+
+**#383** (`/contextmeter`) shipped in v23.20.0 — closed as implemented; its creation-time-collision proposal is covered by #384 RC-2.
+
+Build clean, suite 1420 (gate 27→31). Dep `^23.20.0` → `^23.21.0`.
+
 ## [23.20.0] - 2026-06-23
 
 ### Triaged 12 upstream field reports → methodology hardening, + `/seal` and `/contextmeter`

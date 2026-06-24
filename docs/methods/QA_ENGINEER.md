@@ -301,6 +301,10 @@ A shipped drift-guard (coverage gate, schema-parity `--check` CLI, lint sentinel
 
 A guard failing either condition is **High** — it manufactures false confidence in exactly the regressions it claims to prevent. (Field report #365: a coverage drift-guard shipped a `--check` CLI that enforced weaker invariants than its own pytest suite — silently passing the three likeliest regressions — AND the tests were never wired into CI. The guard looked green while guarding nothing.)
 
+### Coverage Honesty — Count at the Fidelity Actually Exercised (field report #382)
+
+A coverage SSOT (the canonical "what's tested" ledger) must record each case at the fidelity it was *actually* exercised — never reclassify it covered on partial evidence. Real incident: a new real-account smoke lane proved the *backend* integration (token → authenticated read) but not the in-browser OAuth round-trip; the temptation was to mark the front-end `external_cases` "covered." It wasn't — only the backend path was. **Rules:** (1) a case is covered only at the layer a test actually drives — a backend token test does not cover the browser consent flow; an API test does not cover the UI that calls it; (2) record proof **per lane** in a ledger (which lane exercised the case, at what fidelity, with what evidence — a log line, a screenshot, a status assertion) so a coverage claim is auditable, not asserted; (3) never promote a case to "covered" in the SSOT on a different-fidelity proxy. Counting partial evidence as full coverage manufactures the same false confidence as a vacuous gate — it just hides in the ledger instead of the code. (Reinforces the verification-discipline theme of #377.)
+
 ### Safety-Critical Return Value Verification
 
 For systems with safety-critical operations (stop-loss placement, circuit breakers, rollback triggers, payment captures, credential revocations): verify the return value of the safety operation BEFORE transitioning state. The pattern: `call safety operation → check return → only then transition`.

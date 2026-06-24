@@ -450,6 +450,14 @@ Examples of batches that are too big:
 
 ---
 
+## Authoring a New Slash Command — Creation-Time Native-Collision Gate (field report #384 RC-2)
+
+When you create a new VoidForge slash command (a new `.claude/commands/*.md`), the **native-collision check happens at creation time, not at release re-audit.** ADR-066's `docs/NATIVE_CAPABILITIES.md` re-audit is a release-time backstop; relying on it alone let `/contextmeter` get built as `/statusline` and then renamed mid-build — after docs and scripts already referenced the dead name. Shift the check left:
+
+1. **Before writing the file, check the proposed name against the native command/skill set.** Claude Code ships native slash commands and skills (e.g. `/init`, `/review`, `/security-review`, `/code-review`, `/test`, `/commit`, `/statusline`, `/context`, `/deep-research`, plus built-ins). On surfaces with project-local resolution a same-named `.claude/commands/*.md` wins, but on surfaces without it (claude.ai web, some IDE extensions) a colliding **native** capability shadows ours — running ungated and without VoidForge semantics. Consult `docs/NATIVE_CAPABILITIES.md` for the currently-tracked native set.
+2. **If the name collides, resolve it before the name propagates.** Either rename to a non-colliding name (the `/statusline`→`/contextmeter`, `/review`→`/engage`, `/security`→`/sentinel` precedent) or, if coexistence is deliberate, record a `coexist + document` disposition. Decide *before* writing the file, so no doc/script ever references a name you'll have to retract.
+3. **Add the `NATIVE_CAPABILITIES.md` row as part of creating the command** — same commit, not a later audit. The ADR-066 coverage rule (every `.claude/commands/*.md` has a row) is then satisfied at creation, and the release-time re-audit becomes a confirmation rather than a discovery.
+
 ## Principles
 
 1. PRD is source of truth. Agents don't override product decisions. If the PRD is ambiguous, flag it and present options — don't decide product direction.

@@ -67,6 +67,27 @@ if [ -z "$SESSION_ID" ]; then
     exit 0
 fi
 
+# Stale-pointer self-repair (#384 RC-3). The repo pointer can name a DEAD session
+# — a prior /clear'ed or crashed session whose dir still lingers. Writing the
+# bypass flag into that dead dir leaves the LIVE session blocked: the documented
+# bug (CLAUDE.md "Known gate bug — stale session pointer") whose only workaround
+# was to re-run bypass.sh after the first blocked check.sh fire repointed the
+# pointer. We can now do better: Claude Code exports the live session id to tool
+# calls as CLAUDE_CODE_SESSION_ID — the SAME id it passes the PreToolUse hook as
+# session_id (verified: it equals the live transcript's basename). When it is
+# available and disagrees with the pointer, the pointer is stale — trust the env
+# var, repoint the pointer to the live session, and flag THAT dir, so the bypass
+# lands correctly on the first try with no operator re-run. On older CLIs that do
+# not export the var, LIVE_SID is empty and we fall back to the pointer as before.
+LIVE_SID="${CLAUDE_CODE_SESSION_ID:-}"
+if [ -n "$LIVE_SID" ] && [ "$LIVE_SID" != "$SESSION_ID" ]; then
+    if printf '%s\n' "$LIVE_SID" > "$POINTER_FILE" 2>/dev/null; then
+        chmod 0600 "$POINTER_FILE" 2>/dev/null || true
+        echo "[bypass] stale session pointer ($SESSION_ID) repaired → live session $LIVE_SID"
+        SESSION_ID="$LIVE_SID"
+    fi
+fi
+
 SESSION_DIR="$(surfer_gate_session_dir "$SESSION_ID")"
 [ -z "$SESSION_DIR" ] && exit 0
 

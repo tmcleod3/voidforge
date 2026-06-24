@@ -33,6 +33,10 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 **Hook enforcement (ADR-051 Phase 5b — live as of v23.8.14; state relocated per ADR-060 in v23.8.18).** A `PreToolUse` hook on the **Agent and Workflow tools** (`scripts/surfer-gate/check.sh`; Workflow added per ADR-064) blocks any sub-agent or workflow launch that isn't the Silver Surfer itself, unless a roster has been recorded for this session or a bypass flag is set. State lives at `$XDG_RUNTIME_DIR/voidforge-gate/` (Linux) or `$HOME/.voidforge/gate/` (macOS fallback) — per-user, `0700`. This is the permanent enforcement mechanism. The prose above is a human-readable backup. **Workflow launches are gated identically (ADR-064):** a workflow run requires a recorded roster or a `--light`/`--solo` bypass — workflow-spawned sub-agents are invisible to the per-Agent hook, so gating the launch is what closes that bypass. Build/apply/research workflows that aren't review rosters should set a bypass.
 
+**Non-review commands with a fixed roster take the bypass, NOT a Surfer muster (#366 F4).** A command like `/debrief` is NOT in the gated-commands list above — but the hook blocks *every* non-Surfer Agent launch regardless of the list, so its command-prescribed sub-agents (Ezri/O'Brien/Nog/Jake) get blocked too. The fix: any fixed-roster, non-review pipeline runs `[ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true` BEFORE launching its sub-agents. Its roster is command-prescribed, not cherry-picked, so the gate's anti-cherry-pick purpose doesn't apply — the bypass is correct, not a workaround. (The gated list governs *which commands must muster the Surfer*; it does not exempt unlisted commands from the hook.)
+
+**Stale session pointer — auto-repaired (#366 F4, fixed in #384 RC-3).** The repo's session pointer can point at a *dead* session (a prior `/clear`ed or crashed session whose dir still exists). Historically `bypass.sh` then wrote the flag to that dead session's dir — the WRONG one — and the live session's launch still blocked until you re-ran the bypass. **`bypass.sh` now self-repairs:** it reads the live session id from `CLAUDE_CODE_SESSION_ID` (the same id Claude Code passes the `PreToolUse` hook as `session_id` — it equals the live transcript's basename), and when that disagrees with the pointer it repoints the pointer to the live session and writes the flag there. A single `bash scripts/surfer-gate/bypass.sh --light` now lands correctly on the first try; no re-run needed. **Legacy fallback:** on older Claude Code builds that don't export `CLAUDE_CODE_SESSION_ID`, `LIVE_SID` is empty and the prior behavior remains — if the first launch still blocks, re-run the same `bypass.sh --light` line once (the first blocked `check.sh` fire repoints the pointer, so the second write lands correctly).
+
 **Orchestrator contract** (you run these Bash commands at the right moments — wrap each in an existence guard so projects on older methodology versions don't error):
 
 1. After the Silver Surfer sub-agent returns its roster, and before launching any other Agent: `[ -x scripts/surfer-gate/record-roster.sh ] && bash scripts/surfer-gate/record-roster.sh || true` (optionally pass the roster JSON as the first argument for audit). The existence guard is a defensive no-op for projects that predate v23.10.0 — when the gate started shipping via the npm methodology package per #317.
@@ -130,6 +134,9 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `nginx-vhost.conf` — Cloudflare-Flexible-safe vhost template: security headers, ACME http-01 passthrough, no redirect loop behind CF's flexible SSL (field report #351, #344)
 - `error-message-categorization.tsx` — Categorize errors at the UI boundary (network / auth / validation / server / unknown) before choosing copy, so users see actionable messages not raw internals (field report #351, #343)
 - `codemod-hygiene.md` — after a jscodeshift/recast codemod, strip incidental reformatting so the diff shows only the semantic change (field report #357)
+- `post-deploy-probe.sh` — deploy probe that asserts response content + Content-Type, not HTTP status only, so an SPA catch-all serving index.html for every path can't false-pass into a rollback (field report #371)
+- `exclusion-set-invariant.md` — superset invariant for multi-mechanism exclusion sets: one canonical secret/PII set with `.gitignore` / rsync / scanner derived from it (or a CI assertion) so the three never drift (field report #377)
+- `egress-sandbox.sh` — egress-confined workload (`systemd-run` `IPAddress*` cgroup filter) that drops to the invoking uid/gid so artifacts stay user-owned, not root-owned, while network confinement is preserved (field report #382)
 
 ## Slash Commands
 
@@ -166,6 +173,8 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 | `/portfolio` | Steris's cross-project financials — aggregated spend/revenue, portfolio optimization | Full |
 | `/ai` | Seldon's AI Intelligence Audit — model selection, prompts, tool-use, orchestration, safety, evals | All |
 | `/vault` | Seldon's Time Vault — distill session intelligence into portable briefing for session handoff | All |
+| `/seal` | Session closeout ritual — orchestrates `/git` commit → `/git` push → `/debrief --submit` → `/vault --seal`, then always prints the copy-paste next-session handoff prompt | All |
+| `/contextmeter` | Ducem Barr's context budget meter — installs a context-usage status line (colored meter) + a `UserPromptSubmit` hook that warns Claude itself as the window fills (named to avoid the native `/statusline`/`/context` collision) | All |
 
 **Tier key:** `All` = works everywhere. `Full` = requires the wizard server (`packages/voidforge/wizard/server.ts`). Full-tier commands offer to install the wizard if not present.
 
@@ -254,7 +263,7 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **Learnings** | `/docs/LEARNINGS.md` | Project-scoped operational knowledge — read at session start if exists |
 | **The Muster** | `/docs/methods/MUSTER.md` | When using `--muster` flag on any command |
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
-| **Patterns** | `/docs/patterns/` | When writing code (37 reference implementations) |
+| **Patterns** | `/docs/patterns/` | When writing code (56 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
 | **Workflows** | `/docs/methods/WORKFLOWS.md` | Dynamic Workflow authoring standard (ADR-067) — when to use, API, gotchas, the ADR-064 gate-launch sequence |
 | **Native Capabilities** | `/docs/NATIVE_CAPABILITIES.md` | Command × native-skill collision tracker (ADR-066) — re-audit each release |

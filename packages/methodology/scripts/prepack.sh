@@ -35,9 +35,12 @@ cp "$REPO_ROOT"/.claude/workflows/*.js "$PKG_DIR/.claude/workflows/" 2>/dev/null
 rm -rf "$PKG_DIR/docs"
 mkdir -p "$PKG_DIR/docs/methods" "$PKG_DIR/docs/patterns"
 cp "$REPO_ROOT"/docs/methods/*.md "$PKG_DIR/docs/methods/"
-cp "$REPO_ROOT"/docs/patterns/*.ts "$PKG_DIR/docs/patterns/" 2>/dev/null || true
-cp "$REPO_ROOT"/docs/patterns/*.tsx "$PKG_DIR/docs/patterns/" 2>/dev/null || true
-cp "$REPO_ROOT"/docs/patterns/*.md "$PKG_DIR/docs/patterns/" 2>/dev/null || true
+# Copy EVERY pattern file regardless of extension. Globbing by .ts/.tsx/.md
+# silently dropped the .sh/.py/.conf patterns (post-deploy-probe.sh,
+# egress-sandbox.sh, nginx-vhost.conf, rls-test-fixture.py,
+# structural-sql-sentinel.py) from the published package — LRN-11 distribution
+# gap (field report #382 follow-up). A whole-dir copy ships any future type too.
+cp "$REPO_ROOT"/docs/patterns/* "$PKG_DIR/docs/patterns/" 2>/dev/null || true
 cp "$REPO_ROOT/docs/NAMING_REGISTRY.md" "$PKG_DIR/docs/NAMING_REGISTRY.md"
 cp "$REPO_ROOT/docs/AGENT_CLASSIFICATION.md" "$PKG_DIR/docs/AGENT_CLASSIFICATION.md"
 

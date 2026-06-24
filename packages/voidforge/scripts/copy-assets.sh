@@ -62,9 +62,10 @@ fi
 
 if [ -d "$REPO_ROOT/docs/patterns" ]; then
   mkdir -p "$DIST/docs/patterns"
-  cp "$REPO_ROOT"/docs/patterns/*.ts "$DIST/docs/patterns/" 2>/dev/null || true
-  cp "$REPO_ROOT"/docs/patterns/*.tsx "$DIST/docs/patterns/" 2>/dev/null || true
-  cp "$REPO_ROOT"/docs/patterns/*.md "$DIST/docs/patterns/" 2>/dev/null || true
+  # Copy EVERY pattern file regardless of extension — globbing by .ts/.tsx/.md
+  # dropped the .sh/.py/.conf patterns from dist/ (LRN-11 gap, field report #382
+  # follow-up). Whole-dir copy ships any future type too.
+  cp "$REPO_ROOT"/docs/patterns/* "$DIST/docs/patterns/" 2>/dev/null || true
   echo "copy-assets: docs/patterns/ → dist/docs/patterns/"
 fi
 

@@ -19,6 +19,11 @@ trap 'rm -rf "$TEST_HOME"' EXIT
 
 export HOME="$TEST_HOME"
 unset XDG_RUNTIME_DIR  # force $HOME path for deterministic tests
+# Deterministic legacy-path tests: bypass.sh reads CLAUDE_CODE_SESSION_ID for its
+# stale-pointer self-repair (#384 RC-3). If the suite runs inside a live Claude
+# Code session the real id would leak in and divert the legacy-path bypass tests.
+# Unset it here; the RC-3 section sets it explicitly per-test.
+unset CLAUDE_CODE_SESSION_ID
 
 TEST_SESSION="test-session-$$-$(date +%s)"
 TEST_CWD="$TEST_HOME/fake-repo"
@@ -303,6 +308,59 @@ if ( . "$SCAFFOLD/scripts/surfer-gate/_paths.sh"; PB="$(surfer_gate_pending_bypa
     PASS=$((PASS + 1))
 else
     echo "  FAIL  [pending bypass marker not consumed after promotion]"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "=== RC-3: stale-pointer self-repair (#384) ==="
+
+reset_state
+DEAD_SESSION="dead-session-$$"
+# Simulate a prior /clear'ed session: its check.sh fire wrote the repo pointer
+# (pointers are written before the Agent/Workflow gate, so a Bash fire suffices),
+# then the session died — the pointer now names a DEAD session.
+printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"subagent_type":""},"cwd":"%s"}' \
+    "$DEAD_SESSION" "$TEST_CWD" | bash "$CHECK" >/dev/null 2>&1
+RC3_HASH="$(printf '%s' "$TEST_CWD" | shasum -a 256 | cut -c1-12)"
+RC3_POINTER="$HOME/.voidforge/gate/pointers/pointer-$RC3_HASH"
+LIVE_SESSION_DIR="$HOME/.voidforge/gate/sessions/$TEST_SESSION"
+
+# Operator runs bypass.sh in the LIVE session while the pointer still names the
+# DEAD one. Pre-fix: the flag landed in the dead dir and the live launch still
+# blocked (needing a re-run). Post-fix: CLAUDE_CODE_SESSION_ID lets bypass.sh
+# repoint to the live session and flag the right dir on the first try.
+(cd "$TEST_CWD" && CLAUDE_PROJECT_DIR="$TEST_CWD" CLAUDE_CODE_SESSION_ID="$TEST_SESSION" \
+    bash "$BYPASS" --light >/dev/null 2>&1) || true
+
+if [ -f "$RC3_POINTER" ] && [ "$(cat "$RC3_POINTER")" = "$TEST_SESSION" ]; then
+    echo "  PASS  [bypass.sh repoints stale pointer to live session]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [stale pointer not repaired — pointer=$(cat "$RC3_POINTER" 2>/dev/null)]"
+    FAIL=$((FAIL + 1))
+fi
+
+if [ -f "$LIVE_SESSION_DIR/surfer-bypass.flag" ]; then
+    echo "  PASS  [bypass.sh flags the LIVE session dir, not the dead one]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [bypass flag not written to live session dir]"
+    FAIL=$((FAIL + 1))
+fi
+
+# The live session's FIRST agent launch is now allowed — no operator re-run.
+run "Stale-pointer repair: first live launch allowed (no re-run)" 0 "$(mock_input Agent Picard)"
+
+# Legacy fallback: with no live id exported (older CLI), bypass.sh still trusts
+# the pointer — the pre-RC-3 behavior must be preserved.
+reset_state
+echo "$(mock_input Bash)" | bash "$CHECK" >/dev/null 2>&1
+(cd "$TEST_CWD" && CLAUDE_PROJECT_DIR="$TEST_CWD" bash "$BYPASS" --light >/dev/null 2>&1) || true
+if [ -f "$SESSION_DIR/surfer-bypass.flag" ]; then
+    echo "  PASS  [legacy: no live id → bypass.sh trusts the pointer (unchanged)]"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL  [legacy fallback regressed — flag not written to pointer's session]"
     FAIL=$((FAIL + 1))
 fi
 

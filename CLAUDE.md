@@ -43,7 +43,7 @@ ADR-051 enforces this gate at the hook level (PreToolUse). The prose below is th
 
 **Non-review commands with a fixed roster take the bypass, NOT a Surfer muster (#366 F4).** A command like `/debrief` is NOT in the gated-commands list above — but the hook blocks *every* non-Surfer Agent launch regardless of the list, so its command-prescribed sub-agents (Ezri/O'Brien/Nog/Jake) get blocked too. The fix: any fixed-roster, non-review pipeline runs `[ -x scripts/surfer-gate/bypass.sh ] && bash scripts/surfer-gate/bypass.sh --light || true` BEFORE launching its sub-agents. Its roster is command-prescribed, not cherry-picked, so the gate's anti-cherry-pick purpose doesn't apply — the bypass is correct, not a workaround. (The gated list governs *which commands must muster the Surfer*; it does not exempt unlisted commands from the hook.)
 
-**Known gate bug — stale session pointer (#366 F4, live-observed).** The repo's session pointer can point at a *dead* session (a prior `/clear`ed or crashed session whose dir still exists). When it does, `bypass.sh` writes the flag to that stale session's dir — the WRONG one — and the live session's launch still blocks. The first blocked `check.sh` fire repoints the pointer to the LIVE session. **Workaround:** re-run the exact same `bash scripts/surfer-gate/bypass.sh --light` line once after the first blocked fire; the second write lands in the now-correct live session dir and the launch proceeds. (Tracked for a real fix: `bypass.sh` should detect a stale pointer rather than rely on a re-run.)
+**Stale session pointer — auto-repaired (#366 F4, fixed in #384 RC-3).** The repo's session pointer can point at a *dead* session (a prior `/clear`ed or crashed session whose dir still exists). Historically `bypass.sh` then wrote the flag to that dead session's dir — the WRONG one — and the live session's launch still blocked until you re-ran the bypass. **`bypass.sh` now self-repairs:** it reads the live session id from `CLAUDE_CODE_SESSION_ID` (the same id Claude Code passes the `PreToolUse` hook as `session_id` — it equals the live transcript's basename), and when that disagrees with the pointer it repoints the pointer to the live session and writes the flag there. A single `bash scripts/surfer-gate/bypass.sh --light` now lands correctly on the first try; no re-run needed. **Legacy fallback:** on older Claude Code builds that don't export `CLAUDE_CODE_SESSION_ID`, `LIVE_SID` is empty and the prior behavior remains — if the first launch still blocks, re-run the same `bypass.sh --light` line once (the first blocked `check.sh` fire repoints the pointer, so the second write lands correctly).
 
 **Orchestrator contract** (you run these Bash commands at the right moments — wrap each in an existence guard so projects on older methodology versions don't error):
 
@@ -144,6 +144,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `codemod-hygiene.md` — after a jscodeshift/recast codemod, strip incidental reformatting so the diff shows only the semantic change (field report #357)
 - `post-deploy-probe.sh` — deploy probe that asserts response content + Content-Type, not HTTP status only, so an SPA catch-all serving index.html for every path can't false-pass into a rollback (field report #371)
 - `exclusion-set-invariant.md` — superset invariant for multi-mechanism exclusion sets: one canonical secret/PII set with `.gitignore` / rsync / scanner derived from it (or a CI assertion) so the three never drift (field report #377)
+- `egress-sandbox.sh` — egress-confined workload (`systemd-run` `IPAddress*` cgroup filter) that drops to the invoking uid/gid so artifacts stay user-owned, not root-owned, while network confinement is preserved (field report #382)
 
 ## Slash Commands
 
@@ -270,7 +271,7 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **Learnings** | `/docs/LEARNINGS.md` | Project-scoped operational knowledge — read at session start if exists |
 | **The Muster** | `/docs/methods/MUSTER.md` | When using `--muster` flag on any command |
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
-| **Patterns** | `/docs/patterns/` | When writing code (37 reference implementations) |
+| **Patterns** | `/docs/patterns/` | When writing code (56 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
 | **Workflows** | `/docs/methods/WORKFLOWS.md` | Dynamic Workflow authoring standard (ADR-067) — when to use, API, gotchas, the ADR-064 gate-launch sequence |
 | **Native Capabilities** | `/docs/NATIVE_CAPABILITIES.md` | Command × native-skill collision tracker (ADR-066) — re-audit each release |
