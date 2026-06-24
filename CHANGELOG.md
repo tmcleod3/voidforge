@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.22.0] - 2026-06-24
+
+### `update` now auto-activates `/contextmeter` (matches `init`)
+
+- **Fixed** — `npx voidforge-build update` now wires the `/contextmeter` status line + `UserPromptSubmit` awareness hook into `.claude/settings.json`, the same default-on way `init` does. Previously `update` copied `scripts/statusline/` but left the meter inactive until you ran `/contextmeter` by hand. `mergeStatuslineSettings` is now shared by `init` and `update`; it stays idempotent and **non-clobbering** — never overwrites a project's own `statusLine`, never duplicates the awareness hook. `--dry-run` / diff now reports the pending `.claude/settings.json` change honestly (reading the snippet from the source so it's accurate even before the scripts are copied). +3 updater tests (suite 1420→1423).
+
+Both packages bumped in lockstep (version-consistency gate). Dep `^23.21.0` → `^23.22.0`.
+
 ## [23.21.0] - 2026-06-24
 
 ### Triaged field reports #382 / #383 / #384 → `/seal`-hardening + DevOps/QA/orchestration fixes + a pattern-distribution gap

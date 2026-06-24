@@ -255,16 +255,31 @@ async function mergeSettingsHook(projectDir: string): Promise<void> {
  * one (never clobber a user's), and append the UserPromptSubmit awareness hook unless an
  * equivalent is already present (idempotent). Defaults (warn 80 / crit 92) live in the
  * scripts, so the wired commands carry no env prefix.
+ *
+ * Shared by `init` (copyMethodology) and `update` (applyUpdate) so `update` auto-activates
+ * the meter the same way `init` does (#384 follow-up). Returns `true` when it makes — or,
+ * under `{ dryRun: true }`, WOULD make — a change, so the updater can report the pending
+ * settings edit and decide `applied`. `snippetDir` lets the dry-run read the snippet from
+ * the methodology SOURCE before the scripts have been copied into the project.
  */
-async function mergeStatuslineSettings(projectDir: string): Promise<void> {
-  const snippetPath = join(projectDir, 'scripts', 'statusline', 'settings-snippet.json');
+export async function mergeStatuslineSettings(
+  projectDir: string,
+  opts: { dryRun?: boolean; snippetDir?: string } = {},
+): Promise<boolean> {
+  const snippetDir = opts.snippetDir ?? join(projectDir, 'scripts', 'statusline');
+  const snippetPath = join(snippetDir, 'settings-snippet.json');
   const settingsPath = join(projectDir, '.claude', 'settings.json');
-  if (!existsSync(snippetPath)) return;
+  if (!existsSync(snippetPath)) return false;
 
-  const snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
+  let snippet: Record<string, unknown>;
+  try {
+    snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
+  } catch {
+    return false;
+  }
   const snippetStatusLine = snippet?.statusLine;
-  const snippetUserPrompt = (snippet?.hooks?.UserPromptSubmit ?? []) as Array<Record<string, unknown>>;
-  if (!snippetStatusLine && snippetUserPrompt.length === 0) return;
+  const snippetUserPrompt = ((snippet?.hooks as Record<string, unknown> | undefined)?.UserPromptSubmit ?? []) as Array<Record<string, unknown>>;
+  if (!snippetStatusLine && snippetUserPrompt.length === 0) return false;
 
   let settings: Record<string, unknown> = {};
   if (existsSync(settingsPath)) {
@@ -272,15 +287,16 @@ async function mergeStatuslineSettings(projectDir: string): Promise<void> {
       settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
     } catch {
       // Existing settings.json is unreadable — leave it alone.
-      return;
+      return false;
     }
-  } else {
-    await mkdir(join(projectDir, '.claude'), { recursive: true });
   }
+
+  let changed = false;
 
   // statusLine: never clobber a project's existing one.
   if (snippetStatusLine && !settings.statusLine) {
-    settings.statusLine = snippetStatusLine;
+    if (!opts.dryRun) settings.statusLine = snippetStatusLine;
+    changed = true;
   }
 
   // UserPromptSubmit: append the awareness hook unless an equivalent is already present.
@@ -291,13 +307,20 @@ async function mergeStatuslineSettings(projectDir: string): Promise<void> {
     return hooks.some((h) => typeof h?.command === 'string' && h.command.includes('context-awareness-hook'));
   });
   if (!alreadyHasMeter && snippetUserPrompt.length > 0) {
-    settings.hooks = {
-      ...existingHooks,
-      UserPromptSubmit: [...existingUserPrompt, ...snippetUserPrompt],
-    };
+    if (!opts.dryRun) {
+      settings.hooks = {
+        ...existingHooks,
+        UserPromptSubmit: [...existingUserPrompt, ...snippetUserPrompt],
+      };
+    }
+    changed = true;
   }
 
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+  if (changed && !opts.dryRun) {
+    await mkdir(join(projectDir, '.claude'), { recursive: true });
+    await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+  }
+  return changed;
 }
 
 // ── Identity Injection ───────────────────────────────────

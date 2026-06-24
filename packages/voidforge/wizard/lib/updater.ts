@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process';
 import { readMarker, writeMarker, DEFAULT_CLAUDE_MD_STRATEGY } from './marker.js';
 import { planClaudeMdUpdate, UPSTREAM_SUFFIX } from './claude-md-strategy.js';
 import type { ClaudeMdAction } from './claude-md-strategy.js';
+import { mergeStatuslineSettings } from './project-init.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -138,8 +139,9 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     { src: 'docs/patterns', dest: 'docs/patterns' },
     { src: 'scripts/thumper', dest: 'scripts/thumper' },
     { src: 'scripts/surfer-gate', dest: 'scripts/surfer-gate' },
-    // Context-meter status line + awareness hook (/contextmeter). Scripts propagate on
-    // update; activation (statusLine + UserPromptSubmit hook in settings.json) stays opt-in.
+    // Context-meter status line + awareness hook (/contextmeter). Scripts propagate here;
+    // activation (statusLine + UserPromptSubmit hook in settings.json) is wired below the
+    // same way `init` does it, so `update` auto-activates the meter too (#384 follow-up).
     { src: 'scripts/statusline', dest: 'scripts/statusline' },
   ];
 
@@ -215,6 +217,23 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     }
   }
 
+  // /contextmeter activation (#384 follow-up): `update` now wires the statusLine +
+  // awareness hook into .claude/settings.json the same way `init` does. Report the pending
+  // settings change here so `--dry-run` shows it. The snippet is read from the SOURCE — the
+  // project may not have the statusline scripts yet on this update — and the check is
+  // idempotent + non-clobbering (it returns false once the meter is wired, or when the
+  // project already has its own statusLine).
+  const statuslineNeedsWiring = await mergeStatuslineSettings(projectDir, {
+    dryRun: true,
+    snippetDir: join(sourceRoot, 'scripts', 'statusline'),
+  });
+  if (statuslineNeedsWiring) {
+    const settingsEntry = '.claude/settings.json';
+    if (!plan.modified.includes(settingsEntry) && !plan.added.includes(settingsEntry)) {
+      plan.modified.push(settingsEntry);
+    }
+  }
+
   return plan;
 }
 
@@ -255,14 +274,21 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     }
   }
 
-  // The CLAUDE.md plan entries are handled above — exclude them from the
-  // generic verbatim copy loop so we don't double-write or clobber.
-  const claudeMdEntries = new Set(['CLAUDE.md', `CLAUDE.md${UPSTREAM_SUFFIX}`]);
+  // Skip from the generic verbatim copy loop:
+  //  - CLAUDE.md entries: handled above by the non-destructive strategy.
+  //  - .claude/settings.json: wired below by mergeStatuslineSettings, not copied verbatim
+  //    (the methodology source carries no project settings.json — copying it would throw,
+  //    or in dev clobber the project with the methodology repo's own dogfood settings).
+  const skipVerbatim = new Set([
+    'CLAUDE.md',
+    `CLAUDE.md${UPSTREAM_SUFFIX}`,
+    '.claude/settings.json',
+  ]);
 
   // Copy added + modified files
   const { mkdir } = await import('node:fs/promises');
   for (const file of [...plan.added, ...plan.modified]) {
-    if (claudeMdEntries.has(file)) continue;
+    if (skipVerbatim.has(file)) continue;
 
     const srcPath = join(sourceRoot, file);
     const destPath = join(projectDir, file);
@@ -270,6 +296,13 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     await mkdir(destDir, { recursive: true });
     await cp(srcPath, destPath);
   }
+
+  // /contextmeter activation (#384 follow-up): wire the statusLine + awareness hook into
+  // .claude/settings.json so `update` matches `init`'s default-on behavior. The scripts
+  // were copied above; this turns the meter on. Idempotent + non-clobbering — it never
+  // overwrites a user's own statusLine and never duplicates the awareness hook, so it is
+  // safe to run on every update.
+  await mergeStatuslineSettings(projectDir);
 
   // Update marker version
   const marker = await readMarker(projectDir);

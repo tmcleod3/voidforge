@@ -157,6 +157,72 @@ describe('updater', () => {
     });
   });
 
+  // ── /contextmeter auto-activation on update (#384 follow-up) ─────
+  describe('/contextmeter auto-activation', () => {
+    type HookEntry = { hooks?: Array<{ command?: string }> };
+    const hasMeterHook = (ups: HookEntry[]): boolean =>
+      ups.flatMap((e) => e.hooks ?? []).some(
+        (h) => typeof h.command === 'string' && h.command.includes('context-awareness-hook'),
+      );
+    const stripMeterHook = (settings: { hooks?: { UserPromptSubmit?: HookEntry[] } }): void => {
+      const ups = settings.hooks?.UserPromptSubmit;
+      if (Array.isArray(ups)) {
+        settings.hooks!.UserPromptSubmit = ups.filter(
+          (e) => !(e.hooks ?? []).some(
+            (h) => typeof h.command === 'string' && h.command.includes('context-awareness-hook'),
+          ),
+        );
+      }
+    };
+
+    it('wires the statusLine + awareness hook on update when missing', async () => {
+      await createProject({ name: 'Meter', directory: projectDir, skipGit: true });
+      const settingsPath = join(projectDir, '.claude', 'settings.json');
+
+      // Simulate a project that has the scripts but not the wiring — it updated before this
+      // shipped, or ran `/contextmeter --uninstall`. Strip both the statusLine and the hook.
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      delete settings.statusLine;
+      stripMeterHook(settings);
+      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+
+      // diff reports the pending settings change (honest --dry-run)…
+      const plan = await diffMethodology(projectDir);
+      expect(plan.modified).toContain('.claude/settings.json');
+
+      // …and apply wires it back on.
+      const result = await applyUpdate(projectDir);
+      expect(result.applied).toBe(true);
+
+      const after = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      expect(after.statusLine?.command).toContain('voidforge-statusline.sh');
+      expect(hasMeterHook(after.hooks?.UserPromptSubmit ?? [])).toBe(true);
+    });
+
+    it('adds the hook but never clobbers a project\'s own statusLine', async () => {
+      await createProject({ name: 'CustomSL', directory: projectDir, skipGit: true });
+      const settingsPath = join(projectDir, '.claude', 'settings.json');
+
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      settings.statusLine = { type: 'command', command: 'my-own-statusline.sh' };
+      stripMeterHook(settings); // make wiring pending so the merge actually runs
+      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+
+      const result = await applyUpdate(projectDir);
+      expect(result.applied).toBe(true);
+
+      const after = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      expect(after.statusLine.command).toBe('my-own-statusline.sh'); // preserved, not clobbered
+      expect(hasMeterHook(after.hooks?.UserPromptSubmit ?? [])).toBe(true); // hook still added
+    });
+
+    it('is idempotent — a freshly-init\'d project needs no settings rewire', async () => {
+      await createProject({ name: 'Idem', directory: projectDir, skipGit: true });
+      const plan = await diffMethodology(projectDir);
+      expect(plan.modified).not.toContain('.claude/settings.json');
+    });
+  });
+
   // ── Non-destructive CLAUDE.md handling (issue #368) ─────
   describe('CLAUDE.md is never silently clobbered', () => {
     it('preserve (default): customized CLAUDE.md untouched, upstream parked in side file', async () => {
