@@ -221,6 +221,95 @@ describe('updater', () => {
       const plan = await diffMethodology(projectDir);
       expect(plan.modified).not.toContain('.claude/settings.json');
     });
+
+    it('warns when a competing statusLine in the hierarchy will shadow the meter (#390)', async () => {
+      const cleanHome = await mkdtemp(join(tmpdir(), 'vf-home-'));
+      const origHome = process.env.HOME;
+      try {
+        await createProject({ name: 'Shadow', directory: projectDir, skipGit: true });
+        process.env.HOME = cleanHome; // no ~/.claude here → only the project-local file is a candidate
+        await writeFile(
+          join(projectDir, '.claude', 'settings.local.json'),
+          JSON.stringify({ statusLine: { type: 'command', command: 'my-own-bar.sh' } }, null, 2),
+          'utf-8',
+        );
+        const plan = await diffMethodology(projectDir);
+        expect(plan.warnings.some((w) => w.includes('settings.local.json'))).toBe(true);
+      } finally {
+        if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;
+        await rm(cleanHome, { recursive: true, force: true });
+      }
+    });
+  });
+
+  // ── Silver Surfer gate auto-wire on update + opt-out marker (#387 RC-2) ─────
+  describe('gate auto-wire + opt-out', () => {
+    type HookEntry = { hooks?: Array<{ command?: string }> };
+    const hasGateHook = (settings: { hooks?: { PreToolUse?: HookEntry[] } }): boolean =>
+      (settings.hooks?.PreToolUse ?? []).flatMap((e) => e.hooks ?? []).some(
+        (h) => typeof h.command === 'string' && h.command.includes('surfer-gate/check.sh'),
+      );
+    const stripGateHook = (settings: { hooks?: { PreToolUse?: HookEntry[] } }): void => {
+      const pre = settings.hooks?.PreToolUse;
+      if (Array.isArray(pre)) {
+        settings.hooks!.PreToolUse = pre.filter(
+          (e) => !(e.hooks ?? []).some((h) => typeof h.command === 'string' && h.command.includes('surfer-gate/check.sh')),
+        );
+      }
+    };
+    const setOptOut = async (keys: string[]): Promise<void> => {
+      const marker = await readMarker(projectDir);
+      (marker as unknown as { autowireOptOut: string[] }).autowireOptOut = keys;
+      const { writeMarker } = await import('../lib/marker.js');
+      await writeMarker(projectDir, marker!);
+    };
+
+    it('auto-wires the gate PreToolUse hook on update when missing', async () => {
+      await createProject({ name: 'Gate', directory: projectDir, skipGit: true });
+      const settingsPath = join(projectDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      stripGateHook(settings);
+      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+
+      const plan = await diffMethodology(projectDir);
+      expect(plan.modified).toContain('.claude/settings.json');
+
+      const result = await applyUpdate(projectDir);
+      expect(result.applied).toBe(true);
+      const after = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      expect(hasGateHook(after)).toBe(true);
+    });
+
+    it('honors the surfer-gate opt-out marker (does not re-wire the gate)', async () => {
+      await createProject({ name: 'GateOptOut', directory: projectDir, skipGit: true });
+      const settingsPath = join(projectDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      stripGateHook(settings);
+      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+      await setOptOut(['surfer-gate']);
+      // drift VERSION.md so the update actually applies (reaches the wiring block)
+      await writeFile(join(projectDir, 'VERSION.md'), 'old version\n', 'utf-8');
+
+      const result = await applyUpdate(projectDir);
+      expect(result.applied).toBe(true);
+      const after = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      expect(hasGateHook(after)).toBe(false); // opt-out honored even though update applied
+    });
+
+    it('honors the contextmeter opt-out marker (does not re-wire the meter)', async () => {
+      await createProject({ name: 'MeterOptOut', directory: projectDir, skipGit: true });
+      const settingsPath = join(projectDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      delete settings.statusLine;
+      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+      await setOptOut(['contextmeter']);
+      await writeFile(join(projectDir, 'VERSION.md'), 'old version\n', 'utf-8');
+
+      const result = await applyUpdate(projectDir);
+      expect(result.applied).toBe(true);
+      const after = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      expect(after.statusLine).toBeUndefined(); // opt-out honored
+    });
   });
 
   // ── Non-destructive CLAUDE.md handling (issue #368) ─────

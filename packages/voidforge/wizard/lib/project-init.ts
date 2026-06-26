@@ -212,14 +212,32 @@ async function chmodShellScripts(dir: string): Promise<void> {
   }
 }
 
-async function mergeSettingsHook(projectDir: string): Promise<void> {
-  const snippetPath = join(projectDir, 'scripts', 'surfer-gate', 'settings-snippet.json');
+/**
+ * Wire the Silver Surfer gate's PreToolUse hook into settings.json.
+ * Idempotent + non-clobbering: appends the gate hook only when no equivalent is
+ * already present, never touching other hooks. Shared by `init` and `update`
+ * (#387 RC-2: `update` auto-wires the gate too). Returns `true` when it makes —
+ * or, under `{ dryRun: true }`, WOULD make — a change. `snippetDir` lets the
+ * dry-run read the snippet from the methodology SOURCE before the scripts have
+ * been copied into the project.
+ */
+export async function mergeSettingsHook(
+  projectDir: string,
+  opts: { dryRun?: boolean; snippetDir?: string } = {},
+): Promise<boolean> {
+  const snippetDir = opts.snippetDir ?? join(projectDir, 'scripts', 'surfer-gate');
+  const snippetPath = join(snippetDir, 'settings-snippet.json');
   const settingsPath = join(projectDir, '.claude', 'settings.json');
-  if (!existsSync(snippetPath)) return;
+  if (!existsSync(snippetPath)) return false;
 
-  const snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
-  const productionHook = snippet?.production_hook;
-  if (!productionHook?.PreToolUse) return;
+  let snippet: Record<string, unknown>;
+  try {
+    snippet = JSON.parse(await readFile(snippetPath, 'utf-8'));
+  } catch {
+    return false;
+  }
+  const productionHook = snippet?.production_hook as { PreToolUse?: Array<Record<string, unknown>> } | undefined;
+  if (!productionHook?.PreToolUse) return false;
 
   let settings: Record<string, unknown> = {};
   if (existsSync(settingsPath)) {
@@ -227,10 +245,8 @@ async function mergeSettingsHook(projectDir: string): Promise<void> {
       settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
     } catch {
       // Existing settings.json is unreadable — leave it alone.
-      return;
+      return false;
     }
-  } else {
-    await mkdir(join(projectDir, '.claude'), { recursive: true });
   }
 
   const existingHooks = (settings.hooks ?? {}) as Record<string, unknown>;
@@ -240,13 +256,17 @@ async function mergeSettingsHook(projectDir: string): Promise<void> {
     return hooks.some((h) => typeof h?.command === 'string' && h.command.includes('surfer-gate/check.sh'));
   });
 
-  if (alreadyHasGate) return;
+  if (alreadyHasGate) return false;
 
-  settings.hooks = {
-    ...existingHooks,
-    PreToolUse: [...existingPreTool, ...productionHook.PreToolUse],
-  };
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+  if (!opts.dryRun) {
+    settings.hooks = {
+      ...existingHooks,
+      PreToolUse: [...existingPreTool, ...productionHook.PreToolUse],
+    };
+    await mkdir(join(projectDir, '.claude'), { recursive: true });
+    await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+  }
+  return true;
 }
 
 /**

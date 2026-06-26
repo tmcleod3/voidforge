@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.23.0] - 2026-06-26
+
+### Triage of #387 + #390 → `/contextmeter` shadow detection, gate auto-wire on update (+ opt-out), `/deploy` redirect
+
+**#390 — `/contextmeter` install reports success but the meter is silently shadowed (HIGH):**
+
+- **Fixed** — `statusLine` is a single-winner slot across the whole settings hierarchy, so a `statusLine` in `~/.claude/settings.json` (e.g. one the native `/statusline` wrote) or `.claude/settings.local.json` shadows the project meter even when the project install is correct. `/contextmeter` now: Step 0 cross-hierarchy shadow check; Step 2.1 collision rule broadened from project-only to the full hierarchy; `--status` reports "**installed but shadowed by `<file>`**" instead of a false-positive "wired." `update` emits a shadow **warning** when it auto-wires a meter a higher-precedence statusLine would shadow. `scripts/statusline/README.md` documents the single-winner behavior.
+
+**#387 — init/update parity + distribution + `/deploy`:**
+
+- **Changed** — `update` now auto-wires the Silver Surfer **gate** PreToolUse hook into existing projects too (init/update settings-wiring parity — every init-time `.claude/settings.json` merge now has an update-time counterpart), idempotent + non-clobbering. A new persistent **opt-out marker** — `.voidforge` `autowireOptOut: ["surfer-gate" | "contextmeter"]` — lets a project decline an auto-wire so the choice survives every future update; `/contextmeter --uninstall` records `"contextmeter"`.
+- **Added** — `RELEASE_MANAGER.md`: a distribution copy of a whole shipped directory copies it wholesale, never via an extension allowlist (#387 RC-1, generalizing LRN-11 to file-*types* — the gap that dropped `.sh`/`.py`/`.conf` patterns from the package, fixed in v23.21.0).
+- **Added** — `/deploy` Step 1 + `DEVOPS_ENGINEER.md`: detect a publish-only repo (no app target; `bin`/`publishConfig`/publish CI) and redirect to `/git --npm` or `/seal` instead of prompting for a deploy target.
+
+Both packages bumped in lockstep. +4 updater tests (1423→1427). Dep `^23.22.0` → `^23.23.0`.
+
 ## [23.22.0] - 2026-06-24
 
 ### `update` now auto-activates `/contextmeter` (matches `init`)

@@ -26,7 +26,8 @@ Read deploy target from PRD frontmatter. If not specified, scan for evidence:
 - `Dockerfile` or `docker-compose.yml` → Docker
 - `SSH_HOST` in .env or vault → VPS/EC2
 - `wrangler.toml` → Cloudflare Workers/Pages
-- None found → ask: "Where should this deploy? [vps/vercel/railway/docker/static]"
+- **Publish-only repo (no app target) → redirect, do NOT prompt for a deploy target (field report #387 RC-3).** If none of the above app-deploy evidence exists AND the repo ships via npm — a root or workspace `package.json` carrying a `bin`, `publishConfig`, or `files` field (and no app target), and/or a publish CI workflow (`.github/workflows/publish.yml`) — then this is a **package**, not a deployable app. STOP and say: "This repo ships via **npm**, not app hosting. Use `/git --npm` (or `/seal`) to cut a release; `/deploy` targets apps (vps/vercel/railway/docker/static)." Do not fall through to the deploy-target question. (VoidForge itself is the canonical example — it published v23.21.0/v23.22.0 this way.)
+- None of the above (an app with no deploy config yet) → ask: "Where should this deploy? [vps/vercel/railway/docker/static]"
 
 ## Step 2 — Pre-Deploy Checks (Levi)
 

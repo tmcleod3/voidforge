@@ -675,6 +675,11 @@ async function main(): Promise<void> {
           for (const w of plan.claudeMd.warnings) console.log(`    ${w}`);
           console.log('');
         }
+        if (plan.warnings.length > 0) {
+          console.log('  Warnings:');
+          for (const w of plan.warnings) console.log(`    ⚠ ${w}`);
+          console.log('');
+        }
         const result = await applyUpdate(projRoot);
         console.log(`  Updated to v${result.newVersion}. ${plan.added.length + plan.modified.length} files changed.\n`);
         break;

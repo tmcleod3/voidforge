@@ -29,6 +29,15 @@ import { homedir } from 'node:os';
  */
 export type ClaudeMdStrategy = 'preserve' | 'merge' | 'skip';
 
+/**
+ * Auto-wire keys (#387 RC-2). On `update`, VoidForge auto-wires certain
+ * `.claude/settings.json` entries the same way `init` does — the Silver Surfer
+ * gate's PreToolUse hook and the /contextmeter statusLine + awareness hook. A
+ * project can decline a specific auto-wire so the choice survives every future
+ * update (see `autowireOptOut`).
+ */
+export type AutowireKey = 'surfer-gate' | 'contextmeter';
+
 export interface VoidForgeMarker {
   id: string;
   version: string;
@@ -41,10 +50,23 @@ export interface VoidForgeMarker {
    * behavior applies to projects created before this field existed.
    */
   claudeMd?: ClaudeMdStrategy;
+  /**
+   * Settings-wiring auto-activation opt-outs (#387 RC-2). `update` auto-wires the
+   * gate hook and the /contextmeter statusLine/hook by default; listing a key here
+   * makes that opt-out persist across every future update. `/contextmeter
+   * --uninstall` records `'contextmeter'`; a project that doesn't want the gate
+   * adds `'surfer-gate'`. Absent/empty = auto-wire everything (default-on).
+   */
+  autowireOptOut?: AutowireKey[];
 }
 
 /** Safe default when a marker omits `claudeMd`. Never silently clobber. */
 export const DEFAULT_CLAUDE_MD_STRATEGY: ClaudeMdStrategy = 'preserve';
+
+/** True when the project has recorded a persistent opt-out for an auto-wire (#387 RC-2). */
+export function isAutowireOptedOut(marker: VoidForgeMarker | null, key: AutowireKey): boolean {
+  return Array.isArray(marker?.autowireOptOut) && marker.autowireOptOut.includes(key);
+}
 
 // ── Constants ────────────────────────────────────────────
 

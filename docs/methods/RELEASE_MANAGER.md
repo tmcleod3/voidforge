@@ -254,6 +254,14 @@ A release that introduces a **new shipped artifact type** (a new file category c
 
 **Why.** Field report #366 (v23.18.0): the release added `.claude/workflows/*.workflow.js`, claimed "both scripts pass `node --check`" (FALSE — their top-level `return`/`await` make a bare `node --check` fail), and added **no** pretest validator. Three of the next release's fourteen bugs traced to that one omission. This is the recurring "referenced-but-doesn't-ship" / "gate that doesn't gate" class (#297, #352): the fix that closes it is a real validator wired into `pretest` plus an honest claim. (The companion distribution-paths checklist — wiring a new category into ALL of `prepack.sh`, `copy-assets.sh`, `project-init.ts`, and `updater.ts` — lives in BUILD_PROTOCOL.md Phase 12.75.)
 
+## Distribution Copies a Whole Directory Whole — Never by Extension (field report #387 RC-1)
+
+LRN-11 and Ship-and-Validate cover a new shipped *category*. They do **not** cover a new file *type* inside an already-wired category — and a per-extension copy glob silently drops it. The distribution paths (`prepack.sh`, `copy-assets.sh`) must copy each shipped directory **wholesale** (`cp dir/*`), not via an allowlist of extensions (`cp dir/*.ts; cp dir/*.md`).
+
+**Why.** Field report #387 RC-1: `docs/patterns/` was copied as `*.ts` / `*.tsx` / `*.md`, so the `.sh` / `.py` / `.conf` patterns (`post-deploy-probe.sh`, `nginx-vhost.conf`, `rls-test-fixture.py`, `structural-sql-sentinel.py`) were **never** in the published `voidforge-build-methodology` tarball — despite being listed in CLAUDE.md's pattern index. The loss was invisible: the npm `files` allowlist can only include what the copy actually staged, so prepack never staging the file means `files` has nothing to ship. Verified absent via `npm pack --dry-run`; fixed in v23.21.0 (whole-dir copy).
+
+**Rule:** a distribution copy of a whole shipped directory copies **every** file in it regardless of extension. If an extension allowlist is genuinely unavoidable (e.g. the wizard's TS-compile pattern subset), it must be a tracked SSOT with a CI assertion that every intended file reaches the package — the "one source, can't drift" discipline of `docs/patterns/exclusion-set-invariant.md`. Generalize LRN-11: **a new file *type* within an existing shipped category is itself a distribution change.**
+
 ## Post-Amend SHA Pin
 
 `git commit --amend` rewrites the SHA but `logs/campaign-state.md` rows still reference the pre-amend SHA. Across a long campaign, these dangling references accumulate and break post-hoc audits (`git log --grep` against the recorded SHA returns nothing).

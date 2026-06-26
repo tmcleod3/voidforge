@@ -6,11 +6,12 @@
 import { readFile, readdir, cp, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { homedir } from 'node:os';
 import { execSync } from 'node:child_process';
-import { readMarker, writeMarker, DEFAULT_CLAUDE_MD_STRATEGY } from './marker.js';
+import { readMarker, writeMarker, DEFAULT_CLAUDE_MD_STRATEGY, isAutowireOptedOut } from './marker.js';
 import { planClaudeMdUpdate, UPSTREAM_SUFFIX } from './claude-md-strategy.js';
 import type { ClaudeMdAction } from './claude-md-strategy.js';
-import { mergeStatuslineSettings } from './project-init.js';
+import { mergeStatuslineSettings, mergeSettingsHook } from './project-init.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -19,6 +20,9 @@ export interface UpdatePlan {
   modified: string[];
   removed: string[];
   unchanged: number;
+  /** Non-fatal advisories surfaced to the operator (e.g. a global statusLine that
+   *  will shadow the auto-wired /contextmeter meter — #390). */
+  warnings: string[];
   /** Non-destructive CLAUDE.md handling (issue #368). */
   claudeMd?: {
     action: ClaudeMdAction;
@@ -121,9 +125,36 @@ async function planClaudeMd(sourceRoot: string, projectDir: string) {
  * Diff methodology source against project files.
  * Returns a plan showing what would change.
  */
+/**
+ * #390: `statusLine` is a single-winner slot across the settings hierarchy. A
+ * statusLine in `~/.claude/settings.json` (commonly set by native `/statusline`)
+ * or `.claude/settings.local.json` that isn't the VoidForge meter will shadow the
+ * project meter even when the project wiring is correct. Detect it so `update`
+ * WARNS instead of silently wiring a meter that can never render. Returns the
+ * shadowing file path, or null.
+ */
+async function detectShadowingStatusLine(projectDir: string): Promise<string | null> {
+  const home = process.env['HOME'] ?? process.env['USERPROFILE'] ?? homedir();
+  const candidates = [
+    join(home, '.claude', 'settings.json'),
+    join(projectDir, '.claude', 'settings.local.json'),
+  ];
+  for (const file of candidates) {
+    if (!existsSync(file)) continue;
+    try {
+      const s = JSON.parse(await readFile(file, 'utf-8')) as { statusLine?: { command?: unknown } };
+      const cmd = s?.statusLine?.command;
+      if (typeof cmd === 'string' && !cmd.includes('voidforge-statusline.sh')) return file;
+    } catch {
+      // unreadable — ignore
+    }
+  }
+  return null;
+}
+
 export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
   const sourceRoot = await resolveMethodologySource();
-  const plan: UpdatePlan = { added: [], modified: [], removed: [], unchanged: 0 };
+  const plan: UpdatePlan = { added: [], modified: [], removed: [], unchanged: 0, warnings: [] };
 
   // Directories to compare
   const dirs = [
@@ -217,20 +248,42 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     }
   }
 
-  // /contextmeter activation (#384 follow-up): `update` now wires the statusLine +
-  // awareness hook into .claude/settings.json the same way `init` does. Report the pending
-  // settings change here so `--dry-run` shows it. The snippet is read from the SOURCE — the
-  // project may not have the statusline scripts yet on this update — and the check is
-  // idempotent + non-clobbering (it returns false once the meter is wired, or when the
-  // project already has its own statusLine).
-  const statuslineNeedsWiring = await mergeStatuslineSettings(projectDir, {
-    dryRun: true,
-    snippetDir: join(sourceRoot, 'scripts', 'statusline'),
-  });
-  if (statuslineNeedsWiring) {
+  // Settings auto-activation on update (#384 follow-up + #387 RC-2). `update` wires both
+  // the /contextmeter statusLine/hook AND the Silver Surfer gate's PreToolUse hook into
+  // .claude/settings.json the same default-on way `init` does — UNLESS the project recorded
+  // a persistent opt-out for that key in its .voidforge marker. Snippets are read from the
+  // SOURCE (the project may not have the scripts yet on this update); both merges are
+  // idempotent + non-clobbering, so they report "pending" only when a real change is due.
+  const marker = await readMarker(projectDir);
+  let settingsPending = false;
+  if (!isAutowireOptedOut(marker, 'contextmeter')) {
+    settingsPending ||= await mergeStatuslineSettings(projectDir, {
+      dryRun: true,
+      snippetDir: join(sourceRoot, 'scripts', 'statusline'),
+    });
+  }
+  if (!isAutowireOptedOut(marker, 'surfer-gate')) {
+    settingsPending ||= await mergeSettingsHook(projectDir, {
+      dryRun: true,
+      snippetDir: join(sourceRoot, 'scripts', 'surfer-gate'),
+    });
+  }
+  if (settingsPending) {
     const settingsEntry = '.claude/settings.json';
     if (!plan.modified.includes(settingsEntry) && !plan.added.includes(settingsEntry)) {
       plan.modified.push(settingsEntry);
+    }
+  }
+
+  // #390: warn if a higher/equal-precedence statusLine will shadow the project meter, so
+  // `update` never wires a meter that can't render and then claims success.
+  if (!isAutowireOptedOut(marker, 'contextmeter')) {
+    const shadow = await detectShadowingStatusLine(projectDir);
+    if (shadow) {
+      plan.warnings.push(
+        `A statusLine in ${shadow} will shadow the /contextmeter meter — Claude Code renders only one. ` +
+        `Remove or merge that statusLine, or the project meter won't appear.`,
+      );
     }
   }
 
@@ -297,15 +350,22 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     await cp(srcPath, destPath);
   }
 
-  // /contextmeter activation (#384 follow-up): wire the statusLine + awareness hook into
-  // .claude/settings.json so `update` matches `init`'s default-on behavior. The scripts
-  // were copied above; this turns the meter on. Idempotent + non-clobbering — it never
-  // overwrites a user's own statusLine and never duplicates the awareness hook, so it is
-  // safe to run on every update.
-  await mergeStatuslineSettings(projectDir);
+  // Settings auto-activation on update (init/update parity invariant — #387 RC-2).
+  // Every init-time `.claude/settings.json` wiring has an update-time counterpart here,
+  // so `update` never ships inert scripts. Both merges are idempotent + non-clobbering
+  // (never overwrite a user's own statusLine, never duplicate a hook), and each is gated
+  // on the project's persistent opt-out marker so a deliberate decline survives updates:
+  //   - /contextmeter statusLine + awareness hook (opt out: 'contextmeter')
+  //   - Silver Surfer gate PreToolUse hook (opt out: 'surfer-gate')
+  const marker = await readMarker(projectDir);
+  if (!isAutowireOptedOut(marker, 'contextmeter')) {
+    await mergeStatuslineSettings(projectDir);
+  }
+  if (!isAutowireOptedOut(marker, 'surfer-gate')) {
+    await mergeSettingsHook(projectDir);
+  }
 
   // Update marker version
-  const marker = await readMarker(projectDir);
   if (marker) {
     marker.version = newVersion;
     await writeMarker(projectDir, marker);

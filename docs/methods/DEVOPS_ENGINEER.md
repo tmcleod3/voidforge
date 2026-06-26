@@ -298,6 +298,8 @@ Read `deploy:` from PRD frontmatter. If absent, scan for evidence:
 - `SSH_HOST` in .env or vault → VPS/EC2
 - `wrangler.toml` → Cloudflare Workers/Pages
 
+**Publish-only repo guard (field report #387 RC-3).** Before falling through to "ask where to deploy," check whether the repo is a **package that ships via npm** rather than a deployable app: a root/workspace `package.json` with a `bin`, `publishConfig`, or `files` field and no app-deploy evidence above, and/or a `.github/workflows/publish.yml`. If so, `/deploy` does not apply — redirect to `/git --npm` or `/seal` (npm release), don't prompt for an app target. `/deploy` deploys built apps; a library/CLI/methodology package's "deploy" is its npm publish. (VoidForge itself is the example.)
+
 ### Deploy State
 
 Maintain `/logs/deploy-state.md` after every deploy:
