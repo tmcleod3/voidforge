@@ -312,6 +312,71 @@ describe('updater', () => {
     });
   });
 
+  // ── update auto-escalates a shadowed meter to Local scope (#392) ─────
+  describe('update shadow escalation', () => {
+    it('escalates the meter to Local scope when a user-global statusLine would shadow it', async () => {
+      const tmpHome = await mkdtemp(join(tmpdir(), 'vf-home-'));
+      const origHome = process.env.HOME;
+      try {
+        await mkdir(join(tmpHome, '.claude'), { recursive: true });
+        await writeFile(
+          join(tmpHome, '.claude', 'settings.json'),
+          JSON.stringify({ statusLine: { type: 'command', command: 'my-global-bar.sh' } }, null, 2),
+          'utf-8',
+        );
+        process.env.HOME = tmpHome;
+        await createProject({ name: 'Esc', directory: projectDir, skipGit: true });
+
+        const plan = await diffMethodology(projectDir);
+        expect(plan.modified).toContain('.claude/settings.local.json');
+
+        const result = await applyUpdate(projectDir);
+        expect(result.applied).toBe(true);
+
+        // meter escalated to Local…
+        const local = JSON.parse(await readFile(join(projectDir, '.claude', 'settings.local.json'), 'utf-8'));
+        expect(local.statusLine.command).toContain('voidforge-statusline.sh');
+        // …the user's global file is untouched…
+        const global = JSON.parse(await readFile(join(tmpHome, '.claude', 'settings.json'), 'utf-8'));
+        expect(global.statusLine.command).toBe('my-global-bar.sh');
+        // …and the Local file is gitignored.
+        const gi = await readFile(join(projectDir, '.gitignore'), 'utf-8').catch(() => '');
+        expect(gi).toContain('.claude/settings.local.json');
+      } finally {
+        if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;
+        await rm(tmpHome, { recursive: true, force: true });
+      }
+    });
+
+    it('does not clobber a non-meter Local statusLine — warns and defers to /contextmeter', async () => {
+      const tmpHome = await mkdtemp(join(tmpdir(), 'vf-home-'));
+      const origHome = process.env.HOME;
+      try {
+        process.env.HOME = tmpHome; // clean global (no ~/.claude statusLine)
+        await createProject({ name: 'Blocked', directory: projectDir, skipGit: true });
+        await writeFile(
+          join(projectDir, '.claude', 'settings.local.json'),
+          JSON.stringify({ statusLine: { type: 'command', command: 'my-local-bar.sh' } }, null, 2),
+          'utf-8',
+        );
+        // drift VERSION.md so the update applies and reaches the wiring/escalation path
+        await writeFile(join(projectDir, 'VERSION.md'), 'old version\n', 'utf-8');
+
+        const plan = await diffMethodology(projectDir);
+        expect(plan.warnings.some((w) => w.includes('Run /contextmeter'))).toBe(true);
+
+        const result = await applyUpdate(projectDir);
+        expect(result.applied).toBe(true);
+
+        const local = JSON.parse(await readFile(join(projectDir, '.claude', 'settings.local.json'), 'utf-8'));
+        expect(local.statusLine.command).toBe('my-local-bar.sh'); // preserved, never clobbered
+      } finally {
+        if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;
+        await rm(tmpHome, { recursive: true, force: true });
+      }
+    });
+  });
+
   // ── Non-destructive CLAUDE.md handling (issue #368) ─────
   describe('CLAUDE.md is never silently clobbered', () => {
     it('preserve (default): customized CLAUDE.md untouched, upstream parked in side file', async () => {

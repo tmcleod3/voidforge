@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.25.0] - 2026-06-26
+
+### `update` auto-escalates a shadowed `/contextmeter` meter to Local scope (#392)
+
+- **Changed** — `npx voidforge-build update` now applies the same non-destructive shadow resolution as the manual `/contextmeter`: when it detects a Project/User `statusLine` that would shadow the auto-wired meter, it **escalates the meter's `statusLine` to `.claude/settings.local.json` (Local scope)** — which outranks Project and User — so the meter wins **without touching the user's global `~/.claude/settings.json`**, and gitignores the Local file. If the competitor is itself a Local `statusLine`, the non-interactive `update` refuses to clobber it and instead warns + defers to `/contextmeter`. The update plan / `--dry-run` reports the escalation. +2 updater tests (1427→1429).
+
+Both packages bumped in lockstep. Dep `^23.24.0` → `^23.25.0`.
+
 ## [23.24.0] - 2026-06-26
 
 ### `/contextmeter` shadow resolution: escalate to Local scope, never clobber the user's global statusLine (#392, verifies #390)

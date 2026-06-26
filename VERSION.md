@@ -1,6 +1,6 @@
 # Version
 
-**Current:** 23.24.0
+**Current:** 23.25.0
 
 ## Versioning Scheme
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 23.25.0 | 2026-06-26 | **`update` auto-escalates a shadowed `/contextmeter` meter to Local scope (#392).** `npx voidforge-build update` now applies the same non-destructive shadow resolution as the manual command: on detecting a Project/User `statusLine` that would shadow the auto-wired meter, it escalates the meter to `.claude/settings.local.json` (Local — outranks Project + User), gitignores it, and never touches the user's global `~/.claude/settings.json`. A Local-scope competitor is not clobbered (warns + defers to `/contextmeter`). The update plan reports the escalation. +2 updater tests (1427→1429). Dep `^23.24.0` → `^23.25.0`. |
 | 23.24.0 | 2026-06-26 | **`/contextmeter` shadow resolution → escalate to Local scope, never clobber global (#392, verifies #390).** Verified the `statusLine` precedence (Local > Project > User) from the docs + a live probe (a Local-scope statusLine hot-reloaded mid-session and fired 14× over the Project meter). `/contextmeter` now resolves a detected shadow by escalating the meter to `.claude/settings.local.json` (Local) — which outranks Project + User — so it wins **without touching the user's global `~/.claude/settings.json`**; global overwrite is an explicit backed-up opt-in (`--force-global`). `.claude/settings.local.json` gitignored; `--uninstall` clears Project + Local. Dep `^23.23.0` → `^23.24.0`. |
 | 23.23.0 | 2026-06-26 | **Triage of #387 + #390.** **#390 (HIGH):** `/contextmeter` was silently shadowed by a global/local `statusLine` (single-winner slot) — added Step 0 cross-hierarchy shadow check, broadened the Step 2.1 collision rule to the full hierarchy, made `--status` report "installed but shadowed," `update` emits a shadow warning, README documents it. **#387:** `update` now auto-wires the Silver Surfer gate hook into existing projects (init/update settings-wiring parity), with a persistent `.voidforge` `autowireOptOut` marker (`surfer-gate`/`contextmeter`) so a decline survives updates (`/contextmeter --uninstall` records it); RELEASE_MANAGER distribution-invariant (copy shipped dirs wholesale, not by extension — RC-1 generalization); `/deploy` Step 1 detects a publish-only repo and redirects to `/git --npm` / `/seal` (RC-3). +4 updater tests (1423→1427). Dep `^23.22.0` → `^23.23.0`. |
 | 23.22.0 | 2026-06-24 | **`update` now auto-activates `/contextmeter` (matches `init`).** `npx voidforge-build update` wires the context-meter status line + `UserPromptSubmit` awareness hook into `.claude/settings.json` the same default-on way `init` does — previously `update` copied `scripts/statusline/` but left the meter inactive until a manual `/contextmeter` run. `mergeStatuslineSettings` is now shared by init + update, idempotent + non-clobbering (never overwrites a project's own `statusLine`, never duplicates the hook); `--dry-run` reports the pending `.claude/settings.json` change. +3 updater tests (1420→1423). Dep `^23.21.0` → `^23.22.0`. |

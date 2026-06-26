@@ -152,6 +152,79 @@ async function detectShadowingStatusLine(projectDir: string): Promise<string | n
   return null;
 }
 
+/** #392: ensure a pattern is present in the project's .gitignore (append if absent). */
+async function ensureGitignored(projectDir: string, pattern: string): Promise<void> {
+  const gi = join(projectDir, '.gitignore');
+  let body = '';
+  if (existsSync(gi)) {
+    try {
+      body = await readFile(gi, 'utf-8');
+    } catch {
+      return;
+    }
+    if (body.split('\n').some((l) => l.trim() === pattern)) return; // already covered
+  }
+  const prefix = body.length > 0 && !body.endsWith('\n') ? '\n' : '';
+  try {
+    await writeFile(gi, `${body}${prefix}${pattern}\n`, 'utf-8');
+  } catch {
+    // best-effort
+  }
+}
+
+export type EscalationResult = 'escalated' | 'blocked' | 'noop';
+
+/**
+ * #392: escalate the /contextmeter `statusLine` to Local scope (`.claude/settings.local.json`)
+ * so it outranks a Project/User competitor — the non-destructive shadow resolution, now on the
+ * `update` path too. Only the statusLine escalates (hooks merge across scopes, so the awareness
+ * hook stays in Project). The user's global `~/.claude/settings.json` is never touched.
+ *   'escalated' — wrote the meter's statusLine to Local (Local had no competing statusLine)
+ *   'blocked'   — Local already has a NON-meter statusLine; a non-interactive update must not
+ *                 clobber a user file, so it warns and defers to interactive `/contextmeter`
+ *   'noop'      — nothing to do (no snippet / Local already carries our meter)
+ */
+async function escalateStatuslineToLocal(
+  projectDir: string,
+  snippetDir: string,
+  opts: { dryRun?: boolean } = {},
+): Promise<EscalationResult> {
+  const snippetPath = join(snippetDir, 'settings-snippet.json');
+  if (!existsSync(snippetPath)) return 'noop';
+  let snippetStatusLine: unknown;
+  try {
+    snippetStatusLine = (JSON.parse(await readFile(snippetPath, 'utf-8')) as { statusLine?: unknown }).statusLine;
+  } catch {
+    return 'noop';
+  }
+  if (!snippetStatusLine) return 'noop';
+
+  const localPath = join(projectDir, '.claude', 'settings.local.json');
+  let local: Record<string, unknown> = {};
+  if (existsSync(localPath)) {
+    try {
+      local = JSON.parse(await readFile(localPath, 'utf-8'));
+    } catch {
+      return 'noop';
+    }
+  }
+  const existing = (local.statusLine ?? null) as { command?: unknown } | null;
+  if (existing) {
+    const cmd = existing.command;
+    if (typeof cmd === 'string' && cmd.includes('voidforge-statusline.sh')) return 'noop'; // already ours
+    return 'blocked'; // non-meter Local statusLine — never clobber on a non-interactive update
+  }
+
+  if (!opts.dryRun) {
+    local.statusLine = snippetStatusLine;
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(projectDir, '.claude'), { recursive: true });
+    await writeFile(localPath, JSON.stringify(local, null, 2) + '\n', 'utf-8');
+    await ensureGitignored(projectDir, '.claude/settings.local.json');
+  }
+  return 'escalated';
+}
+
 export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
   const sourceRoot = await resolveMethodologySource();
   const plan: UpdatePlan = { added: [], modified: [], removed: [], unchanged: 0, warnings: [] };
@@ -275,15 +348,26 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     }
   }
 
-  // #390: warn if a higher/equal-precedence statusLine will shadow the project meter, so
-  // `update` never wires a meter that can't render and then claims success.
+  // #390/#392: if a higher/equal-precedence statusLine would shadow the project meter,
+  // `update` resolves it by escalating the meter to Local scope (non-destructive) rather
+  // than wiring a meter that can't render and claiming success. Report what it will do.
   if (!isAutowireOptedOut(marker, 'contextmeter')) {
     const shadow = await detectShadowingStatusLine(projectDir);
     if (shadow) {
-      plan.warnings.push(
-        `A statusLine in ${shadow} will shadow the /contextmeter meter — Claude Code renders only one. ` +
-        `Remove or merge that statusLine, or the project meter won't appear.`,
-      );
+      const esc = await escalateStatuslineToLocal(projectDir, join(sourceRoot, 'scripts', 'statusline'), { dryRun: true });
+      if (esc === 'escalated') {
+        const entry = '.claude/settings.local.json';
+        if (!plan.modified.includes(entry) && !plan.added.includes(entry)) plan.modified.push(entry);
+        plan.warnings.push(
+          `A statusLine in ${shadow} would shadow the /contextmeter meter — escalating the meter to ` +
+          `.claude/settings.local.json (Local scope, gitignored) so it wins, without touching your global settings.`,
+        );
+      } else if (esc === 'blocked') {
+        plan.warnings.push(
+          `A statusLine in .claude/settings.local.json shadows the /contextmeter meter and can't be escalated ` +
+          `over non-destructively. Run /contextmeter to resolve it with consent.`,
+        );
+      }
     }
   }
 
@@ -336,6 +420,7 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     'CLAUDE.md',
     `CLAUDE.md${UPSTREAM_SUFFIX}`,
     '.claude/settings.json',
+    '.claude/settings.local.json', // escalation-written (#392), not copied from source
   ]);
 
   // Copy added + modified files
@@ -360,6 +445,12 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
   const marker = await readMarker(projectDir);
   if (!isAutowireOptedOut(marker, 'contextmeter')) {
     await mergeStatuslineSettings(projectDir);
+    // #392: if a competitor would shadow the Project meter, escalate to Local scope
+    // (non-destructive — never touches the user's global ~/.claude/settings.json, and
+    // refuses to clobber a non-meter Local statusLine).
+    if (await detectShadowingStatusLine(projectDir)) {
+      await escalateStatuslineToLocal(projectDir, join(sourceRoot, 'scripts', 'statusline'));
+    }
   }
   if (!isAutowireOptedOut(marker, 'surfer-gate')) {
     await mergeSettingsHook(projectDir);
