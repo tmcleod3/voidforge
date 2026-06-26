@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.24.0] - 2026-06-26
+
+### `/contextmeter` shadow resolution: escalate to Local scope, never clobber the user's global statusLine (#392, verifies #390)
+
+- **Verified** Claude Code's `statusLine` settings precedence — **Local (`.claude/settings.local.json`) > Project (`.claude/settings.json`) > User (`~/.claude/settings.json`)** — from the official docs *and* a live probe (a Local-scope statusLine hot-reloaded mid-session and fired 14× over the Project meter). This resolves the #390 contradiction: a Project meter already outranks a user-global statusLine, and Local outranks everything below Managed/CLI.
+- **Changed** — when `/contextmeter` detects a competing statusLine, it now **escalates the meter to Local scope** (`.claude/settings.local.json`) so it wins **without modifying the user's global `~/.claude/settings.json`**. Global overwrite is now an explicit, backed-up opt-in (`--force-global`), never a silent default. `.claude/settings.local.json` is gitignored (per-machine). `--uninstall` clears the meter from both Project and Local scopes.
+- **Why** — silently rewriting the user's machine-wide, cross-project config from a project-scoped command is the silent-destruction class (#331/#368) at global scope, and per the verified precedence it is unnecessary.
+
+Both packages bumped in lockstep. Dep `^23.23.0` → `^23.24.0`.
+
 ## [23.23.0] - 2026-06-26
 
 ### Triage of #387 + #390 → `/contextmeter` shadow detection, gate auto-wire on update (+ opt-out), `/deploy` redirect

@@ -1,6 +1,11 @@
 # Dependencies
 node_modules/
 
+# Per-machine Claude Code local settings (Local scope — never committed).
+# /contextmeter escalates the meter's statusLine here to outrank a competing
+# Project/User statusLine without touching the user's global file (#390, #392).
+.claude/settings.local.json
+
 # Environment
 .env
 .env.*
