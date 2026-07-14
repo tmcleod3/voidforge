@@ -292,6 +292,15 @@ For every gate, threshold, or invariant a mission introduces (auth allowlist, ev
 
 A gate with no test that fails on its inversion is a **vacuous invariant**: it looks like protection but enforces nothing, because nothing observes whether it holds. Recurring vacuous-invariant anti-patterns (these surfaced **4x in a single session**): an eval scorer that always passes regardless of output; an auth allowlist with an inverted `!`-check that admits everyone; an off-by-one cap boundary that never actually caps; a truthy boot-guard that is always truthy and so never guards. Treat any newly-introduced gate as guilty until a failing-on-inversion test proves it innocent. (Field report #352 #1)
 
+### Producer→Consumer End-to-End Trace — No Half-Wired Firewalls (field report #395)
+
+When a change introduces a new class, signal, marker, or error kind, the review MUST trace **producer → consumer end-to-end** before signing off — not verify the consumer in isolation. Two failure modes hide here:
+
+1. **The producer is never wired.** Consumers key off a marker (a triage branch, an escalation gate, a `_NEVER_NOISE` membership) that *nothing in a live path emits*. The firewall guards an input that never arrives; its real detection value is zero. Procedure: for the new signal, **grep for the production caller that emits it and confirm that caller is actually invoked in a live path** (a real handler reachable from a real entry point — not a definition, not an unimported function, not a `pass`). "`run_oracles()` exists" is not "`run_oracles()` is called by aggregate on the live path."
+2. **The test fabricates the producer's output.** A "firewall intact" test that hand-builds the error bundle and feeds it to the consumer gates validates a code path that *cannot occur*, because nothing emits the marker the producer would key on. A green test on a hand-constructed input is not equivalent to a green test on the live path. The test MUST exercise the **real producer** — drive the actual intake/classify/emit path and assert the marker is produced there, then that the consumer reacts.
+
+The sign-off line is **conditional** until the producer is proven to fire: not "firewall holds," but "firewall holds AND producer X fires at call-site Y on the live path." A "gate holds" affirmation based on a hand-built bundle is unfalsifiable theater. (Field report #395: a new `ErrorClass.SEMANTIC_ORACLE` shipped with every consumer wired and a passing "firewall intact" test — but no producer branch stamped the marker and `run_oracles()` had zero production callers. The firewall guarded an input that never arrived; a whole later mission existed solely to wire the producer.) Add this to Batman's `## Operational Learnings`.
+
 ### Drift-Guard Discipline — Shared Check + Proven CI Wiring (field report #365)
 
 A shipped drift-guard (coverage gate, schema-parity `--check` CLI, lint sentinel, any "this can't regress" enforcer) is only real if two things hold, and the review MUST confirm BOTH:
@@ -329,6 +338,7 @@ This is a HARD GATE, not a suggestion. Actually execute runtime tests:
 
 1. **Start the server** — run the dev/start command, verify it boots without errors
 2. **Hit every new/modified endpoint** with `curl` — verify status codes match expectations
+2a. **Generated-media route probe (when og/twitter image routes exist) (field report #404).** `opengraph-image.*` / `twitter-image.*` routes are backend image-generation endpoints, **not pages** — the "screenshot every page" pass never reaches them, and a present `<meta property="og:image">` tag proves the tag, not that the route renders. Probe each: `curl -sI <base>/<route>/opengraph-image.<ext>` MUST return **HTTP 200** AND **`Content-Type: image/*`**. A meta tag pointing at a route that 500s is a **Critical** finding regardless of the tag. (satori crashes on relative image paths and cannot decode WebP/AVIF — the two most common causes of a silently-broken og route in production, where only a social scraper ever fetches it.)
 3. **Check for route collisions** — list all registered routes (method + path), grep for duplicates
 4. **For React projects — render cycle check:**
    - List every `useEffect` in new/modified components

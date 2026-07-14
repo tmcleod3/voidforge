@@ -225,6 +225,24 @@ async function escalateStatuslineToLocal(
   return 'escalated';
 }
 
+/**
+ * Paths the updater SYNTHESIZES or WIRES in code rather than copying verbatim from the
+ * methodology source (#393 RC-2, durable SSOT). CLAUDE.md is applied via the
+ * non-destructive strategy; `.claude/settings.json`/`.local.json` are merged/escalated
+ * in code — the methodology source carries no project settings file, so handing any of
+ * these to the generic `cp(source → dest)` copies a non-existent path and THROWS,
+ * aborting the whole update. This single set is consulted by BOTH `diffMethodology` (so a
+ * wired file is never planned for the copy loop) and `applyUpdate` (the copy-skip), keeping
+ * the diff-reporter and the copy-skip in lockstep — a future wired file added here can't
+ * reintroduce the v23.25.0 crash.
+ */
+export const WIRED_NOT_COPIED = new Set<string>([
+  'CLAUDE.md',
+  `CLAUDE.md${UPSTREAM_SUFFIX}`,
+  '.claude/settings.json',
+  '.claude/settings.local.json',
+]);
+
 export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
   const sourceRoot = await resolveMethodologySource();
   const plan: UpdatePlan = { added: [], modified: [], removed: [], unchanged: 0, warnings: [] };
@@ -274,6 +292,7 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
 
   // Check single files
   for (const file of singleFiles) {
+    if (WIRED_NOT_COPIED.has(file)) continue; // wired in code, not copied (#393 RC-2)
     const srcPath = join(sourceRoot, file);
     const destPath = join(projectDir, file);
     if (!existsSync(srcPath)) continue;
@@ -299,6 +318,7 @@ export async function diffMethodology(projectDir: string): Promise<UpdatePlan> {
     const destSet = new Set(destFiles);
 
     for (const file of srcFiles) {
+      if (WIRED_NOT_COPIED.has(`${dest}/${file}`)) continue; // wired in code, not copied (#393 RC-2)
       const fullDest = join(destDir, file);
       if (!destSet.has(file)) {
         plan.added.push(`${dest}/${file}`);
@@ -411,22 +431,16 @@ export async function applyUpdate(projectDir: string): Promise<UpdateResult> {
     }
   }
 
-  // Skip from the generic verbatim copy loop:
-  //  - CLAUDE.md entries: handled above by the non-destructive strategy.
-  //  - .claude/settings.json: wired below by mergeStatuslineSettings, not copied verbatim
-  //    (the methodology source carries no project settings.json — copying it would throw,
-  //    or in dev clobber the project with the methodology repo's own dogfood settings).
-  const skipVerbatim = new Set([
-    'CLAUDE.md',
-    `CLAUDE.md${UPSTREAM_SUFFIX}`,
-    '.claude/settings.json',
-    '.claude/settings.local.json', // escalation-written (#392), not copied from source
-  ]);
+  // Skip from the generic verbatim copy loop the paths the updater wires in code rather
+  // than copying from source — CLAUDE.md (non-destructive strategy, above) and
+  // .claude/settings.json/.local.json (merged/escalated below). WIRED_NOT_COPIED is the
+  // SSOT shared with diffMethodology so the copy-skip and the diff planner never drift
+  // (#393 RC-2); a wired file handed to `cp` would copy a non-existent source and throw.
 
   // Copy added + modified files
   const { mkdir } = await import('node:fs/promises');
   for (const file of [...plan.added, ...plan.modified]) {
-    if (skipVerbatim.has(file)) continue;
+    if (WIRED_NOT_COPIED.has(file)) continue;
 
     const srcPath = join(sourceRoot, file);
     const destPath = join(projectDir, file);

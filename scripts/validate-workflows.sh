@@ -43,7 +43,27 @@ for f in "${FILES[@]}"; do
         echo '})'
     } > "$tmp"
     if node --check "$tmp" 2>"$err"; then
-        echo "  OK    $(basename "$f")"
+        # ── Budget-guard lint (field report #405) ────────────────────────────
+        # A nested fan-out `parallel(N.map(() => parallel(M.map())))` schedules N×M
+        # agents and MUST carry a pre-dispatch cap/triage step, or it breaches the
+        # ~1,000-agent runaway cap on a large input (the /gauntlet 516-claim abort).
+        # Detect the nested shape (perl slurp, tolerant of newlines) and require a
+        # budget-guard token in the same file: a *_BUDGET ceiling, a chunk() batcher,
+        # or a deferred[] log. Present → OK; absent → FAIL with the rule cited.
+        if perl -0777 -ne 'exit(/parallel\s*\([^;]*\.map\([^;]*=>\s*parallel\s*\(/s ? 0 : 1)' "$f" 2>/dev/null; then
+            if grep -qE '_BUDGET|chunk\(|deferred' "$f"; then
+                echo "  OK    $(basename "$f")  (nested fan-out + budget guard)"
+            else
+                echo "  FAIL  $(basename "$f")"
+                echo "        nested parallel() fan-out with no budget guard (field report #405)."
+                echo "        A parallel(N.map(() => parallel(M.map()))) schedules N×M agents and must"
+                echo "        cap/triage before dispatch (a *_BUDGET ceiling, a chunk() batcher, and a"
+                echo "        deferred[] log). See WORKFLOWS.md Gotcha 4 for the capped canonical shape."
+                FAIL=1
+            fi
+        else
+            echo "  OK    $(basename "$f")"
+        fi
     else
         echo "  FAIL  $(basename "$f")"
         sed 's/^/        /' "$err"

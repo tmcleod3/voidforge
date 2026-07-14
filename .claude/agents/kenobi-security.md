@@ -57,6 +57,7 @@ Structure all findings as:
 - **Credential fallback check:** After fixing a hardcoded credential, grep for `?? 'defaultValue'`, `|| 'hardcoded'`. An env var with a hardcoded fallback is an incomplete fix.
 - **HMAC key derivation from password:** Derive HMAC keys using HKDF with a distinct context string, never reuse the encryption key. Prevents key-type confusion.
 - **Shell profiles re-inject filtered env vars:** Filtering env vars from a PTY's initial env only controls what's explicitly passed. Login shells that source `.zshrc`/`.bashrc` can re-export filtered variables. Accepted tradeoff -- document the limitation.
+- **Sweep adjacent plaintext credential stores (off-repo):** Per-mission/per-diff reviews are blind to credential stores outside the repo. A cross-cutting pass and every credential migration MUST check `~/.git-credentials`, `~/.netrc`, `~/.aws/credentials`, `~/.docker/config.json`, `~/.npmrc`/`~/.pypirc`, `~/.ssh/` perms, `~/.kube/config`, and DB-dump/backup file permissions (not group/world-readable by another service user). Flag plaintext long-lived credentials as HIGH+. Before DELETING a credential store, enumerate consumers across all execution surfaces (crontab, systemd, PM2, login shells) — not just the repo — per `docs/patterns/credential-store-migration.md`. (Field report #394.)
 
 ## Required Context
 

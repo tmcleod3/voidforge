@@ -22,7 +22,7 @@ export const meta = {
   phases: [
     { title: 'Discovery', detail: 'core domain leads map the surface' },
     { title: 'Strike', detail: 'Surfer-selected specialists fan out' },
-    { title: 'Verify', detail: '3-lens adversarial REFUTE on every distinct claim' },
+    { title: 'Verify', detail: 'severity-triaged adversarial verify (C/H 3-lens, Medium batched, Low advisory) under a hard agent budget' },
     { title: 'Crossfire', detail: 'adversaries hunt NEW issues' },
     { title: 'Council', detail: 'synthesize survivors by severity' },
   ],
@@ -78,6 +78,28 @@ const VERDICT = {
     confirmVotes: { type: 'integer', description: '0-3' },
     finalSeverity: { type: 'string', enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'WARN', 'REFUTED'] },
     rationale: { type: 'string' },
+  },
+}
+
+// One skeptic verifies a BATCH of lower-severity claims in a single call, returning a
+// verdict per claim index (field report #405 — Medium/Low verify is batched, not one
+// agent per claim, so a large-roster whole-codebase audit stays under the ~1000 cap).
+const BATCH_VERDICT = {
+  type: 'object', additionalProperties: false,
+  required: ['verdicts'],
+  properties: {
+    verdicts: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['index', 'confirm', 'reason'],
+        properties: {
+          index: { type: 'integer', description: 'the 0-based claim index from the prompt list' },
+          confirm: { type: 'boolean', description: 'true only if the claim cannot be refuted through the real execution path' },
+          reason: { type: 'string' },
+        },
+      },
+    },
   },
 }
 
@@ -138,12 +160,44 @@ for (const r of [...discovery, ...strike]) {
 const claims = [...seen.values()]
 log(`Discovery+Strike: ${discovery.length + strike.length} agents → ${claims.length} distinct claims (deduped).`)
 
-// ── Step 4.5: 3-lens adversarial REFUTE on every distinct claim ───────────────
-// Default-to-refuted. Keep only claims ≥2/3 lenses confirm AND whose fix adds no
-// new failure mode. (Verify-the-FIX, field report #348 #4.)
+// ── Step 4.5: severity-triaged adversarial verify (field report #405) ──────────
+// GAUNTLET.md Step 4.5 scopes adversarial verify to Critical/High. The first port
+// ran 3 lenses on EVERY severity — dropping the severity bound that was ALSO the
+// scaling bound: `claims × 3` breaches the Workflow ~1000-agent runaway cap on a
+// whole-codebase audit (516 claims → ~1,548 agents → run aborted mid-Verify).
+// Triage restores the bound, and a hard budget guard caps the fan-out:
+//   Critical/High → full 3-lens REFUTE (unchanged, default-to-refuted, ≥2/3 confirms).
+//   Medium        → batched skeptic, BATCH_SIZE claims per agent (one call, verdicts[]).
+//   Low/Warn      → advisory, ZERO verify agents — surfaced to council, labelled.
+// Deferred Critical/High (over budget) are LOGGED by title+file, never silently
+// dropped (SUB_AGENTS.md invariant); the operator re-runs /gauntlet scoped to them.
 phase('Verify')
 const LENSES = ['correctness', 'reachability', 'refutation']
-const verified = await parallel(claims.map((c) => () =>
+const BATCH_SIZE = 5
+// Headroom under the ~1000 hard cap: discovery+strike are already spent, and
+// crossfire + council still run after Verify. 400 leaves room for both.
+const VERIFY_AGENT_BUDGET = 400
+const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out }
+const rank = (f) => SEV_RANK[f.severity] || 0
+
+let critHigh = claims.filter((f) => rank(f) >= SEV_RANK.HIGH)   // CRITICAL, HIGH
+const medium = claims.filter((f) => rank(f) === SEV_RANK.MEDIUM) // MEDIUM
+const lowWarn = claims.filter((f) => rank(f) < SEV_RANK.MEDIUM)  // LOW, WARN, unknown → complement (no drops)
+
+// Budget guard: keep projected verify agents (C/H × 3 lenses + Medium batches) under
+// VERIFY_AGENT_BUDGET. Over budget → cap Critical/High, log the remainder as deferred.
+const mediumBatches = chunk(medium, BATCH_SIZE)
+const deferred = []
+const maxCritHigh = Math.max(0, Math.floor((VERIFY_AGENT_BUDGET - mediumBatches.length) / LENSES.length))
+if (critHigh.length > maxCritHigh) {
+  for (const c of critHigh.slice(maxCritHigh)) deferred.push({ title: c.title, file: c.file, severity: c.severity })
+  log(`Verify BUDGET: ${critHigh.length} Critical/High exceed the ${maxCritHigh}-claim 3-lens budget → ${deferred.length} deferred (logged; re-run /gauntlet scoped to their files).`)
+  critHigh = critHigh.slice(0, maxCritHigh)
+}
+log(`Verify triage: ${critHigh.length} Crit/High×3 + ${mediumBatches.length} Medium batch(es) + ${lowWarn.length} Low/Warn advisory = ${critHigh.length * LENSES.length + mediumBatches.length} verify agents (flat 3-lens would have been ${claims.length * LENSES.length}).`)
+
+// Critical/High: full 3-lens REFUTE (default-to-refuted; ≥2/3 confirm survives).
+const chVerified = await parallel(critHigh.map((c) => () =>
   parallel(LENSES.map((lens) => () =>
     agent(
       `Adversarially verify this GAUNTLET claim through the ${lens} lens. Claim: "${c.title}" [${c.severity}] at ${c.file}. Evidence: ${c.evidence}. Your job is to REFUTE it — confirm ONLY if you cannot, citing the exact code. For the refutation lens, also check the implied FIX introduces no new failure mode (wedge/loop/orphan/double-send/TOCTOU). Reproduce through the REAL execution path, not a library in isolation (ADR/field report #356).`,
@@ -155,9 +209,31 @@ const verified = await parallel(claims.map((c) => () =>
     return { claim: c, survives: confirmVotes >= 2, confirmVotes, lensReasons: v.map((x) => x.reason) }
   })
 ))
-const confirmed = verified.filter(Boolean).filter((v) => v.survives).map((v) => ({ ...v.claim, confirmVotes: v.confirmVotes }))
-const refuted = verified.filter(Boolean).filter((v) => !v.survives).map((v) => ({ title: v.claim.title, confirmVotes: v.confirmVotes, why: v.lensReasons }))
-log(`Verify: ${confirmed.length} survived 3-lens refute, ${refuted.length} refuted (logged, dropped).`)
+
+// Medium: one skeptic refutes a batch, returning a verdict per claim index.
+const medVerified = await parallel(mediumBatches.map((batch, bi) => () =>
+  agent(
+    `Adversarially verify these ${batch.length} MEDIUM GAUNTLET claims (default-to-refuted), reproducing each through the REAL execution path. For EACH claim, confirm ONLY if you cannot refute it, citing exact code. Return one verdict per claim by its 0-based index.\n\n${batch.map((c, i) => `[${i}] "${c.title}" at ${c.file} — ${c.evidence}`).join('\n')}`,
+    { label: `verify:medium-batch:${bi}`, phase: 'Verify', schema: BATCH_VERDICT },
+  ).then((res) => ({ batch, verdicts: (res && res.verdicts) || [] }))
+))
+
+const confirmed = []
+const refuted = []
+for (const v of chVerified.filter(Boolean)) {
+  if (v.survives) confirmed.push({ ...v.claim, confirmVotes: v.confirmVotes })
+  else refuted.push({ title: v.claim.title, confirmVotes: v.confirmVotes, why: v.lensReasons })
+}
+for (const mv of medVerified.filter(Boolean)) {
+  for (let i = 0; i < mv.batch.length; i++) {
+    const vd = mv.verdicts.find((x) => x.index === i)
+    if (vd && vd.confirm) confirmed.push({ ...mv.batch[i], confirmVotes: 1, verifiedBy: 'medium-batch' })
+    else refuted.push({ title: mv.batch[i].title, confirmVotes: 0, why: [vd ? vd.reason : 'no verdict returned — treated as refuted'] })
+  }
+}
+// Low/Warn: advisory — surfaced to council labelled, spent ZERO verify agents.
+const advisory = lowWarn.map((f) => ({ ...f, advisory: true }))
+log(`Verify: ${confirmed.length} survived (C/H 3-lens + Medium batch), ${refuted.length} refuted (logged), ${advisory.length} Low/Warn advisory, ${deferred.length} deferred.`)
 
 // ── Round 4: Crossfire — adversaries hunt NEW issues the review cleared ────────
 phase('Crossfire')
@@ -172,28 +248,45 @@ const crossfireRaw = (await parallel(ADVERSARIES.map((a) => () =>
     { label: `${a.name} · crossfire:${a.key}`, phase: 'Crossfire', schema: FINDINGS, agentType: a.name },
   )
 ))).filter(Boolean)
-// New crossfire claims (not already confirmed) get the same one-pass refute.
+// New crossfire claims (not already confirmed) get a refute pass. FIX-3 (#405):
+// triage crossfire verify like the main verify — Critical/High get a single-agent
+// VERDICT each; Medium/Low/Warn are batched. Bounded either way, but the split keeps
+// an extreme crossfire haul from re-introducing the flat-fan-out breach.
 const confirmedKeys = new Set(confirmed.map(key))
 const crossNew = []
 for (const r of crossfireRaw) for (const f of (r.findings || [])) if (!confirmedKeys.has(key(f))) crossNew.push(f)
-const crossVerified = await parallel(crossNew.map((c) => () =>
+const crossCritHigh = crossNew.filter((f) => rank(f) >= SEV_RANK.HIGH)
+const crossRest = crossNew.filter((f) => rank(f) < SEV_RANK.HIGH)
+const crossCritHighVerified = await parallel(crossCritHigh.map((c) => () =>
   agent(
     `Adversarially verify (default-to-refuted) this crossfire claim, reproducing through the real execution path: "${c.title}" [${c.severity}] at ${c.file}. Evidence: ${c.evidence}.`,
     { label: `verify:crossfire:${(c.file || '').slice(0, 24)}`, phase: 'Crossfire', schema: VERDICT },
   ).then((v) => ({ claim: c, verdict: v }))
 ))
+const crossRestVerified = await parallel(chunk(crossRest, BATCH_SIZE).map((batch, bi) => () =>
+  agent(
+    `Adversarially verify these ${batch.length} lower-severity crossfire claims (default-to-refuted), reproducing each through the REAL execution path. Return one verdict per claim by its 0-based index.\n\n${batch.map((c, i) => `[${i}] "${c.title}" [${c.severity}] at ${c.file} — ${c.evidence}`).join('\n')}`,
+    { label: `verify:crossfire-batch:${bi}`, phase: 'Crossfire', schema: BATCH_VERDICT },
+  ).then((res) => ({ batch, verdicts: (res && res.verdicts) || [] }))
+))
 const crossfireConfirmed = []
 const crossfireRefuted = []
-for (const cv of crossVerified.filter(Boolean)) {
+for (const cv of crossCritHighVerified.filter(Boolean)) {
   const v = cv.verdict
   // The VERDICT schema lets a verdict be survives:true AND finalSeverity:'REFUTED'.
-  // Such a claim used to be kept as "confirmed" yet matched NO council severity bucket
-  // (bySeverity only checks CRITICAL/HIGH/MEDIUM/LOW/WARN) and silently vanished — breaking
+  // Such a claim would match NO council severity bucket and silently vanish — breaking
   // the "never silently dropped" invariant. Confirm ONLY a real severity; log the rest.
   if (v && v.survives && v.finalSeverity && v.finalSeverity !== 'REFUTED') {
     crossfireConfirmed.push({ ...cv.claim, finalSeverity: v.finalSeverity })
   } else {
     crossfireRefuted.push({ title: cv.claim.title, finalSeverity: (v && v.finalSeverity) || 'UNVERIFIED', why: (v && v.rationale) || 'verifier returned no verdict' })
+  }
+}
+for (const cb of crossRestVerified.filter(Boolean)) {
+  for (let i = 0; i < cb.batch.length; i++) {
+    const vd = cb.verdicts.find((x) => x.index === i)
+    if (vd && vd.confirm) crossfireConfirmed.push({ ...cb.batch[i], finalSeverity: cb.batch[i].severity })
+    else crossfireRefuted.push({ title: cb.batch[i].title, finalSeverity: 'REFUTED', why: (vd && vd.reason) || 'no verdict returned — treated as refuted' })
   }
 }
 log(`Crossfire: ${crossNew.length} new claims → ${crossfireConfirmed.length} confirmed, ${crossfireRefuted.length} refuted/unverified (logged, dropped).`)
@@ -209,6 +302,8 @@ const report = {
     distinctClaims: claims.length,
     confirmed: confirmed.length,
     refuted: refuted.length,
+    advisory: advisory.length,
+    deferred: deferred.length,
     crossfireConfirmed: crossfireConfirmed.length,
     crossfireRefuted: crossfireRefuted.length,
   },
@@ -216,8 +311,10 @@ const report = {
   high: bySeverity('HIGH'),
   medium: bySeverity('MEDIUM'),
   low: [...bySeverity('LOW'), ...bySeverity('WARN')],
+  advisory,               // Low/Warn surfaced without spending verify agents (#405)
+  deferredLog: deferred,  // Critical/High over the verify budget — re-run scoped (#405)
   refutedLog: refuted, // dropped, but never silently — logged per SUB_AGENTS.md
   crossfireRefutedLog: crossfireRefuted, // ditto for crossfire claims that failed the one-pass verify
 }
-log(`Council: ${report.critical.length} Critical · ${report.high.length} High · ${report.medium.length} Medium · ${report.low.length} Low/Warn. Lead applies fixes (workflow takes no mid-run input), then re-runs to re-verify.`)
+log(`Council: ${report.critical.length} Critical · ${report.high.length} High · ${report.medium.length} Medium · ${report.low.length} Low/Warn confirmed; ${advisory.length} advisory, ${deferred.length} deferred. Lead applies fixes (workflow takes no mid-run input), then re-runs to re-verify.`)
 return report

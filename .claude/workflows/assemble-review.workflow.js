@@ -16,7 +16,7 @@ export const meta = {
   description: 'Per-mission review fan-out: engage (code) + sentinel (security) → 3-lens verify → crossfire → council, over the working diff',
   phases: [
     { title: 'Review', detail: 'engage + sentinel lenses over the diff' },
-    { title: 'Verify', detail: '3-lens adversarial REFUTE on each claim' },
+    { title: 'Verify', detail: 'severity-triaged adversarial REFUTE (C/H 3-lens, Medium batched, Low advisory) under an agent budget' },
     { title: 'Crossfire', detail: 'adversaries hunt NEW issues in the diff' },
     { title: 'Council', detail: 'synthesize survivors by severity' },
   ],
@@ -61,6 +61,19 @@ const FINDINGS = {
   },
 }
 const VOTE = { type: 'object', additionalProperties: false, required: ['confirm', 'reason'], properties: { confirm: { type: 'boolean' }, reason: { type: 'string' } } }
+// One skeptic verifies a BATCH of Medium claims per call (field report #405 budget guard).
+const BATCH_VOTE = {
+  type: 'object', additionalProperties: false, required: ['verdicts'],
+  properties: {
+    verdicts: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['index', 'confirm', 'reason'],
+        properties: { index: { type: 'integer' }, confirm: { type: 'boolean' }, reason: { type: 'string' } },
+      },
+    },
+  },
+}
 const key = (f) => `${(f.file || '').toLowerCase()}::${(f.title || '').toLowerCase().slice(0, 60)}`
 
 // ── Review: engage + sentinel lenses over the DIFF only ───────────────────────
@@ -88,10 +101,28 @@ for (const r of reviews) for (const f of (r.findings || [])) {
 const claims = [...seen.values()]
 log(`Review: ${reviews.length} lenses → ${claims.length} distinct claims over the diff.`)
 
-// ── Verify: 3-lens adversarial REFUTE (default-to-refuted; verify the FIX too) ─
+// ── Verify: severity-triaged adversarial REFUTE (field report #405) ───────────
+// Diff-scoped, so `claims` is normally small — but the same nested `claims × 3`
+// fan-out that broke /gauntlet on a full-codebase audit lives here, so it carries
+// the same budget guard: Critical/High → 3-lens; Medium → batched; Low/Warn → advisory.
 phase('Verify')
 const LENSES = ['correctness', 'reachability', 'refutation']
-const verdicts = await parallel(claims.map((c) => () =>
+const BATCH_SIZE = 5
+const VERIFY_AGENT_BUDGET = 400
+const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out }
+const rank = (f) => SEV_RANK[f.severity] || 0
+let critHigh = claims.filter((f) => rank(f) >= SEV_RANK.HIGH)
+const medium = claims.filter((f) => rank(f) === SEV_RANK.MEDIUM)
+const lowWarn = claims.filter((f) => rank(f) < SEV_RANK.MEDIUM)
+const mediumBatches = chunk(medium, BATCH_SIZE)
+const deferred = []
+const maxCritHigh = Math.max(0, Math.floor((VERIFY_AGENT_BUDGET - mediumBatches.length) / LENSES.length))
+if (critHigh.length > maxCritHigh) {
+  for (const c of critHigh.slice(maxCritHigh)) deferred.push({ title: c.title, file: c.file, severity: c.severity })
+  log(`Verify BUDGET: ${critHigh.length} Critical/High over the ${maxCritHigh}-claim budget → ${deferred.length} deferred (logged).`)
+  critHigh = critHigh.slice(0, maxCritHigh)
+}
+const chVerdicts = await parallel(critHigh.map((c) => () =>
   parallel(LENSES.map((lens) => () =>
     agent(
       `Adversarially verify via the ${lens} lens, reproducing through the REAL execution path (not a library in isolation): "${c.title}" [${c.severity}] at ${c.file}. Evidence: ${c.evidence}. REFUTE unless you cannot. On the refutation lens, also confirm the implied fix adds no new failure mode (wedge/loop/orphan/double-send/TOCTOU).`,
@@ -99,10 +130,27 @@ const verdicts = await parallel(claims.map((c) => () =>
     )
   )).then((votes) => { const v = votes.filter(Boolean); return { claim: c, confirmVotes: v.filter((x) => x.confirm).length } })
 ))
-const confirmed = verdicts.filter(Boolean).filter((v) => v.confirmVotes >= 2).map((v) => v.claim)
-const refuted = verdicts.filter(Boolean).filter((v) => v.confirmVotes < 2)
-  .map((v) => ({ title: v.claim.title, file: v.claim.file, confirmVotes: v.confirmVotes }))
-log(`Verify: ${confirmed.length}/${claims.length} survived the 3-lens refute (${refuted.length} refuted, logged in the report).`)
+const medVerdicts = await parallel(mediumBatches.map((batch, bi) => () =>
+  agent(
+    `Adversarially verify these ${batch.length} MEDIUM claims (default-to-refuted), reproducing each through the REAL execution path. Confirm a claim ONLY if you cannot refute it, citing exact code. Return one verdict per claim by its 0-based index.\n\n${batch.map((c, i) => `[${i}] "${c.title}" at ${c.file} — ${c.evidence}`).join('\n')}`,
+    { label: `verify:medium-batch:${bi}`, phase: 'Verify', schema: BATCH_VOTE },
+  ).then((res) => ({ batch, verdicts: (res && res.verdicts) || [] }))
+))
+const confirmed = []
+const refuted = []
+for (const v of chVerdicts.filter(Boolean)) {
+  if (v.confirmVotes >= 2) confirmed.push(v.claim)
+  else refuted.push({ title: v.claim.title, file: v.claim.file, confirmVotes: v.confirmVotes })
+}
+for (const mv of medVerdicts.filter(Boolean)) {
+  for (let i = 0; i < mv.batch.length; i++) {
+    const vd = mv.verdicts.find((x) => x.index === i)
+    if (vd && vd.confirm) confirmed.push(mv.batch[i])
+    else refuted.push({ title: mv.batch[i].title, file: mv.batch[i].file, confirmVotes: 0 })
+  }
+}
+const advisory = lowWarn.map((f) => ({ ...f, advisory: true }))
+log(`Verify: ${confirmed.length} survived (C/H 3-lens + Medium batch), ${refuted.length} refuted, ${advisory.length} Low/Warn advisory, ${deferred.length} deferred.`)
 
 // ── Crossfire: adversaries hunt NEW issues the review cleared ─────────────────
 phase('Crossfire')
@@ -131,7 +179,9 @@ const all = [...confirmed, ...crossConfirmed]
 const sev = (s) => all.filter((f) => f.severity === s)
 return {
   diff,
-  counts: { claims: claims.length, confirmed: confirmed.length, refuted: refuted.length, crossfireConfirmed: crossConfirmed.length },
+  counts: { claims: claims.length, confirmed: confirmed.length, refuted: refuted.length, advisory: advisory.length, deferred: deferred.length, crossfireConfirmed: crossConfirmed.length },
   critical: sev('CRITICAL'), high: sev('HIGH'), medium: sev('MEDIUM'), low: [...sev('LOW'), ...sev('WARN')],
+  advisory,               // Low/Warn surfaced without spending verify agents (#405)
+  deferredLog: deferred,  // Critical/High over the verify budget — re-run scoped (#405)
   refutedLog: refuted, // dropped from the actionable buckets, but never silently — logged per SUB_AGENTS.md
 }

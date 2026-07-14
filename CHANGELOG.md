@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.26.0] - 2026-07-14
+
+### Field Report Triage — 10 reports closed (#393–#399, #402, #404, #405)
+
+`/debrief --inbox` triaged all 10 open field reports against the post-v23.25.0 tree and applied every accepted fix across 19 files (17 modified + 2 new patterns), verified green (1429 tests; both workflows validate).
+
+- **Fixed** — **`/gauntlet` 1000-agent-cap breach (#405):** the `gauntlet.workflow.js` verify phase ran `claims × 3` lenses on ALL severities with no cap and aborted mid-run on a whole-codebase audit (516 claims → ~1,548 agents → `WorkflowAgentCapError`). Now severity-triaged — Critical/High → full 3-lens REFUTE, Medium → batched skeptic (N-per-agent via a new `BATCH_VERDICT` schema), Low/Warn → advisory (zero verify agents) — under a hard `VERIFY_AGENT_BUDGET` that logs every deferred Critical/High by title+file (never a silent drop). The same split is applied to crossfire verify and to `assemble-review.workflow.js`. Re-aligns the workflow with `GAUNTLET.md` Step 4.5, where the severity bound was also the scaling bound.
+- **Added** — two patterns: `docs/patterns/credential-store-migration.md` (pre-irreversible-deletion consumer gate across crontab/systemd/PM2/shells, then post-delete liveness proof; #394) and `docs/patterns/git-sha-resolve.sh` (loose → `packed-refs` → `git rev-parse` fallback so a `/healthz` git_sha survives `git gc`; #397). New method-doc rules: generated-media route probe (#404 F1 — `curl -sI` → 200 + `image/*` across `PRODUCT_DESIGN_FRONTEND.md`, `QA_ENGINEER.md`, `GAUNTLET.md`), producer→consumer end-to-end trace (#395), a post-build **live-arming phase** (#399), interaction-path completeness for animations (#402 F2 / #404 F3), a hardware-in-loop mission gate (#404 F4), review-finding premise re-check (CAMPAIGN rule 5.2, #402 F1 / #404 F2), per-mission ADR/ROADMAP status (rule 5.3, #394), adjacent plaintext credential-store sweep (#394), systemd `ReadWritePaths=` deletion gate + `pkill -f` self-match (#396/#394), positioning intake question (#404 F5), rate-limit stall recovery (#402 F3), and a file-issue-before-citing discipline (#393 RC-1).
+- **Changed** — `WORKFLOWS.md` Gotcha 4 promoted to a prescriptive nested-fan-out budget-assertion rule + capped canonical example, plus a new Gotcha (behavioral-delta comment for prose→workflow ports); `scripts/validate-workflows.sh` now **fails** a nested `parallel()` fan-out with no budget guard (#405 FIX-4). `updater.ts` now exports a single `WIRED_NOT_COPIED` SSOT consulted by both `diffMethodology` and `applyUpdate` so the copy-skip and diff planner cannot drift (#393 RC-2, durable). `CLAUDE.md` gains a Workflow-dispatch basename→display-name caveat in the roster-normalization step (#398). Batman/Kenobi/Kusanagi Operational Learnings updated.
+- **Out of scope (Claude Code platform core — closed with note):** making the Workflow `agentType` resolver accept basenames (#398) and exposing per-agent status in the Workflow resume API (#402 F5) — the wizard does not implement the native Workflow tool; the documentation + recovery guidance VoidForge owns shipped. #402 F4 (context-meter window) was project-local; #399 item 4 (roster TTL) was already fixed (3600s + activity-slide).
+
+Both packages bumped in lockstep. Dep `^23.25.0` → `^23.26.0`.
+
 ## [23.25.0] - 2026-06-26
 
 ### `update` auto-escalates a shadowed `/contextmeter` meter to Local scope (#392)

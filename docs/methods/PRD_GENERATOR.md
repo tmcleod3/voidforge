@@ -45,6 +45,7 @@ deploy: "vps"       # vps | vercel | railway | cloudflare | static | docker
 - What it does (2-3 sentences, mechanistic — not marketing)
 - Who it's for (specific customer profile)
 - Brand personality (3 adjectives + what it's NOT)
+- **Public positioning scope (field report #404):** *"What games / categories / brands / segments do we publicly market?"* The engine's **capability** scope is not the product's **marketing** scope — a multi-game engine may be positioned as single-game, a multi-vertical platform marketed at one vertical. Capture the answer as a **hard constraint** the campaign reads before writing ANY public copy, page title/description, JSON-LD, og text, loader phrases, or SEO content. (Snug Cards: the engine supported Pokémon + Magic + Yu-Gi-Oh + One Piece, but the operator's positioning was "Pokémon only" — surfaced only as a post-launch pivot that forced a same-day full copy-scrub. Ask it at intake, not after the SEO batch ships.)
 
 ## 2. System Architecture
 - High-level architecture diagram (ASCII)

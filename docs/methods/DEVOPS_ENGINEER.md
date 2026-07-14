@@ -133,6 +133,24 @@ Inventory all in-memory state and define what happens when the process restarts:
 
 For every entry: does the UI handle the "gone" state gracefully? Or does the user see a cryptic error? (Field report #30: "Vault is locked" with no recovery path.)
 
+### Deleting a host file a service pins → crash-loop on next restart (field report #396)
+
+Before deleting ANY file on a host that runs services, **grep the service configs for the path first** — deleting a file a unit hardcodes is a restart-breaking change, not housekeeping:
+
+```bash
+grep -rl '<path>' /etc/systemd/system/ /etc/nginx/ /etc/supervisor/ 2>/dev/null
+```
+
+systemd creates a mount namespace and **bind-mounts each `ReadWritePaths=` entry individually**; a missing path aborts namespace setup entirely → `status=226/NAMESPACE` → the unit refuses to start. The detonation is *deferred*: deleting a rotated log listed in `ReadWritePaths=` succeeds silently and only breaks on the **next** restart (possibly hours later, during an unrelated deploy — making the cause hard to attribute). Recovery is to recreate the (empty) file, then restart. **Prevention: prefer the DIRECTORY form of `ReadWritePaths=`** — bind the parent (`/home/ubuntu/unionstation`) rather than enumerating individual files (`.../agent.log`, `.../agent.log.1`), so file churn within it (log rotation, cleanup, temp-file deletion) can never break namespace setup. A deploy-readiness check should flag any `ReadWritePaths=` entry pointing at an individual file rather than a directory. (Field report #396: deleting a rotated `agent-service.log.1` a unit pinned in `ReadWritePaths=` crash-looped the service — `226/NAMESPACE`, ~3-min production outage.)
+
+### Resolving a git SHA from the filesystem (loose refs vs packed-refs) (field report #397)
+
+Any code that resolves the running build's git SHA by reading `.git/refs/heads/<branch>` directly is correct **only until the next `git gc`**. Git stores refs in two places — loose files under `.git/refs/` OR `.git/packed-refs` — and routinely migrates loose refs into the packed file during `gc` (`git gc`, `git gc --aggressive`, history rewrites, or git's own auto-gc), *removing* the loose file. A resolver that reads only the loose path then falls through and can emit the raw symbolic string `ref: refs/heads/<branch>` instead of a 40-char SHA — silently corrupting a `/healthz` `git_sha` field used for deploy verification and incident forensics. **Rule:** resolve the SHA either (a) via `git rev-parse HEAD` / `git rev-parse <branch>` (let git handle both storage forms), or (b) with an explicit loose → `packed-refs` → error fallback. Never assume a loose ref file exists. Health-check templates that surface `git_sha` use the robust resolver by default. See `docs/patterns/git-sha-resolve.sh`.
+
+### Never `pkill -f <pattern>` where the pattern can match your own argv (field report #394)
+
+`pkill -f 'start-heartbeat.mts'` run from a shell whose own command string contains that literal will match and kill **its own shell** (exit 144), aborting the operation mid-flight. Use a PID list (`pkill -F <pidfile>`, or `kill "$(cat run.pid)"`) or the bracket trick (`pkill -f '[s]tart-heartbeat.mts'` — the process's own argv contains `[s]tart…` which the regex `[s]tart…` does not match itself). Acute during daemon flips/restarts where the kill command and the target share a name.
+
 ### Platform Networking Defaults
 
 Bind to `::` (dual-stack) not `127.0.0.1` on localhost. macOS resolves `localhost` to `::1` (IPv6) before `127.0.0.1` (IPv4). Binding IPv4-only makes HTTP work (browser tries both) but WebSocket fails (only tries first resolution). The `::` address accepts both. (Field report #30: 1 hour to diagnose.)
