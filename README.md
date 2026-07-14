@@ -117,36 +117,7 @@ voidforge/
 │   │   ├── HEARTBEAT.md             ← Daemon operations
 │   │   └── AI_INTELLIGENCE.md         ← Hari Seldon — AI intelligence
 │   │
-│   └── patterns/                 ← Reference implementations
-│       ├── api-route.ts          ← Validation, auth, service call
-│       ├── service.ts            ← Business logic, ownership checks
-│       ├── component.tsx         ← 4 states, keyboard accessible
-│       ├── middleware.ts         ← Auth, logging, rate limiting
-│       ├── error-handling.ts     ← Canonical error strategy
-│       ├── job-queue.ts          ← Idempotency, retry, DLQ
-│       ├── multi-tenant.ts       ← Workspace scoping, RBAC
-│       ├── sse-endpoint.ts       ← Server-Sent Events lifecycle
-│       ├── game-loop.ts          ← Fixed timestep, interpolation
-│       ├── game-state.ts         ← Hierarchical state machine
-│       ├── game-entity.ts        ← Entity Component System
-│       ├── mobile-screen.tsx     ← React Native screen pattern
-│       ├── mobile-service.ts     ← Offline-first with sync
-│       ├── ad-platform-adapter.ts ← Split setup/runtime interfaces
-│       ├── financial-transaction.ts ← Branded Cents, hash chain
-│       ├── daemon-process.ts     ← PID management, signals
-│       ├── oauth-token-lifecycle.ts ← Token refresh at 80% TTL
-│       ├── revenue-source-adapter.ts ← Read-only revenue interface
-│       ├── outbound-rate-limiter.ts ← Token bucket with backpressure
-│       ├── ai-orchestrator.ts   ← Agent loop, tool use, retry
-│       ├── ai-classifier.ts    ← Classification with confidence thresholds
-│       ├── ai-router.ts        ← Intent-based routing with fallback chains
-│       ├── prompt-template.ts   ← Versioned prompts with variable injection
-│       ├── ai-eval.ts          ← Golden datasets, scoring, regression
-│       ├── ai-tool-schema.ts   ← Type-safe tool definitions
-│       ├── database-migration.ts ← Safe migrations, rollback
-│       ├── data-pipeline.ts    ← ETL with checkpoint/resume
-│       ├── backtest-engine.ts  ← Walk-forward backtesting
-│       └── execution-safety.ts ← Order validation, position limits
+│   └── patterns/                 ← Reference implementations — api-route, service, multi-tenant, ai-orchestrator, … (full index: docs/patterns/README.md)
 │
 ├── logs/                         ← Build journal (per-project)
 │   └── build-state.md            ← Master state file
