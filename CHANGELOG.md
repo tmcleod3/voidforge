@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.26.1] - 2026-07-14
+
+### Documentation-accuracy pass — 12-agent `/review` (command↔method sync, count drift, #405 doc loop-closers)
+
+A full Silver-Surfer `/review` over the whole repo after v23.26.0. The release itself verified sound (0 literal defects, 19/22 claims confirmed, VERSION↔CHANGELOG consistent); the fixes are currency/sync drift — most of it pre-existing — applied across 21 files by a 12-agent roster.
+
+- **Fixed** — **command files now match their method docs.** `qa.md`/`gauntlet.md`/`ux.md`/`sentinel.md`/`campaign.md`/`prd.md` gained the mandatory steps their method docs shipped in v23.26.0 (generated-media route probe, adjacent credential-store sweep, review-finding premise re-check, live-arming, hardware-in-loop category, positioning intake). The executable command specs were silently a release behind the method docs — the #404 probe alone had landed in 4 method docs but 0 command files.
+- **Fixed** — **#405 doc loop-closers.** `gauntlet.md`, `WORKFLOWS.md`'s canonical-shape example, and `GAUNTLET.md`'s Confidence PRINCIPLE + `--infinity` section no longer describe the pre-#405 unbounded "3-lens on every claim" verify — they reflect the severity-triaged, budget-guarded behavior (an `--infinity` run could otherwise have re-breached the ~1,000-agent cap).
+- **Fixed** — **count drift.** README / HOLOCRON / CLAUDE.md corrected to 33 commands / 57 pattern implementations and softened to SSOT pointers where drift-prone; `deploy-preflight.ts` added to the CLAUDE.md pattern list; `DOC_AUDIT.md` + `SPEC_HANDOFF.md` added to the Docs Reference; `SECURITY_AUDITOR.md` Operating Rules duplicate 7/8 renumbered to 9/10/11.
+- **Changed** — **code hardening.** Unknown/malformed severity now fails SAFE to HIGH (verified, not silently skipped) in both the gauntlet and assemble-review workflows; assemble-review crossfire is now severity-triaged with a `crossfireRefutedLog` (no silent drops); `validate-workflows.sh`'s budget-token + nested-fan-out detector were tightened against false-positive/false-negative; `docs/patterns/git-sha-resolve.sh` packed-refs match is now exact-field (`awk '$2==r'`) — no regex misfire on metacharacter branch names, no `main`/`mainline` substring false-match.
+- **Fixed** — DevOps runbooks: `credential-store-migration.md` system-cron step now searches contents (`grep -rlnE`) instead of listing dirs (`ls`); `DEVOPS_ENGINEER.md` notes `pkill -F` is a Linux-only extension (macOS caveat).
+
+No methodology behavior removed. Both packages bumped in lockstep. Dep `^23.26.0` → `^23.26.1`.
+
 ## [23.26.0] - 2026-07-14
 
 ### Field Report Triage — 10 reports closed (#393–#399, #402, #404, #405)

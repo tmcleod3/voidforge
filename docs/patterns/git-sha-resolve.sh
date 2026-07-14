@@ -27,9 +27,12 @@ git_sha_no_binary() {
       # 1. loose ref file
       if [ -f "$gitdir/$ref" ]; then
         sha="$(cat "$gitdir/$ref")"
-      # 2. packed-refs (loose file was gc'd away)
+      # 2. packed-refs (loose file was gc'd away). Fixed-string match the ref so a
+      #    branch name with ERE metacharacters (. + [) can't misfire — grep the
+      #    40-hex-prefix lines first, then match the ref as a LITERAL whole field
+      #    (awk `$2 == ref`, not a substring/regex) so `main` never matches `mainline`.
       elif [ -f "$gitdir/packed-refs" ]; then
-        sha="$(grep -E "[[:xdigit:]]{40} $ref$" "$gitdir/packed-refs" | cut -d' ' -f1)"
+        sha="$(grep -E '^[[:xdigit:]]{40} ' "$gitdir/packed-refs" | awk -v r="$ref" '$2 == r { print $1 }')"
       fi
       ;;
     *) sha="$head" ;;                                             # detached HEAD = raw SHA

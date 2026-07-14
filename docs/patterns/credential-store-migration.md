@@ -19,7 +19,9 @@ grep -rn --include='*.sh' --include='*.ts' --include='*.py' --include='*.mts' \
 
 # 2. crontab — the surface #394 missed. Inline `grep ^KEY= .../.env` hides here.
 crontab -l 2>/dev/null | grep -nE "$SECRET_NAME|$(basename "$STORE_PATH")"
-sudo ls /etc/cron.d/ /etc/cron.daily/ 2>/dev/null   # system crons too
+# 2b. System crontabs — SEARCH contents, not just list dirs
+sudo grep -rlnE "$SECRET_NAME|$(basename "$STORE_PATH")" \
+     /etc/cron.* /var/spool/cron /var/spool/cron/crontabs 2>/dev/null
 
 # 3. systemd units — EnvironmentFile=, ExecStart inline reads, ReadWritePaths=
 grep -rlnE "$SECRET_NAME|$(basename "$STORE_PATH")" \

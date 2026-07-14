@@ -50,8 +50,8 @@ for f in "${FILES[@]}"; do
         # Detect the nested shape (perl slurp, tolerant of newlines) and require a
         # budget-guard token in the same file: a *_BUDGET ceiling, a chunk() batcher,
         # or a deferred[] log. Present → OK; absent → FAIL with the rule cited.
-        if perl -0777 -ne 'exit(/parallel\s*\([^;]*\.map\([^;]*=>\s*parallel\s*\(/s ? 0 : 1)' "$f" 2>/dev/null; then
-            if grep -qE '_BUDGET|chunk\(|deferred' "$f"; then
+        if perl -0777 -ne 'exit(/parallel\s*\([\s\S]*?\.map\([\s\S]*?=>\s*parallel\s*\(/s ? 0 : 1)' "$f" 2>/dev/null; then
+            if grep -qE '_BUDGET|chunk\(|deferred\.push\(|deferred\s*=\s*\[' "$f"; then
                 echo "  OK    $(basename "$f")  (nested fan-out + budget guard)"
             else
                 echo "  FAIL  $(basename "$f")"

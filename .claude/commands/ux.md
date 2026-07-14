@@ -31,6 +31,10 @@ Document in phase log: "How to run", key routes, where components/styles/copy li
 
 **Screenshot mandate (MANDATORY):** If the app is runnable, start the server, take screenshots of EVERY page via Playwright or browser, and READ them via the Read tool. Without screenshots, the review is code-reading — not visual verification. Take at desktop (1440x900), plus 375px and 768px for responsive proof-of-life.
 
+**Generated-media route probe (MANDATORY) (field report #404):** If the project has og/twitter image routes, probe each: `curl -sI <base>/<route>/opengraph-image.<ext>` → require HTTP 200 + `Content-Type: image/*`. A meta tag pointing at a 500 route is Critical (satori crashes on relative paths + WebP/AVIF — these routes never render in a browser click).
+
+**Positioning read-gate (MANDATORY) (Operating Rule 13, field report #404):** Before reviewing/writing public copy, og/twitter text, SEO title/description, or loader phrases, read the PRD's "Public positioning scope" field. Capability scope ≠ marketing scope.
+
 **Render-gate regression coverage (MANDATORY) (field report #375).** A green build and a green unit suite do NOT catch render-gate regressions — a removed or renamed prop can silently kill a feature (a component still gating its render on a prop that is now always `null`) while every automated gate stays green. So when this review covers a change that touched a prop or a shared contract, the browser/e2e pass must cover **EVERY surface that consumes the changed prop/contract — not a sampled page** — and must explicitly **re-check the render *gates* that key off the changed prop** (does the panel that gated on it still render?). Verify each changed component in BOTH signed-in and signed-out states. Do not satisfy this mandate with an e2e that exercises a *different* surface than the one that changed.
 
 ## Step 0.5 — World-Scan / Reference Grounding (MANDATORY) (field report #347 #1)
@@ -96,6 +100,8 @@ These require interactive testing:
 - **Legolas** `subagent_type: Legolas` — Code: component architecture, semantic HTML, CSS organization, state management. Reference `/docs/patterns/component.tsx`.
 - **Gimli** `subagent_type: Gimli` — Performance: loading states, skeleton screens, layout shift, optimistic UI, mobile responsiveness, touch targets (min 44px).
 - **Radagast** `subagent_type: Radagast` — Edge cases + error states: empty/huge/unicode inputs, broken states, dangerous actions without confirmation, validation gaps.
+
+**INTERACTION-PATH COMPLETENESS FOR ANIMATIONS (mandatory) (field report #402/#404):** For any multi-trigger animation/celebration/transition, enumerate EVERY trigger path (list-click, sheet-close, hover, focus, scroll-into-view, programmatic), exercise each independently, and screenshot the triggered state. A behavior verified via one trigger path is not covered — it may be invisible in the path users actually meet.
 
 **ERROR STATE TESTING (mandatory):** For every form/action in the UI:
 - Submit with intentionally invalid data (duplicate name, wrong format, missing required field)

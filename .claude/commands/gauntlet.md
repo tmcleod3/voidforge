@@ -25,7 +25,7 @@ Opus scans `git diff --stat` and matches changed files against the `description`
 
 ## Workflow Execution (default — ADR-067)
 
-The Gauntlet's 5-round skeleton runs as a **Dynamic Workflow** — `.claude/workflows/gauntlet.workflow.js` — so the 60–80 agents' intermediate findings live in script variables, not the lead's context (only the final synthesis returns). The rounds below define **what** each round does; the workflow **implements** them (discovery → JS dedupe → 3-lens REFUTE verify → crossfire → council). See `docs/methods/WORKFLOWS.md`.
+The Gauntlet's 5-round skeleton runs as a **Dynamic Workflow** — `.claude/workflows/gauntlet.workflow.js` — so the 60–80 agents' intermediate findings live in script variables, not the lead's context (only the final synthesis returns). The rounds below define **what** each round does; the workflow **implements** them (discovery → JS dedupe → severity-triaged REFUTE verify [Critical/High → 3-lens; Medium → batched skeptic; Low/Warn → advisory, zero verify agents] under a hard VERIFY_AGENT_BUDGET → crossfire → council). See `docs/methods/WORKFLOWS.md`.
 
 **Gate-compliant launch sequence (ADR-064 — the gate now covers the Workflow tool):**
 1. Run the **Silver Surfer** (Agent tool — self-launch always allowed) per the gate header above; announce the heralding.
@@ -71,7 +71,8 @@ If the project has a runnable server, start it and verify the full lifecycle:
 2. Hit every new/modified API endpoint with curl — verify HTTP status codes
 3. If WebSocket endpoints exist, open a connection and verify handshake + data flow
 4. If terminal/PTY features exist, create a session and verify it stays alive for 5 seconds
-5. If the server cannot start (scaffold/methodology-only), skip with a note
+5. If the project has og/twitter image routes (`opengraph-image.*`, `/api/og`, twitter-image routes), probe each: `curl -sI <base>/<route>/opengraph-image.<ext>` → require HTTP 200 + `Content-Type: image/*`. 500 or wrong Content-Type = Critical (field report #404). Note satori pitfalls: relative image paths + WebP/AVIF crash the route.
+6. If the server cannot start (scaffold/methodology-only), skip with a note
 
 This catches runtime bugs invisible to static analysis: IPv6 binding, native module ABI, WebSocket framing, browser caching.
 
@@ -102,7 +103,7 @@ Before each Fix Batch (Round 2 onward), every **Critical** and **High** finding 
 2. **Prompt to refute.** Each skeptic is instructed: *"Default to REFUTED. This finding is unproven until you open the cited file and confirm the exploit/bug exists in the actual code. Do not trust the description. Return one of: CONFIRM (with the exact line(s) that prove it), or REFUTE (with the reason the code does not exhibit the claimed problem)."* A skeptic that cannot point to confirming code MUST return REFUTE.
 3. **Tally votes.** Keep the finding only if it receives **≥1 CONFIRM** backed by cited lines. A finding that draws all REFUTE votes is dropped from the round's fix list and logged as `REFUTED` (with the skeptics' reasons) — not silently deleted.
 4. **Re-rate severity from the votes.** Recompute severity from the confirming evidence, not the original claim: unanimous CONFIRM at the original tier holds; a split vote (some CONFIRM, some REFUTE) downgrades one tier (Critical→High, High→Medium); confirmed-but-narrower-than-claimed downgrades to match the proven blast radius. Record the new severity and the vote split on the finding.
-5. **Feed survivors to the Fix Batch.** Only findings with ≥1 CONFIRM and their re-rated severity proceed to the Fix Batch. Medium/Low findings skip the gate (they are not fix-batch-blocking) but may still be escalated under the existing low-confidence escalation rule.
+5. **Feed survivors to the Fix Batch.** Only findings with ≥1 CONFIRM and their re-rated severity proceed to the Fix Batch. Medium findings are not fix-batch-blocking but DO receive a **batched skeptic** pass (multiple Medium findings per agent invocation, per GAUNTLET.md Step 4.5). Low/Warn findings are advisory only — zero verify agents. (The Critical/High-only 3-lens scope is also the scaling bound — field report #405.) Findings may still be escalated under the existing low-confidence escalation rule.
 
 Log every vote (CONFIRM/REFUTE, agent, universe, cited lines or refute reason) and the re-rated severity to that round's log (e.g. `/logs/gauntlet-round-2.md`). The REFUTE Gate is mandatory for Rounds 2, 3, and 5; the Crossfire (Round 4) produces its own findings and runs its own REFUTE Gate before **Fix Batch 3**.
 

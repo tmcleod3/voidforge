@@ -67,7 +67,7 @@ If `scripts/surfer-gate/check.sh` exists but you skip step 1, your first non-Sur
 
 Every phase, decision, handoff, and failure gets logged to `/logs/`. See `/docs/methods/BUILD_JOURNAL.md`.
 
-- **Start of session:** Read `/logs/build-state.md` to recover state
+- **Start of session:** Read `/logs/build-state.md` if it exists to recover state (created at first build)
 - **During work:** Log decisions, test results, and findings to the active phase log
 - **End of session:** Update `/logs/build-state.md` with current state
 
@@ -135,6 +135,7 @@ Reference implementations in `/docs/patterns/`. Match these shapes when writing.
 - `error-message-categorization.tsx` — Categorize errors at the UI boundary (network / auth / validation / server / unknown) before choosing copy, so users see actionable messages not raw internals (field report #351, #343)
 - `codemod-hygiene.md` — after a jscodeshift/recast codemod, strip incidental reformatting so the diff shows only the semantic change (field report #357)
 - `post-deploy-probe.sh` — deploy probe that asserts response content + Content-Type, not HTTP status only, so an SPA catch-all serving index.html for every path can't false-pass into a rollback (field report #371)
+- `deploy-preflight.ts` — pre-deploy secret/sensitive-path scan of the artifact dir (not the repo root); exits non-zero on any hit (field reports #305, #303)
 - `exclusion-set-invariant.md` — superset invariant for multi-mechanism exclusion sets: one canonical secret/PII set with `.gitignore` / rsync / scanner derived from it (or a CI assertion) so the three never drift (field report #377)
 - `egress-sandbox.sh` — egress-confined workload (`systemd-run` `IPAddress*` cgroup filter) that drops to the invoking uid/gid so artifacts stay user-owned, not root-owned, while network confinement is preserved (field report #382)
 - `credential-store-migration.md` — pre-irreversible-deletion consumer gate: enumerate a credential store's consumers across ALL execution surfaces (crontab, systemd, PM2, login shells) before deleting it, then re-trigger each to prove liveness — a repo-only grep misses the off-repo readers (field report #394)
@@ -265,11 +266,13 @@ See `/docs/methods/MUSTER.md` for the full Muster Protocol.
 | **Learnings** | `/docs/LEARNINGS.md` | Project-scoped operational knowledge — read at session start if exists |
 | **The Muster** | `/docs/methods/MUSTER.md` | When using `--muster` flag on any command |
 | **Time Vault** | `/docs/methods/TIME_VAULT.md` | Seldon — when preserving session intelligence for transfer |
-| **Patterns** | `/docs/patterns/` | When writing code (56 reference implementations) |
+| **Patterns** | `/docs/patterns/` | When writing code (57 reference implementations) |
 | **Lessons** | `/docs/LESSONS.md` | Cross-project learnings |
 | **Workflows** | `/docs/methods/WORKFLOWS.md` | Dynamic Workflow authoring standard (ADR-067) — when to use, API, gotchas, the ADR-064 gate-launch sequence |
 | **Native Capabilities** | `/docs/NATIVE_CAPABILITIES.md` | Command × native-skill collision tracker (ADR-066) — re-audit each release |
 | **Compatibility** | `/docs/COMPATIBILITY.md` | Node + Claude Code platform floor & feature maturity tags (ADR-065) |
+| **Doc Audit** | `/docs/methods/DOC_AUDIT.md` | When running /audit-docs — doc currency + command↔method sync |
+| **Spec Handoff** | `/docs/methods/SPEC_HANDOFF.md` | When handing a spec from architecture to build |
 
 ## The Team
 

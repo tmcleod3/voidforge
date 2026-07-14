@@ -31,6 +31,7 @@ const found = (await parallel(roster.map(a => () =>
 ))).filter(Boolean)   // agentType resolves by the agent's `name:` display field — see Gotcha 6
 const claims = dedupe(found.flatMap(f => f.findings))   // plain JS reduce — no agent
 phase('Verify')
+// For a LARGE claim set, this flat fan-out breaches the ~1,000-agent cap — severity-triage + budget-guard it per Gotcha 4 (see /gauntlet).
 const verdicts = await parallel(claims.map(c => () =>
   agent(refutePrompt(c), { label: `verify:${c.id}`, phase: 'Verify', schema: VERDICT })))
 return { confirmed: claims.filter((c,i) => verdicts[i]?.survives) }

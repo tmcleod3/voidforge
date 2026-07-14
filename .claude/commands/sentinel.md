@@ -34,7 +34,7 @@ Before the deep audits, two agents do fast recon:
 
 ### Phase 1 — Independent audits (parallel analysis)
 Use the Agent tool to run these simultaneously — all are read-only analysis:
-- **Agent 1** `subagent_type: Leia` — Secrets: scan for hardcoded secrets, verify .env gitignored, check git history for leaked keys, verify different secrets dev/prod.
+- **Agent 1** `subagent_type: Leia` — Secrets: scan for hardcoded secrets, verify .env gitignored, check git history for leaked keys, verify different secrets dev/prod. Also sweep **off-repo** credential stores (per-diff reviews are structurally blind to these): `~/.git-credentials`, `~/.netrc`, `~/.aws/credentials` + `~/.aws/config`, `~/.docker/config.json`, `~/.npmrc`, `~/.pypirc`, `~/.ssh/` key permissions, `~/.config/gh/hosts.yml`, `~/.kube/config`, and DB-dump/backup file permissions (not group/world-readable by another service user). Flag any plaintext long-lived credential as HIGH+. (Field report #394.)
 - **Agent 2** `subagent_type: Chewie` — Dependencies: `npm audit`, critical/high vulns, lock file committed, deprecated packages.
 - **Agent 3** `subagent_type: Rex` + `bo-katan-perimeter` — Infrastructure + perimeter: security headers (HSTS, CSP, X-Frame-Options, CORS), TLS config, exposed ports/debug endpoints, firewall rules, CORS enforcement.
 - **Agent 4** `subagent_type: Maul` — Red team: exploit each endpoint/flow, chain vulnerabilities, test trust boundaries, attempt privilege escalation. **RUNTIME EXPLOITATION (mandatory):** Execute actual attack requests via curl/fetch -- not just theorize.

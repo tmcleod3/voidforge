@@ -68,7 +68,7 @@ npm run wizard
 See `/docs/templates/PRD-TEMPLATE.md` for the frontmatter format and field reference.
 
 #### Methodology Only (npm)
-The methodology without the tooling. CLAUDE.md, all 30 slash commands, all agent protocols, all code patterns. No wizard UI, no npm runtime dependencies.
+The methodology without the tooling. CLAUDE.md, all 33 slash commands, all agent protocols, all code patterns. No wizard UI, no npm runtime dependencies.
 
 ```bash
 npx voidforge-build init --headless my-app
@@ -81,7 +81,7 @@ cd my-app
 **Best for:** Developers who know what they're doing and want to skip the wizard. You manage your own infrastructure. VoidForge manages your build process.
 
 #### Minimal (npm --core)
-The lightest possible version. CLAUDE.md, all 30 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
+The lightest possible version. CLAUDE.md, all 33 slash commands, full agent protocols, full character registry, code patterns. Zero overhead — can be dropped into any existing project or referenced as external context.
 
 ```bash
 # Drop into an existing project
@@ -100,7 +100,7 @@ Every tier includes:
 - **13-phase build protocol** — PRD to production with verification gates
 - **18 specialist agent protocols** — Each lead has behavioral directives and a sub-agent roster
 - **Named characters** — From Tolkien, Marvel, DC, Star Wars, Star Trek, Dune, Anime, Cosmere, and Foundation — each materialized as a subagent definition in `.claude/agents/`
-- **34 code patterns** — Reference implementations with framework adaptations (including E2E testing). Run `ls docs/patterns/*.ts | wc -l` for the live count.
+- **57 code patterns** — Reference implementations with framework adaptations (including E2E testing). Run `ls docs/patterns/*.ts docs/patterns/*.md docs/patterns/*.py docs/patterns/*.sh docs/patterns/*.tsx docs/patterns/*.conf 2>/dev/null | wc -l` for the live count.
 - **No Stubs Doctrine** — Zero placeholder code. Every file does what it claims. Enforced across all method docs.
 - **E2E browser testing** — Playwright + axe-core. Agents take screenshots, capture console errors, and interact with running applications.
 - **Flag taxonomy** — Standardized flags across all commands: `--fast`, `--blitz`, `--muster`, `--plan`, `--dry-run`, `--resume`
@@ -654,7 +654,7 @@ VoidForge flags are standardized across all 33 commands. Same flag = same meanin
 
 ### Code Patterns
 
-Thirty-five reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, FastAPI, and Rails. Mobile and game patterns added in v9.2-v9.3. Financial, daemon, SSE, ad platform, and OAuth patterns added in v11-v15.
+Fifty-seven reference implementations live in `docs/patterns/`. Every pattern includes framework adaptations for Next.js, Express, Django, FastAPI, and Rails. Mobile and game patterns added in v9.2-v9.3. Financial, daemon, SSE, ad platform, and OAuth patterns added in v11-v15.
 
 | Pattern | File | What It Teaches |
 |---------|------|----------------|

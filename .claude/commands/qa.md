@@ -54,6 +54,7 @@ After build + restart, **Flash** `subagent_type: Flash` parallelizes curl comman
 - **Form submissions:** Submit valid data (verify 200), then submit invalid/duplicate data (verify error message is specific, not generic)
 - **Real-time features:** Trigger the polling/SSE and verify at least one successful response cycle
 - **Cross-module paths:** If code writes with key prefix X, verify the serving endpoint accepts prefix X
+- **Generated-media route probe (if og/twitter image routes exist):** `curl -sI <base>/<route>/opengraph-image.<ext>` MUST return HTTP 200 AND `Content-Type: image/*`. A `<meta og:image>` tag pointing at a 500 route is a **Critical** finding — these routes are backend endpoints the page-screenshot pass never reaches (satori crashes on relative paths + WebP/AVIF). (Field report #404.)
 
 This catches integration failures that static code review misses. If the server isn't running or can't be tested this way, document what couldn't be smoke-tested.
 

@@ -149,7 +149,7 @@ Any code that resolves the running build's git SHA by reading `.git/refs/heads/<
 
 ### Never `pkill -f <pattern>` where the pattern can match your own argv (field report #394)
 
-`pkill -f 'start-heartbeat.mts'` run from a shell whose own command string contains that literal will match and kill **its own shell** (exit 144), aborting the operation mid-flight. Use a PID list (`pkill -F <pidfile>`, or `kill "$(cat run.pid)"`) or the bracket trick (`pkill -f '[s]tart-heartbeat.mts'` — the process's own argv contains `[s]tart…` which the regex `[s]tart…` does not match itself). Acute during daemon flips/restarts where the kill command and the target share a name.
+`pkill -f 'start-heartbeat.mts'` run from a shell whose own command string contains that literal will match and kill **its own shell** (exit 144), aborting the operation mid-flight. Use a PID list (`pkill -F <pidfile>`, or `kill "$(cat run.pid)"`) or the bracket trick (`pkill -f '[s]tart-heartbeat.mts'` — the process's own argv contains `[s]tart…` which the regex `[s]tart…` does not match itself). (`pkill -F` is a Linux procps extension — it is NOT available on macOS/BSD; on macOS use the bracket trick or `kill "$(cat run.pid)"`.) Acute during daemon flips/restarts where the kill command and the target share a name.
 
 ### Platform Networking Defaults
 

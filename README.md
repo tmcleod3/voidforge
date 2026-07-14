@@ -4,7 +4,7 @@ From nothing, everything.
 
 **VoidForge is a methodology framework that turns Claude Code into a full engineering team.** Write a PRD describing what you want. Run `/campaign`. A named team of 260+ agents — architects, engineers, reviewers, security, UX, QA, release — builds, hardens, and ships it against your spec. Works with any tech stack. Ships to any cloud.
 
-Inside: 30 slash commands, 34 code patterns, 260+ specialist agents across 9 fictional universes, 1384 automated tests.
+Inside: 33 slash commands, 57 code patterns, 260+ specialist agents across 9 fictional universes, 1400+ automated tests.
 
 **New here?** Read the **[Holocron](HOLOCRON.md)** — the complete guide. **Curious about what's next?** Read the **[Prophecy](PROPHECY.md)** — the roadmap.
 
@@ -48,7 +48,7 @@ voidforge/
 │
 ├── .claude/
 │   ├── settings.json             ← Permissions, hooks
-│   └── commands/                 ← 30 slash commands
+│   └── commands/                 ← 33 slash commands
 │       ├── build.md              ← /build — 13-phase protocol
 │       ├── qa.md                 ← /qa — Batman's QA pass (double-pass)
 │       ├── test.md               ← /test — Batman's test-writing mode
@@ -161,7 +161,7 @@ voidforge/
     │       ├── server.ts         ← Local HTTP server (127.0.0.1)
     │       ├── api/              ← API handlers
     │       ├── ui/               ← Gandalf, Haku, Lobby, Tower, Danger Room, War Room
-    │       ├── __tests__/        ← 675 vitest tests
+    │       ├── __tests__/        ← comprehensive vitest suite
     │       └── lib/              ← Vault, auth, provisioners, dashboards, growth, financial
     │
     └── methodology/              ← npm: "voidforge-build-methodology"

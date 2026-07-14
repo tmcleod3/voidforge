@@ -158,6 +158,12 @@ for (const r of [...discovery, ...strike]) {
   }
 }
 const claims = [...seen.values()]
+// Fail-SAFE: a claim whose severity isn't a known SEV_RANK key would fall to `lowWarn`
+// (rank 0 < MEDIUM) → advisory → ZERO verify agents, silently skipping verification.
+// Normalize any unknown severity to 'HIGH' (conservative — verify it, don't skip it),
+// preserving the original as `_rawSeverity` for forensics.
+const KNOWN_SEV = new Set(Object.keys(SEV_RANK))
+for (const c of claims) if (!KNOWN_SEV.has(c.severity)) { c._rawSeverity = c.severity; c.severity = 'HIGH' }
 log(`Discovery+Strike: ${discovery.length + strike.length} agents → ${claims.length} distinct claims (deduped).`)
 
 // ── Step 4.5: severity-triaged adversarial verify (field report #405) ──────────
@@ -174,8 +180,9 @@ log(`Discovery+Strike: ${discovery.length + strike.length} agents → ${claims.l
 phase('Verify')
 const LENSES = ['correctness', 'reachability', 'refutation']
 const BATCH_SIZE = 5
-// Headroom under the ~1000 hard cap: discovery+strike are already spent, and
-// crossfire + council still run after Verify. 400 leaves room for both.
+// Conservative empirical ceiling for the verify tier, well under the ~1000 hard cap.
+// Crossfire runs its own (triaged, bounded) fan-out after Verify, so this ceiling
+// governs the verify tier only — it is not a derived remainder left for crossfire.
 const VERIFY_AGENT_BUDGET = 400
 const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out }
 const rank = (f) => SEV_RANK[f.severity] || 0

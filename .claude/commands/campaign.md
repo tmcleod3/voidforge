@@ -132,7 +132,7 @@ Read the PRD and diff against the codebase:
 4. Read YAML frontmatter for skip flags (`auth: no`, `payments: none`, etc.)
 5. **Classify every requirement by type:** Code (buildable), Asset (needs external generation — images, illustrations, OG cards), Copy (text accuracy), Infrastructure (DNS, env vars, dashboards)
 6. Diff: what the PRD describes vs. what's implemented — **structural AND semantic** (not just "does the route exist?" but "does the component render what the PRD describes?")
-6a. **Verify the premise before building (field report #360):** if a mission brief asserts a specific defect or its cause, confirm that IS the real problem in the code first — grep/read the named file and trace the actual failure path. A briefed "X is missing" may already exist (the real bug elsewhere); a briefed "friction" may be a CRITICAL dead-end. Re-scope to the verified root cause if the premise is wrong.
+6a. **Verify the premise before building (field report #360):** if a mission brief asserts a specific defect or its cause, confirm that IS the real problem in the code first — grep/read the named file and trace the actual failure path. A briefed "X is missing" may already exist (the real bug elsewhere); a briefed "friction" may be a CRITICAL dead-end. Re-scope to the verified root cause if the premise is wrong. **Before applying any review-era finding (field report #402/#404), re-verify its premise against current HEAD — a later mission may have already fixed the root cause; if the premise is stale, mark it stale and skip (CAMPAIGN.md rule 5.2).**
 7. Produce the ordered mission list — each mission is 1-3 PRD sections, scoped to be buildable in one `/assemble` run
 8. **Pike** (`subagent_type: Pike`) **challenges the ordering:** "Should we attempt a harder mission first while context is fresh?" Bold counterbalance to Dax's dependency-based ordering. If Pike's argument is stronger, reorder.
 9. **Separately list BLOCKED items** — asset/infrastructure requirements that code can't satisfy
@@ -166,10 +166,13 @@ Present to the user:
   PRD Scope:  [Which sections]
   Prereqs:    [Met / Blocked]
   BLOCKED:    [Asset/infra items that won't be built — flag for user]
+  HW-IN-LOOP: [Hardware-dependent items — gyro/camera/sensors]
   Est. Phases: [Which /build phases apply]
 ═══════════════════════════════════════════
   Confirm? [Y/n/skip/override]
 ```
+
+**Hardware-in-loop classification (field report #404):** mark hardware-dependent features (gyro, camera, sensors) as a distinct **HARDWARE-IN-LOOP** category — gate ship on "operator has confirmed on real hardware", separate from BLOCKED-Asset (CAMPAIGN.md "Hardware-in-loop features").
 
 If `$ARGUMENTS` contains `--interactive`, wait for user confirmation before proceeding. Otherwise, proceed immediately (default is autonomous per ADR-043). `--blitz` is accepted as a no-op for backward compatibility — default behavior is already autonomous.
 
@@ -199,7 +202,8 @@ After every 4th mission (missions 4, 8, 12, etc.), run a Gauntlet checkpoint bef
 ## Step 5 — Debrief and Commit
 
 After `/assemble` completes:
-1. Run `/git` to commit and version the mission
+0. **Live-arming (field report #399) — for campaigns building autonomous/agentic capabilities:** before closing the mission, confirm the producer fires on the live path (not just a fixture) — plant a known defect and verify it surfaces RED on the live surface; adversarially audit your own "done" claims against the committed code (CAMPAIGN.md "Live-arming").
+1. Run `/git` to commit and version the mission. **For multi-phase production changes (field report #394), update the ADR Status + ROADMAP checkmarks for THIS mission before closing it, not at end-of-campaign (CAMPAIGN.md rule 5.3).**
 2. Update `/logs/campaign-state.md` — mark mission complete, update stats. When updating, include the debrief issue number: "Debrief: #XX" or "Debrief: SKIPPED (not blitz)" or "Debrief: N/A (normal mode)".
 3. **BLITZ GATE:** If `$ARGUMENTS` contains `--blitz`, run `/debrief --submit` NOW. Do not proceed to the next step until the debrief is filed. This is non-negotiable — blitz captures learnings while context is fresh. Log the debrief issue number in campaign-state.md.
    **Lightweight alternative:** ONLY if `/context` shows actual usage above 70% (~700k tokens), append a 3-line summary to `/logs/campaign-debriefs.md` instead (mission name, finding counts, key lesson). You MUST report the actual context percentage to justify this. "Context is heavy" without a number is not valid justification.

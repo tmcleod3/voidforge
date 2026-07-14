@@ -17,6 +17,7 @@ Ask:
 - Who is this for? (audience)
 - What does it do? (2-3 sentences)
 - What's the brand personality? (e.g., "Confident, witty, warm. Never corporate.")
+- **Public positioning scope:** Which products / games / categories / brands do we publicly market? (The engine's capability scope may be broader than the marketing scope — capture the marketing scope as a hard constraint that all public copy, SEO, and og text must respect.) (Field report #404.)
 
 **Draft:** PRD Section 1 (Product Vision). Present for confirmation.
 

@@ -2,10 +2,10 @@
 
 > The plan for the plan-maker.
 
-**Current:** v23.11.3 (2026-05-12)
+**Current:** v23.26.1 (2026-07-14)
 **Next:** v24.0 (TBD)
-**Status:** v23.11 series shipped — Surfer Gate npm distribution (v23.11.0), /git release-discipline (v23.11.1), init mode prompt (v23.11.2), $HOME boundary fix + dep pin + CI hardening (v23.11.3).
-**1384 tests**, 9 universes, agents (see AGENT_CLASSIFICATION.md), 28 slash commands, 37 code patterns.
+**Status:** v23.12–v23.26 shipped — field-report-triage hardening across the method docs / patterns / agents; new `/seal` + `/contextmeter` (v23.20); the ADR-067 Dynamic Workflow re-platform of `/gauntlet` + `/assemble` (v23.18–v23.19); the ADR-064 gate↔Workflow interop + effort tiering (v23.16–v23.17); `/contextmeter` shadow-escalation to Local scope (v23.22–v23.25); and the latest field-report triage fixing the `/gauntlet` 1000-agent-cap breach (severity-triaged verify + budget guard) plus 2 new patterns (v23.26).
+**1429 tests**, 9 universes, agents (see AGENT_CLASSIFICATION.md), slash commands (see CLAUDE.md "Slash Commands"), code patterns (see `docs/patterns/`).
 
 ---
 

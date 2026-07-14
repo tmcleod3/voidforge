@@ -99,6 +99,12 @@ for (const r of reviews) for (const f of (r.findings || [])) {
   }
 }
 const claims = [...seen.values()]
+// Fail-SAFE: a claim whose severity isn't a known SEV_RANK key would fall to `lowWarn`
+// (rank 0 < MEDIUM) → advisory → ZERO verify agents, silently skipping verification.
+// Normalize any unknown severity to 'HIGH' (conservative — verify it, don't skip it),
+// preserving the original as `_rawSeverity` for forensics.
+const KNOWN_SEV = new Set(Object.keys(SEV_RANK))
+for (const c of claims) if (!KNOWN_SEV.has(c.severity)) { c._rawSeverity = c.severity; c.severity = 'HIGH' }
 log(`Review: ${reviews.length} lenses → ${claims.length} distinct claims over the diff.`)
 
 // ── Verify: severity-triaged adversarial REFUTE (field report #405) ───────────
@@ -166,12 +172,37 @@ const crossRaw = (await parallel([
 ))).filter(Boolean)
 const crossNew = []
 for (const r of crossRaw) for (const f of (r.findings || [])) if (!confirmedKeys.has(key(f))) crossNew.push(f)
-const crossConfirmed = (await parallel(crossNew.map((c) => () =>
+// Mirror gauntlet.workflow.js: split crossfire verify by severity so an extreme haul
+// can't re-introduce a flat unbounded fan-out. Critical/High get a single VOTE agent
+// each; the rest are batched via BATCH_VOTE + chunk(). Refuted claims are logged
+// (never silently dropped — SUB_AGENTS.md invariant).
+const crossCritHigh = crossNew.filter((f) => rank(f) >= SEV_RANK.HIGH)
+const crossRest = crossNew.filter((f) => rank(f) < SEV_RANK.HIGH)
+const crossCritHighVerdicts = await parallel(crossCritHigh.map((c) => () =>
   agent(`Adversarially verify (default-to-refuted), real execution path: "${c.title}" [${c.severity}] at ${c.file}. ${c.evidence}`,
     { label: `verify:crossfire:${(c.file || '').slice(0, 20)}`, phase: 'Crossfire', schema: VOTE })
-    .then((v) => (v && v.confirm ? c : null))
-))).filter(Boolean)
-log(`Crossfire: ${crossNew.length} new → ${crossConfirmed.length} confirmed.`)
+    .then((v) => ({ claim: c, vote: v }))
+))
+const crossRestVerdicts = await parallel(chunk(crossRest, BATCH_SIZE).map((batch, bi) => () =>
+  agent(
+    `Adversarially verify these ${batch.length} lower-severity crossfire claims (default-to-refuted), reproducing each through the REAL execution path. Confirm a claim ONLY if you cannot refute it, citing exact code. Return one verdict per claim by its 0-based index.\n\n${batch.map((c, i) => `[${i}] "${c.title}" [${c.severity}] at ${c.file} — ${c.evidence}`).join('\n')}`,
+    { label: `verify:crossfire-batch:${bi}`, phase: 'Crossfire', schema: BATCH_VOTE },
+  ).then((res) => ({ batch, verdicts: (res && res.verdicts) || [] }))
+))
+const crossConfirmed = []
+const crossfireRefutedLog = []
+for (const cv of crossCritHighVerdicts.filter(Boolean)) {
+  if (cv.vote && cv.vote.confirm) crossConfirmed.push(cv.claim)
+  else crossfireRefutedLog.push({ title: cv.claim.title, file: cv.claim.file, why: (cv.vote && cv.vote.reason) || 'no verdict returned — treated as refuted' })
+}
+for (const cb of crossRestVerdicts.filter(Boolean)) {
+  for (let i = 0; i < cb.batch.length; i++) {
+    const vd = cb.verdicts.find((x) => x.index === i)
+    if (vd && vd.confirm) crossConfirmed.push(cb.batch[i])
+    else crossfireRefutedLog.push({ title: cb.batch[i].title, file: cb.batch[i].file, why: (vd && vd.reason) || 'no verdict returned — treated as refuted' })
+  }
+}
+log(`Crossfire: ${crossNew.length} new → ${crossConfirmed.length} confirmed, ${crossfireRefutedLog.length} refuted (logged).`)
 
 // ── Council: synthesize (JS); the lead applies fixes, then re-runs to re-verify ─
 phase('Council')
@@ -184,4 +215,5 @@ return {
   advisory,               // Low/Warn surfaced without spending verify agents (#405)
   deferredLog: deferred,  // Critical/High over the verify budget — re-run scoped (#405)
   refutedLog: refuted, // dropped from the actionable buckets, but never silently — logged per SUB_AGENTS.md
+  crossfireRefutedLog, // crossfire claims that failed the one-pass verify — never silently dropped
 }
