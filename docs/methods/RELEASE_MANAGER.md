@@ -116,7 +116,12 @@ If any `docs/methods/*.md` file was modified in this release, check whether the 
 
 **Pairs:** GAUNTLET↔gauntlet, CAMPAIGN↔campaign, FORGE_KEEPER↔void, ASSEMBLER↔assemble, FIELD_MEDIC↔debrief, BUILD_PROTOCOL↔build, QA_ENGINEER↔qa, SECURITY_AUDITOR↔security, PRODUCT_DESIGN_FRONTEND↔ux, SYSTEMS_ARCHITECT↔architect, DEVOPS_ENGINEER↔devops, RELEASE_MANAGER↔git, THUMPER↔thumper.
 
-If a method doc gained a new section, flag, checklist item, or agent — flag it for the user. They decide if the command file needs updating.
+Classify each method-doc addition and act on the class — this is a **release gate for mandatory additions**, not pure advice (field report #406 RC-1):
+
+- **Mandatory addition → paired command file MUST sync this release.** If the method-doc diff adds a step marked MANDATORY, or any discrete *executable* procedure (a curl/probe command, a required sweep, a numbered gate, a required checklist item the agent must run), the paired command file must be updated in the same release. Do not push a release that leaves a mandatory method-doc addition unsynced in its command file. The command file is the executable summary the LLM reads when the slash command runs; a mandatory step that lives only in the method doc never changes agent behavior.
+- **Advisory addition → flag, user decides.** A new section of rationale, a "why", an example, background: flag it for the user; they decide if the command file needs updating.
+
+**Why it's a gate now.** v23.26.0 added mandatory steps to 5 method docs and 0 command files, shipping 6 command files a version behind and forcing an entire follow-on patch (v23.26.1). The rule is named in `SUB_AGENTS.md`: *mandatory method-doc step → paired command file must sync in the same change; advisory context may delegate.*
 
 ## Verification Checklist
 
@@ -137,6 +142,8 @@ After every commit, Barton verifies:
 - [ ] The tag-push publish workflow declares a dependency on the FULL validation suite (E2E + a11y), not only unit tests — via `needs:` or a same-SHA `workflow_run`. A publish gate that excludes E2E/a11y can ship a critical regression a green unit gate never sees (field report #363 F4)
 - [ ] **Platform floor unchanged since last release?** If a release newly depends on a Claude Code feature with a higher floor, flag it **breaking** and add a `⚠ raises Claude Code floor` CHANGELOG banner; confirm every newly-referenced platform feature is GA or explicitly Full-tier/opt-in (ADR-065, `docs/COMPATIBILITY.md`)
 - [ ] **Native-capability collision re-audit:** any new native bundled skill colliding with a VoidForge command has a recorded disposition, and every `.claude/commands/*.md` has a row in `docs/NATIVE_CAPABILITIES.md` (ADR-066)
+- [ ] **Count-drift sweep (field report #406 RC-2, `/git` Step 5.7):** every doc-cited count of countable artifacts (agents, patterns, commands, method docs, tests) matches ground truth (`ls .claude/agents/*.md | wc -l`, `ls docs/patterns/* | wc -l`, `ls .claude/commands/*.md | wc -l`), or the hardcoded scalar was replaced with an SSOT pointer. Enforces BUILD_PROTOCOL Principle #11 mechanically instead of by hope — patterns/commands/tests all drifted across README/HOLOCRON/CLAUDE.md while the principle sat unenforced.
+- [ ] **Command↔Doc mandatory-sync gate (field report #406 RC-1, `/git` Step 5.5 / Step 5.75):** every MANDATORY method-doc addition (a required step, probe, sweep, or numbered gate) this release has a matching update in its paired `.claude/commands/*.md` file. Advisory additions may be flagged and delegated; mandatory ones may not ship unsynced.
 
 ## CLAUDE.md Command Table Integrity Check
 
@@ -227,7 +234,7 @@ For each script discovered, document its purpose + waiver convention in the proj
 
 **Methodology vs project tooling:** the SCRIPTS are project-specific; the DISCIPLINE (run all gates before push) is methodology. The orchestrator does not need to know what each script does — only that it exists and must pass.
 
-## Removal Sweep
+## Removal & Behavior-Change Sweep
 
 When a release deletes a symbol, export, prop, env var, command, or any other named artifact, the deletion is only half done until its *name* is gone everywhere too. A green build and a green test suite confirm the **code** compiles without it — they say nothing about the comments that still describe it, the README sentence that still tells users to set it, or the doc that still links to it. That prose drift survives every automated gate and ships as a silent lie.
 
@@ -242,6 +249,8 @@ git grep -nI -- "$NAME" -- ':!CHANGELOG.md' ':!PROJECT_VERSION.md' ':!VERSION.md
 ```
 
 **Why both, not just code.** Field report #375 (PerpWatch): retiring the shared `MONITOR_TOKEN` auth path left stale `MONITOR_TOKEN` references across ~8 comment sites **plus** user-facing copy ("set a monitor token") after the symbol was deleted — the build and 97 unit tests were green throughout, because none of the stale references were *code*. Root cause: no sweep step pairing a symbol removal with its prose. Pair the deletion with the grep, every time.
+
+**Behavior change, not just removal (field report #406 RC-3).** The sweep generalizes from *removed names* to *altered behaviors*. When a release changes — not just deletes — a documented behavior (an unbounded loop becomes severity-triaged, a default flips, a limit is added, a required step is reordered), grep the whole tree for the docs and examples that *describe or teach the OLD behavior* and reconcile them in the same change. A green build and green tests say nothing about a copy-template that still teaches the pattern this release just forbade. Field report #406: v23.26.0 fixed `gauntlet.workflow.js` to a bounded, severity-triaged verify but left `WORKFLOWS.md`'s canonical-shape example, `gauntlet.md`, and `GAUNTLET.md` still teaching the old unbounded "3-lens on every claim" — the template literally taught the pattern the fix removed. This is broader than WORKFLOWS.md's prose→workflow port rule: it is the general "when a fix changes behavior X, grep the docs that teach X's old behavior and update them in the same change."
 
 ## Ship-and-Validate: New Artifact Type Needs a Validator the Same Release
 

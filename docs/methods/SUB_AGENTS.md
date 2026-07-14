@@ -544,6 +544,15 @@ The glob-fan-out rule above covers waves where scope is a pattern you can grep (
 
 The failure mode this prevents: an apply fan-out reports every agent complete while one accepted `(fixId → targetFile)` mapping (e.g., `AI_INTELLIGENCE.md` as a target of a multi-file fix) was omitted from the hand-built work-list and never written. There is no legacy pattern to grep for it — the only proof is the diff coverage check. The earlier the diff-vs-registry assertion runs, the cheaper the catch; left to the pre-commit full-diff review gate, it surfaces but only after the wave declared itself finished. (Field report #363 F3.)
 
+### Mandatory Method-Doc Step → Paired Command File Must Sync (field report #406)
+
+Method docs (`docs/methods/*.md`) define the full protocol; command files (`.claude/commands/*.md`) are the executable summary an agent actually reads and runs when a slash command fires. When a release adds to a method doc, the sync obligation depends on the *kind* of addition — and for one kind it is MANDATORY, not advisory:
+
+1. **Mandatory step → paired command file MUST sync in the SAME change.** If the addition is a step marked MANDATORY, or any discrete *executable* procedure (a curl/probe command, a required sweep, a numbered gate, a required checklist item the agent must run), the paired command file must be updated in the same release. The command file is the executable spec: an agent running `/qa` reads `qa.md`, not `QA_ENGINEER.md`, mid-pass — a mandatory step that lands only in the method doc never changes behavior. This is enforced as a release gate at `/git` Step 5.5 (RELEASE_MANAGER.md Step 5.75).
+2. **Advisory context → may delegate.** Rationale, a "why", an illustrative example, background prose: flag the paired command file for the user, who decides whether it needs the update. No gate.
+
+The failure mode this prevents: v23.26.0 added mandatory steps (generated-media route probe #404, adjacent credential-store sweep #394, live-arming #399, hardware-in-loop #404) to 5 method docs and **0** command files — the docs described new required behavior the agents never executed, because agents run from the command file. It shipped 6 command files a version behind and forced the entire v23.26.1 patch. The pairing table lives in RELEASE_MANAGER.md Step 5.75 / `git.md` Step 5.5.
+
 ### Context Passing Between Phases
 
 - Pass **findings summaries** between phases, not raw file contents

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [23.27.0] - 2026-07-14
+
+### Field Report Triage — #406 closed (command↔doc mandatory-sync gate, count-drift sweep, behavior-change sweep)
+
+`/debrief --inbox` triaged the last open field report — #406, a self-filed finding from the v23.26.0→v23.26.1 session where *mandatory* method-doc additions shipped without their paired command files (6 command files a version behind their method docs) and a follow-on `/review` had to catch it, forcing an entire extra patch. All three root causes accepted and applied; the release command now enforces mechanically what the prior session found only by hand.
+
+- **Changed** — **RC-1 (HIGH): Command↔Doc Sync is now a release gate, not advice.** `/git` Step 5.5 and `RELEASE_MANAGER.md` Step 5.75 now classify each method-doc addition. A **mandatory** addition — a step marked MANDATORY, or a discrete *executable* procedure (a curl/probe, a required sweep, a numbered gate, a required checklist item the agent runs) — **must** have its paired `.claude/commands/*.md` file updated in the same release; a release does not push with a mandatory method-doc addition left unsynced. Advisory context (rationale, examples) still delegates to the user. The rule is named in `SUB_AGENTS.md` ("Mandatory Method-Doc Step → Paired Command File Must Sync"): the command file is the executable spec the agent runs from — a mandatory step living only in the method doc never changes behavior. Added as a Verification-Checklist line.
+- **Added** — **RC-2 (MED): release-time count-drift sweep.** New `/git` Step 5.7 (Count-Drift Sweep) computes ground truth (`ls … | wc -l`) for agents/patterns/commands and greps the human-facing docs for stale scalars, preferring SSOT pointers over hardcoded numbers. `BUILD_PROTOCOL.md` Principle #11 now points at this enforcement and it's a Verification-Checklist line — the "derived counts discipline" was documented but unenforced, and drifted patterns/commands/tests across README/HOLOCRON/CLAUDE.md every release until now.
+- **Changed** — **RC-3 (MED): Removal Sweep → Removal & Behavior-Change Sweep.** `/git` Step 3.5 and the `RELEASE_MANAGER.md` section generalize from *removed names* to *altered behaviors*: when a fix changes (not just deletes) a documented behavior, grep the tree for docs/examples that still teach the OLD behavior and reconcile them the same release — the general form of the v23.26.0 miss where a bounded-verify fix left three docs still teaching the unbounded pattern it removed.
+- **Changed** — `/git` Steps 5.5 and 5.7 relocated to sit between Step 5 (Verify) and Step 6 (Push), where a pre-push gate belongs; they had been physically placed after Step 7 (Publish), so a gate whose own text says "do not proceed to Push" was documented after the publish step.
+
+No methodology behavior removed. Docs-only release; both packages bumped in lockstep. Dep `^23.26.1` → `^23.27.0`.
+
 ## [23.26.1] - 2026-07-14
 
 ### Documentation-accuracy pass — 12-agent `/review` (command↔method sync, count drift, #405 doc loop-closers)

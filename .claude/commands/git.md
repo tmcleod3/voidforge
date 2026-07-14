@@ -60,7 +60,7 @@ Update all version files:
 4. Update the version in **every** versioned `package.json`. For a single-package repo that is the root `package.json`. For a workspaces/monorepo it is each non-private workspace package — VoidForge has **two**: `packages/voidforge/package.json` and `packages/methodology/package.json` (the root is `"private": true` with no version). **Also bump any internal dep pin:** when one workspace package depends on a sibling, set the range to `^<new-version>` — for VoidForge, `voidforge-build`'s `voidforge-build-methodology` dependency, per ADR-062. A bump that updates one package but not its sibling or the pin ships an inconsistent release (and the Step 7 publish skips any package whose version doesn't match).
 5. **Re-sync tracked generated copies of release files.** If a source file changed this release has a tracked copy that is regenerated at publish, re-sync it so the in-repo copy doesn't go stale between releases. VoidForge: `packages/methodology/CLAUDE.md` is the root `CLAUDE.md` with the ADR-058 template block stripped — `sed '/<!-- REMOVE-FOR-NPM-PUBLISH/,/END-REMOVE-FOR-NPM-PUBLISH -->/d' CLAUDE.md > packages/methodology/CLAUDE.md`.
 
-## Step 3.5 — Removal Sweep (Rogers)
+## Step 3.5 — Removal & Behavior-Change Sweep (Rogers)
 If Step 1 classified any change as **Removed** — a deleted symbol, export, prop, env var, command, or any named artifact — sweep its name out of comments and user-facing copy before the commit lands. A green build and green tests confirm the code compiles without it; they say nothing about a comment that still describes it or a doc that still tells users to set it.
 
 For each removed name, grep the **whole tree** — code AND comments AND user-facing copy (READMEs, docs, CLAUDE.md, command files, UI strings, help text) — not just source:
@@ -71,6 +71,8 @@ git grep -nI -- "$NAME" -- ':!CHANGELOG.md' ':!PROJECT_VERSION.md' ':!VERSION.md
 ```
 
 Every hit that is not the intentional "Removed" changelog line is either updated to the new reality or itself removed before committing. Field report #375: retiring `MONITOR_TOKEN` left ~8 stale comment sites plus user-facing copy ("set a monitor token") that a green build + 97 unit tests never caught — because none of the stale references were code.
+
+**Behavior-change sweep (field report #406 RC-3).** The same discipline applies when a change *alters* — not just removes — a documented behavior. When a code, workflow, or protocol fix changes behavior X (an unbounded loop becomes severity-triaged, a default flips, a limit is added, a required step is reordered), grep the whole tree for the docs and examples that *describe or teach* X's OLD behavior and reconcile them in the same change. A green build says nothing about a copy-template that still teaches the pattern the same release just forbade. v23.26.0 fixed `gauntlet.workflow.js` (bounded, severity-triaged verify) but left `WORKFLOWS.md`'s canonical-shape example, `gauntlet.md`, and `GAUNTLET.md`'s Confidence PRINCIPLE / `--infinity` section all still teaching the old unbounded "3-lens on every claim" behavior — the copy-template literally still taught the pattern the fix removed. Sweep shape: `git grep -nI -- "<phrase that names the old behavior>"` across docs/, `.claude/`, and README/CLAUDE.md; every hit that still asserts the old behavior is updated in this release.
 
 ## Step 4 — Commit (Rogers)
 Stage and commit:
@@ -105,6 +107,45 @@ Confirm everything is consistent:
 4. Run `git status` — verify working tree is clean (no forgotten files)
 5. If any inconsistency found, flag it and offer to fix
 
+## Step 5.5 — Command↔Doc Sync Check (Friday)
+If any `docs/methods/*.md` file was modified, verify the paired `.claude/commands/*.md` file reflects the same additions:
+
+| Method Doc | Command File |
+|-----------|-------------|
+| GAUNTLET.md | gauntlet.md |
+| CAMPAIGN.md | campaign.md |
+| FORGE_KEEPER.md | void.md |
+| ASSEMBLER.md | assemble.md |
+| FIELD_MEDIC.md | debrief.md |
+| BUILD_PROTOCOL.md | build.md |
+| QA_ENGINEER.md | qa.md |
+| SECURITY_AUDITOR.md | security.md |
+| PRODUCT_DESIGN_FRONTEND.md | ux.md |
+| SYSTEMS_ARCHITECT.md | architect.md |
+| DEVOPS_ENGINEER.md | devops.md |
+| RELEASE_MANAGER.md | git.md |
+| THUMPER.md | thumper.md |
+
+Classify each method-doc addition, then act on the class — this is a **release gate**, not pure advice (field report #406 RC-1):
+
+- **Mandatory addition → the paired command file MUST sync in the same release.** If the method-doc diff adds a step marked MANDATORY, or any discrete *executable* procedure the agent runs (a curl/probe command, a required sweep, a numbered gate, a required checklist item), the paired `.claude/commands/*.md` file **must** be updated in the same release. Do **not** proceed to Step 6 (Push) with a mandatory method-doc addition that has no matching command-file change. The command file is the executable spec the agent actually runs from — a method doc the agent never re-reads mid-pass does not change behavior, so an unsynced mandatory step ships as documentation the agents never execute.
+- **Advisory addition → flag, user decides.** Background context, rationale, a "why", an illustrative example: flag it ("Method doc X changed but command file Y may need matching update") and let the user decide whether the command file needs updating.
+
+**Why it's a gate.** v23.26.0 added *mandatory* steps (a generated-media route probe, an adjacent credential-store sweep, live-arming, hardware-in-loop) to 5 method docs and **0** command files — shipping 6 command files a full version behind their method docs. The gap was invisible until a follow-on `/review` caught it, forcing the entire v23.26.1 patch. The rule is named in `docs/methods/SUB_AGENTS.md` ("mandatory method-doc step → paired command file must sync").
+
+## Step 5.7 — Count-Drift Sweep (Friday)
+Enforces BUILD_PROTOCOL.md Principle #11 (Derived counts discipline) mechanically at release time instead of by hope. Any doc that cites a **count of countable artifacts** — agents, patterns, commands, method docs, tests — must match ground truth before the commit lands. Compute ground truth, then grep the docs for hardcoded numbers of that class and reconcile:
+
+```bash
+echo "agents:   $(ls .claude/agents/*.md | wc -l)"
+echo "patterns: $(ls docs/patterns/ | grep -vx 'README.md' | wc -l)"   # exclude the index; count implementations only
+echo "commands: $(ls .claude/commands/*.md | wc -l)"
+# then: grep the human-facing docs for stale scalars of each class
+git grep -nIE '[0-9]+ (agents|patterns|commands|method docs|tests)' -- README.md HOLOCRON.md CLAUDE.md docs/
+```
+
+Any doc number that disagrees with ground truth is drift. Fix it — or, preferred, replace the hardcoded scalar with an **SSOT pointer** (`run \`ls .claude/agents/*.md | wc -l\` for the current count`) so it can never drift again. Field report #406 RC-2: README / HOLOCRON / CLAUDE.md drifted patterns to 34/35/56 (actual 57), commands to 30 (actual 33), and tests to 1384/675 (both stale) — all while Principle #11 sat documented-but-unenforced. Documented discipline without a release-time check drifts every release; this step is the check.
+
 ## Step 6 — Push (Coulson) [Optional]
 Only if the user explicitly requests:
 1. Check remote: `git remote -v`
@@ -131,27 +172,6 @@ Only runs when the user passes `--npm`. Publishing is irreversible (npm forbids 
 5. **Run `npm publish` per package** from each package's own directory. Surface the tarball summary line (`+ name@version`) on success. On `EPUBLISHCONFLICT` (version already published), stop — the user needs to bump and re-run.
 6. **Verify.** For each published package, run `npm view <name> version` and confirm it returns the new version. There is sometimes a few-second registry propagation lag — retry once after 5s if mismatched.
 7. **Final summary.** Print which packages were published and at what version. This is the line that closes the release.
-
-## Step 5.5 — Command↔Doc Sync Check (Friday)
-If any `docs/methods/*.md` file was modified, verify the paired `.claude/commands/*.md` file reflects the same additions:
-
-| Method Doc | Command File |
-|-----------|-------------|
-| GAUNTLET.md | gauntlet.md |
-| CAMPAIGN.md | campaign.md |
-| FORGE_KEEPER.md | void.md |
-| ASSEMBLER.md | assemble.md |
-| FIELD_MEDIC.md | debrief.md |
-| BUILD_PROTOCOL.md | build.md |
-| QA_ENGINEER.md | qa.md |
-| SECURITY_AUDITOR.md | security.md |
-| PRODUCT_DESIGN_FRONTEND.md | ux.md |
-| SYSTEMS_ARCHITECT.md | architect.md |
-| DEVOPS_ENGINEER.md | devops.md |
-| RELEASE_MANAGER.md | git.md |
-| THUMPER.md | thumper.md |
-
-If a method doc gained a new section, flag, or checklist item — flag it: "Method doc X changed but command file Y may need matching update." The user decides whether the command file needs updating.
 
 ## Arguments
 - `--dry-run` → Show version bump, changelog entry, commit message, tag, and (if `--npm`) the package list that would publish — without executing any of it.
